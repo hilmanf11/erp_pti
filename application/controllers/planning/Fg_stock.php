@@ -1,0 +1,585 @@
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+class Fg_stock extends CI_Controller
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->helper('url');
+        $this->load->helper(array('form', 'url'));
+        $this->load->library('form_validation');
+        $this->load->library('session');
+        $this->load->model('api');
+
+        //Validasi Form
+        $this->form_validation->set_rules('product_no', 'Product No', 'required|min_length[2]|max_length[50]|is_unique[fg_stock.product_no]');
+    }
+
+    public function index()
+    {
+        if (empty($this->session->api_key)) {
+            redirect('error_session');
+        } elseif ($this->checkuserAccess($this->id_menu()) > 0) {
+            $data['button'] = $this->getbutton($this->id_menu());
+            $this->load->view('template/header', $data);
+            $this->load->view('planning/fg_stock');
+        } else {
+            redirect('error_access');
+        }
+    }
+
+    public function reads()
+    {
+        if ($this->input->get()) {
+            $number = $this->input->get('number');
+            $processSub = $this->api->reads('fg_stock', [], ["number" => $number]);
+
+            echo json_encode($processSub);
+        }
+    }
+
+    public function readRevision(){
+        $month = $this->input->get("month");
+        $year = $this->input->get("year");
+
+        $data = $this->api->query("SELECT DISTINCT revision FROM fg_stock WHERE p_month = '$month' and p_year='$year' ORDER BY revision ASC");
+        echo json_encode($data);
+    }
+
+    public function readProducts()
+    {
+        $items = $this->banshu->reads('mst_item', [], ["pfm_id" => "06", "stscode_id" => "01"], "", "item_id", "asc", "item_id", "trim(item_id) as item_id, item_name");
+        echo json_encode($items);
+    }
+
+    public function readLines()
+    {
+        $lines = $this->banshu->reads('wip_mst_line', [], [], "", "nm_line", "asc", "");
+        echo json_encode($lines);
+    }
+
+    public function datatables()
+    {
+        $this->pg = $this->load->database('pg2', TRUE);
+        if ($this->input->get()) {
+            //Filter Data
+            $filter_month = base64_decode($this->input->get('filter_month'));
+            $filter_year = base64_decode($this->input->get('filter_year'));
+            $filter_revision = base64_decode($this->input->get('filter_revision'));
+            $filter_customer_id = trim(base64_decode($this->input->get('filter_customer_id')));
+            $filter_product_no = trim(base64_decode($this->input->get('filter_product_no')));
+
+            $planConfig = $this->api->read('planning_config');
+            if ($planConfig->cutoff_current == "on") {
+                $startMonth = date("Y-m-d", strtotime($filter_year . "-" . $filter_month . "-01"));
+                $endMonth =  date('Y-m-t', strtotime($filter_year . "-" . $filter_month . "-28"));
+            } else {
+                $startMonth =  date('Y-m-d', strtotime('-1 month', strtotime($filter_year . "-" . $filter_month . "-" . $planConfig->cutoff_day_from)));
+                $endMonth = date("Y-m-d", strtotime($filter_year . "-" . $filter_month . "-" . $planConfig->cutoff_day_to));
+            }
+
+            $items = $this->api->reads("mst_item", ["item_id" => $filter_product_no, "id_customer" => $filter_customer_id], ["stscode_id" => "01", "pfm_id" => "06"]);
+            foreach ($items as $item) {
+                $item_id = $item->item_id;
+                $item_name = $item->item_name;
+                $cust_id = $item->id_customer;
+
+                $query = $this->pg->query("SELECT coalesce(round(sum(ith_qty)),0) as stock
+                from ith
+                where ith_date <= '$startMonth'
+                and ith_item_id = '$item_id'
+                group by ith_item_id
+                order by ith_item_id asc");
+                $record = $query->row();
+
+                if ($record) {
+                    $cct = $this->api->read("wip_mst_wos_cct", [], ["mstwos_assyno" => $item_id]);
+                    $customer = $this->api->read("mst_customer", [], ["number" => $cust_id]);
+                    $arr[] = array(
+                        "item_id" => $item_id,
+                        "item_name" => $item_name,
+                        "cust_id" => $cust_id,
+                        "cust_name" => @$customer->name,
+                        "circuit_no" => @$cct->circuit_no,
+                        "stock" => @$record->stock
+                    );
+                } else {
+                    $cct = $this->api->read("wip_mst_wos_cct", [], ["mstwos_assyno" => $item_id]);
+                    $customer = $this->api->read("mst_customer", [], ["number" => $cust_id]);
+                    $arr[] = array(
+                        "item_id" => $item_id,
+                        "item_name" => $item_name,
+                        "cust_id" => $cust_id,
+                        "cust_name" => @$customer->name,
+                        "circuit_no" => @$cct->circuit_no,
+                        "stock" => 0
+                    );
+                }
+            }
+
+            echo json_encode($arr);
+        }
+    }
+
+    public function datatables_uploaded()
+    {
+        if ($this->input->get()) {
+            //Filter Data
+            $filter_month = base64_decode($this->input->get('filter_month'));
+            $filter_year = base64_decode($this->input->get('filter_year'));
+            $filter_revision = base64_decode($this->input->get('filter_revision'));
+            $filter_customer_id = trim(base64_decode($this->input->get('filter_customer_id')));
+            $filter_product_no = trim(base64_decode($this->input->get('filter_product_no')));
+
+            $filters = json_decode($this->input->post('filterRules'));
+
+            $page = $this->input->post('page');
+            $rows = $this->input->post('rows');
+
+            $page = isset($page) ? intval($page) : 1;
+            $rows = isset($rows) ? intval($rows) : 10;
+            $offset = ($page - 1) * $rows;
+            $result = array();
+
+            //Select Query
+            $this->db->select('a.*');
+            $this->db->from('fg_stock a');
+            $this->db->like('a.p_month', $filter_month);
+            $this->db->like('a.p_year', $filter_year);
+            $this->db->like('a.revision', $filter_revision);
+            $this->db->like('a.customer_id', $filter_customer_id);
+            $this->db->like('a.product_no', $filter_product_no);
+            if(@count($filters) > 0){
+                foreach ($filters as $filter) {
+                    if($filter->field == "p_month"){
+                        $this->db->like("a.p_month", $filter->value);
+                    }elseif($filter->field == "p_year"){
+                        $this->db->like("a.p_year", $filter->value);
+                    }elseif($filter->field == "revision"){
+                        $this->db->like("a.revision", $filter->value);
+                    }elseif($filter->field == "customer_name"){
+                        $this->db->like("a.customer_name", $filter->value);
+                    }elseif($filter->field == "product_no"){
+                        $this->db->like("a.product_no", $filter->value);
+                    }elseif($filter->field == "product_name"){
+                        $this->db->like("a.product_name", $filter->value);
+                    }elseif($filter->field == "circuit_no"){
+                        $this->db->like("a.circuit_no", $filter->value);
+                    }elseif($filter->field == "qty"){
+                        $this->db->like("a.qty", $filter->value);
+                    }
+                }
+            }
+            $this->db->group_by('a.id');
+
+            //Total Data
+            $totalRows = $this->db->count_all_results('', false);
+            //Limit 1 - 10
+            $this->db->limit($rows, $offset);
+            //Get Data Array
+            $records = $this->db->get()->result_array();
+
+            //Mapping Data
+            $result['total'] = $totalRows;
+            $result = array_merge($result, ['rows' => $records]);
+            echo json_encode($result);
+        }
+    }
+
+    public function create()
+    {
+        if ($this->input->post()) {
+            $post = $this->input->post('data');
+            $p_month = $this->input->post('p_month');
+            $p_year = $this->input->post('p_year');
+            $revision = $this->input->post('revision');
+            $salesOrder = $this->api->reads('fg_stock', [], [
+                "p_month" => $p_month,
+                "p_year" => $p_year,
+                "revision" => $revision,
+                "product_no" => trim($post['item_id']),
+                "customer_id" => $post['cust_id']
+            ]);
+
+            $postFinal = array(
+                "p_month" => $p_month,
+                "p_year" => $p_year,
+                "revision" => $revision,
+                "customer_id" => $post['cust_id'],
+                "customer_name" => $post['cust_name'],
+                "product_no" => trim($post['item_id']),
+                "product_name" => $post['item_name'],
+                "circuit_no" => $post['circuit_no'],
+                "qty" => $post['stock']
+            );
+
+            if($post['item_id'] != ""){
+                if (count($salesOrder) > 0) {
+                    $send   = $this->api->update('fg_stock', [
+                        "p_month" => $p_month,
+                        "p_year" => $p_year,
+                        "revision" => $revision,
+                        "customer_id" => $post['cust_id'],
+                        "customer_name" => $post['cust_name'],
+                        "product_no" => trim($post['item_id']),
+                        "product_name" => $post['item_name']
+                    ], $postFinal);
+                    echo json_encode(array("title" => "Good Job", "message" => "Product No " . $post['item_id'] . " Updated Successfully", "theme" => "success"));
+                } else {
+                    $send   = $this->api->create('fg_stock', $postFinal, "FGS", "fg_stock");
+                    echo json_encode(array("title" => "Good Job", "message" => "Product No " . $post['item_id'] . " Saved Successfully", "theme" => "success"));
+                }
+            }else{
+                echo json_encode(array("title" => "Error", "message" => "Product No " . $post['item_id'] . " Cannot Saved", "theme" => "error"));
+            }
+        } else {
+            show_error("Cannot Process your request");
+        }
+    }
+
+    public function update()
+    {
+        if ($this->input->post()) {
+            $id   = base64_decode($this->input->get('id'));
+            $post = $this->input->post();
+            $send = $this->api->update('fg_stock', ["id" => $id], $post);
+            echo $send;
+        } else {
+            show_error("Cannot Process your request");
+        }
+    }
+
+    public function delete()
+    {
+        $data = $this->input->post();
+        $send = $this->api->delete('fg_stock', $data);
+        echo $send;
+    }
+
+    public function upload()
+    {
+        error_reporting(0);
+        require_once 'assets/vendors/excel_reader2.php';
+        $target = basename($_FILES['file_upload']['name']);
+        move_uploaded_file($_FILES['file_upload']['tmp_name'], $target);
+        chmod($_FILES['file_upload']['name'], 0777);
+        $file = $_FILES['file_upload']['name'];
+        $data = new Spreadsheet_Excel_Reader($file, false);
+        $total_row = $data->rowcount($sheet_index = 0);
+
+        for ($i = 5; $i <= $total_row; $i++) {
+            $datas[] = array(
+                'p_month' => $data->val(2, 3),
+                'p_year' => $data->val(2, 4),
+                'revision' => $data->val(3, 3),
+                'cust_id' => $data->val($i, 2),
+                'cust_name' => $data->val($i, 3),
+                'item_id' => $data->val($i, 4),
+                'item_name' => $data->val($i, 5),
+                'circuit_no' => $data->val($i, 6),
+                'stock' => $data->val($i, 7),
+                'status' => "OPEN"
+            );
+        }
+
+        $datas['total'] = count($datas);
+        echo json_encode($datas);
+
+        unlink($_FILES['file_upload']['name']);
+    }
+
+    public function uploadcreate()
+    {
+        if ($this->input->post()) {
+            $post = $this->input->post('data');
+            $p_month = $post['p_month'];
+            $p_year = $post['p_year'];
+            $revision = $post['revision'];
+            $salesOrder = $this->api->reads('fg_stock', [], [
+                "p_month" => $p_month,
+                "p_year" => $p_year,
+                "revision" => $revision,
+                "product_no" => trim($post['item_id'])
+            ]);
+
+            $postFinal = array(
+                "p_month" => $p_month,
+                "p_year" => $p_year,
+                "revision" => $revision,
+                "customer_id" => $post['cust_id'],
+                "customer_name" => $post['cust_name'],
+                "product_no" => trim($post['item_id']),
+                "product_name" => $post['item_name'],
+                "circuit_no" => $post['circuit_no'],
+                "qty" => $post['stock']
+            );
+
+            if($post['item_id'] != ""){
+                if (count($salesOrder) > 0) {
+                    $this->api->update('fg_stock', [
+                        "p_month" => $post['p_month'],
+                        "p_year" => $post['p_year'],
+                        "revision" => $post['revision'],
+                        "product_no" => $post['item_id']
+                    ], $postFinal);
+    
+                    echo json_encode(array("title" => "Good Job", "message" => "Product No" . $post['item_id'] . " Updated Successfully", "theme" => "success"));
+                } else {
+                    $this->api->create('fg_stock', $postFinal, "FGS", "fg_stock");
+                    echo json_encode(array("title" => "Good Job", "message" => "Product No " . $post['item_id'] . " Saved Successfully", "theme" => "success"));
+                }
+            }else{
+                echo json_encode(array("title" => "Error", "message" => "Product No " . $post['item_id'] . " Saved Failed", "theme" => "error"));
+            }
+        }
+    }
+
+    public function uploadclearFailed()
+    {
+        @unlink('excel/failed/fg_stock.txt');
+    }
+
+    public function uploadcreateFailed()
+    {
+        if ($this->input->post()) {
+            $message = $this->input->post('message');
+            $textFailed = fopen('excel/failed/fg_stock.txt', 'a');
+            fwrite($textFailed, $message . "\n");
+            fclose($textFailed);
+        }
+    }
+
+    public function uploadDownloadFailed()
+    {
+        $file = "excel/failed/fg_stock.txt";
+
+        header('Content-Description: File Failed');
+        header('Content-Disposition: attachment; filename=' . basename($file));
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Content-Length: ' . @filesize($file));
+        header("Content-Type: text/plain");
+        @readfile($file);
+    }
+
+    public function print($option = "")
+    {
+        $this->pg = $this->load->database('pg2', TRUE);
+        if ($option == "excel") {
+            $format  = date("Ymd");
+            header("Content-type: application/vnd-ms-excel");
+            header("Content-Disposition: attachment; filename=fg_stock_$format.xls");
+        }
+
+        //Config
+        $this->db->select('*');
+        $this->db->from('config');
+        $config = $this->db->get()->row();
+
+        $filter_month = base64_decode($this->input->get('filter_month'));
+        $filter_year = base64_decode($this->input->get('filter_year'));
+        $filter_revision = base64_decode($this->input->get('filter_revision'));
+        $filter_customer_id = trim(base64_decode($this->input->get('filter_customer_id')));
+        $filter_product_no = trim(base64_decode($this->input->get('filter_product_no')));
+
+        $planConfig = $this->api->read('planning_config');
+        if ($planConfig->cutoff_current == "on") {
+            $startMonth = date("Y-m-d", strtotime($filter_year . "-" . $filter_month . "-01"));
+            $endMonth =  date('Y-m-t', strtotime($filter_year . "-" . $filter_month . "-28"));
+        } else {
+            $startMonth =  date('Y-m-d', strtotime('-1 month', strtotime($filter_year . "-" . $filter_month . "-" . $planConfig->cutoff_day_from)));
+            $endMonth = date("Y-m-d", strtotime($filter_year . "-" . $filter_month . "-" . $planConfig->cutoff_day_to));
+        }
+
+        $items = $this->api->reads("mst_item", ["item_id" => $filter_product_no, "id_customer" => $filter_customer_id], ["stscode_id" => "01", "pfm_id" => "06"]);
+        foreach ($items as $item) {
+            $item_id = $item->item_id;
+            $item_name = $item->item_name;
+            $cust_id = $item->id_customer;
+
+            $query = $this->pg->query("SELECT coalesce(round(sum(ith_qty)),0) as stock
+            from ith
+            where ith_date <= '$startMonth'
+            and ith_item_id = '$item_id'
+            group by ith_item_id
+            order by ith_item_id asc");
+            $record = $query->row();
+
+            if ($record) {
+                $cct = $this->api->read("wip_mst_wos_cct", [], ["mstwos_assyno" => $item_id]);
+                $customer = $this->api->read("mst_customer", [], ["number" => $cust_id]);
+                $records[] = array(
+                    "item_id" => $item_id,
+                    "item_name" => $item_name,
+                    "cust_id" => $cust_id,
+                    "cust_name" => @$customer->name,
+                    "circuit_no" => @$cct->circuit_no,
+                    "stock" => @$record->stock
+                );
+            } else {
+                $cct = $this->api->read("wip_mst_wos_cct", [], ["mstwos_assyno" => $item_id]);
+                $customer = $this->api->read("mst_customer", [], ["number" => $cust_id]);
+                $records[] = array(
+                    "item_id" => $item_id,
+                    "item_name" => $item_name,
+                    "cust_id" => $cust_id,
+                    "cust_name" => @$customer->name,
+                    "circuit_no" => @$cct->circuit_no,
+                    "stock" => 0
+                );
+            }
+        }
+
+        $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
+        <table style="font-size: 12px;">
+            <tr>
+                <td width="80">MONTH</td>
+                <td width="10">:</td>
+                <td>' . $filter_month . '<td>
+            </tr>
+            <tr>
+                <td width="80">YEAR</td>
+                <td width="10">:</td>
+                <td>' . $filter_year . '<td>
+            </tr>
+            <tr>
+                <td width="80">REVISION</td>
+                <td width="10">:</td>
+                <td>' . $filter_revision . '<td>
+            </tr>
+        </table>
+        <table id="customers" border="1">
+            <tr>
+                <th width="20">No</th>
+                <th>Customer ID</th>
+                <th>Customer Name</th>
+                <th>Product No</th>
+                <th>Product Name</th>
+                <th>CCT</th>
+                <th>Stock</th>
+            </tr>';
+        $no = 1;
+        foreach ($records as $data) {
+            $cct = $this->api->read("wip_mst_wos_cct", [], ["mstwos_assyno" => $data['item_id']]);
+            $html .= '  <tr>
+                            <td>' . $no . '</td>
+                            <td style="mso-number-format:\@;">' . $data['cust_id'] . '</td>
+                            <td>' . $data['cust_name'] . '</td>
+                            <td style="mso-number-format:\@;">' . $data['item_id'] . '</td>
+                            <td>' . $data['item_name'] . '</td>
+                            <td>' . @$cct->circuit_no . '</td>
+                            <td>' . $data['stock'] . '</td>
+                        </tr>';
+            $no++;
+        }
+
+        $html .= '</table></body></html>';
+        echo $html;
+    }
+
+    public function uploadedPrint($option = "")
+    {
+        if ($option == "excel") {
+            $format  = date("Ymd");
+            header("Content-type: application/vnd-ms-excel");
+            header("Content-Disposition: attachment; filename=fg_stock_$format.xls");
+        }
+
+        //Config
+        $this->db->select('*');
+        $this->db->from('config');
+        $config = $this->db->get()->row();
+
+        $filter_month = base64_decode($this->input->get('filter_month'));
+        $filter_year = base64_decode($this->input->get('filter_year'));
+        $filter_revision = base64_decode($this->input->get('filter_revision'));
+        $filter_customer = trim(base64_decode($this->input->get('filter_customer_id')));
+        $filter_product_no = trim(base64_decode($this->input->get('filter_product_no')));
+
+        //Select Query
+        $this->db->select('a.*, c.name as approved_by, b.updated_date as approved_date');
+        $this->db->from('fg_stock a');
+        $this->db->join('notification b', 'a.id = b.table_id', 'left');
+        $this->db->join('user c', 'b.id_user_from = c.username', 'left');
+        $this->db->like('a.p_month', $filter_month);
+        $this->db->like('a.p_year', $filter_year);
+        $this->db->like('a.revision', $filter_revision);
+        $this->db->like('a.customer_id', $filter_customer);
+        $this->db->like('a.product_no', $filter_product_no);
+        $this->db->group_by('a.id');
+        $records = $this->db->get()->result_array();
+
+        $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
+        <center>
+            <div style="float: left; font-size: 12px; text-align: left;">
+                <table style="width: 100%;">
+                    <tr>
+                        <td width="50" style="font-size: 12px; vertical-align: top; text-align: center; vertical-align:jus margin-right:10px;">
+                            <img src="' . base_url('assets/image/config/' . $config->logo) . '" width="30">
+                        </td>
+                        <td style="font-size: 14px; text-align: left; margin:2px;">
+                            <b>' . $config->name . '</b><br>
+                            <small>MASTER FG STOCK</small>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div style="float: right; font-size: 12px; text-align: right;">
+                Print Date ' . date("d M Y H:m:s") . ' <br>
+                Print By ' . $this->session->username . '  
+            </div>
+        </center>
+        <br><br><br>
+        <table style="font-size: 12px;">
+            <tr>
+                <td width="80">PERIOD</td>
+                <td width="20">:</td>
+                <td>' . $filter_month . '/' . $filter_year . '<td>
+            </tr>
+            <tr>
+                <td width="80">REVISION</td>
+                <td width="20">:</td>
+                <td>' . $filter_revision . '<td>
+            </tr>
+        </table>
+        
+        <table id="customers" border="1">
+            <tr>
+                <th width="20">No</th>
+                <th>Customer ID</th>
+                <th>Customer Name</th>
+                <th>Product No</th>
+                <th>Product Name</th>
+                <th>CCT</th>
+                <th>Stock</th>
+            </tr><tr>';
+
+        $start = strtotime($filter_year . "-" . $filter_month . "-01");
+        $end =  strtotime(date('Y-m-d', strtotime('-6 month', strtotime($filter_year . "-" . $filter_month . "-01"))));
+
+        while ($start > $end) {
+            $monthName = date('M Y', $start);
+            $html .= '<th style="text-align:center;">' . $monthName . '</th>';
+            $start = strtotime("-1 month", $start);
+        }
+
+        $no = 1;
+        foreach ($records as $data) {
+            $html .= '  <tr>
+                            <td>' . $no . '</td>
+                            <td style="mso-number-format:\@;">' . $data['customer_id'] . '</td>
+                            <td>' . $data['customer_name'] . '</td>
+                            <td style="mso-number-format:\@;">' . $data['product_no'] . '</td>
+                            <td>' . $data['product_name'] . '</td>
+                            <td>' . $data['circuit_no'] . '</td>
+                            <td>' . $data['qty'] . '</td>
+                        </tr>';
+            $no++;
+        }
+
+        $html .= '</table></body></html>';
+        echo $html;
+    }
+}
