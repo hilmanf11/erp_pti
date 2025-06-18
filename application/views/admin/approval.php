@@ -52,6 +52,7 @@
                     <option value="purchase_orders">Purchase Order</option>
                     <option value="purchase_order_npd">Purchase Order NPD</option>
                     <option value="simulation_mps">Simulation MPS</option>
+                    <option value="forecast_supplier">Forecast Supplier</option>
                 </select>
             </div>
             <div class="fitem">

@@ -172,7 +172,9 @@
 
 	<div id="dlg_approval_detail" class="easyui-window" title="Approval Data" data-options="closed: true,minimizable:false,collapsible:false" style="width: 1000px; height: 400px; top: 60px;">
 		<!-- <table id="dg_approval" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar_approval" data-options="fitColumns: false, rownumbers: true"></table> -->
-		<center><h2 style="margin: 10px; font-size: 20px !important;" id="header_approval"></h2></center>
+		<center>
+			<h2 style="margin: 10px; font-size: 20px !important;" id="header_approval"></h2>
+		</center>
 		<iframe src="" scrolling="yes" id="pageApproval" style="border: 0; width: 100%; height: 93%; margin:0;"></iframe>
 	</div>
 
@@ -185,7 +187,9 @@
 
 	<div id="dlg_notification_detail" class="easyui-window" title="Notification Data" data-options="closed: true,minimizable:false,collapsible:false" style="width: 1000px; height: 400px; top: 60px;">
 		<!-- <table id="dg_approval" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar_approval" data-options="fitColumns: false, rownumbers: true"></table> -->
-		<center><h2 style="margin: 10px; font-size: 20px !important;" id="header_notification"></h2></center>
+		<center>
+			<h2 style="margin: 10px; font-size: 20px !important;" id="header_notification"></h2>
+		</center>
 		<iframe src="" scrolling="yes" id="pageNotification" style="border: 0; width: 100%; height: 93%; margin:0;"></iframe>
 	</div>
 
@@ -223,7 +227,7 @@
 </body>
 
 <script>
-	function searchMenu(e){
+	function searchMenu(e) {
 		menu(e);
 	};
 
@@ -307,7 +311,7 @@
 		menu();
 	});
 
-	function menu(searchName = ""){
+	function menu(searchName = "") {
 		$('#menu').tree({
 			url: '<?= base_url('home/menus?name=') ?>' + searchName,
 			method: 'get',
@@ -417,7 +421,7 @@
 		$('#dlg_approval').dialog('open');
 	}
 
-	function notification(){
+	function notification() {
 		$('#dlg_notif').dialog('open');
 	}
 
@@ -535,7 +539,7 @@
 				dataType: "html",
 				success: function(response) {
 					// setTimeout(function() {
-						window.location.assign("<?= base_url('login') ?>");
+					window.location.assign("<?= base_url('login') ?>");
 					// }, 10000);
 				}
 			});
@@ -546,7 +550,7 @@
 	// 	if (Notification.permission !== "granted")
 	// 	Notification.requestPermission();
 	// });
-		
+
 	// function notifikasi() {
 	// 	if (!Notification) {
 	// 		alert('Browser kamu belum mendukung web notifikasi.'); 

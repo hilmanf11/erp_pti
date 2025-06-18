@@ -129,9 +129,9 @@ class Approvals extends CI_Controller
         $merge = @array_merge((array) $read, array("disapprove" => $message));
 
         /* Default */
-        if(empty($data)){
+        if (empty($data)) {
             $send = $this->api->delete($tablename, ["id" => $id]);
-        }else{
+        } else {
             $send = $this->db->update($tablename, $data, ["id" => $id]);
         }
 
@@ -169,8 +169,9 @@ class Approvals extends CI_Controller
         $supplier_items = $this->api->reads('supplier_items', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $supplier_item_prices = $this->api->reads('supplier_item_prices', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $simulation_mps = $this->api->reads('simulation_mps', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
+        $forecast_supplier = $this->api->reads('forecast_supplier', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
 
-        $totalRows = (count($users) + count($generate_mrp_finals) + count($upload_gp) + count($balance_wip) + count($os_mpp) + count($os_vendor) + count($rm_stock) + count($mst_umh_havcp) + count($mst_umh) + count($mpp_os) + count($mst_wip) + count($mst_forecast) + count($fg_stock) + count($sales_order_os) + count($sales_order) + count($purchase_orders) + count($purchase_order_npd) + count($purchase_requests) + count($supplier_items) + count($supplier_item_prices) + count($simulation_mps)); //+ count($forecasts) + count($stock_fg) + count($stock_wip) + count($os_so) + count($os_mpp) 
+        $totalRows = (count($users) + count($generate_mrp_finals) + count($upload_gp) + count($balance_wip) + count($os_mpp) + count($os_vendor) + count($rm_stock) + count($mst_umh_havcp) + count($mst_umh) + count($mpp_os) + count($mst_wip) + count($mst_forecast) + count($fg_stock) + count($sales_order_os) + count($sales_order) + count($purchase_orders) + count($purchase_order_npd) + count($purchase_requests) + count($supplier_items) + count($supplier_item_prices) + count($simulation_mps) + count($forecast_supplier)); //+ count($forecasts) + count($stock_fg) + count($stock_wip) + count($os_so) + count($os_mpp) 
         if ($totalRows > 0) {
             echo '<span class="badge">' . $totalRows . '</span>';
         } else {
@@ -202,7 +203,8 @@ class Approvals extends CI_Controller
         $supplier_items = $this->api->reads('supplier_items', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $supplier_item_prices = $this->api->reads('supplier_item_prices', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $simulation_mps = $this->api->reads('simulation_mps', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
-        
+        $forecast_supplier = $this->api->reads('forecast_supplier', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
+
         foreach ($users as $user) {
             $this->approvalMessage($user->approved_by, $user->approved_to, $user->created_by, "user");
         }
@@ -266,6 +268,9 @@ class Approvals extends CI_Controller
         foreach ($simulation_mps as $mps) {
             $this->approvalMessage($mps->approved_by, $mps->approved_to, $mps->created_by, "simulation_mps");
         }
+        foreach ($forecast_supplier as $fs) {
+            $this->approvalMessage($fs->approved_by, $fs->approved_to, $fs->created_by, "forecast_supplier");
+        }
     }
 
     public function approvalMessage($approved_by, $approved_to, $created_by, $table)
@@ -283,7 +288,7 @@ class Approvals extends CI_Controller
                     <a onclick="' . $link . '">
                         <table style="width: 100%;">
                             <tr>
-                                <td>
+                                <td width="30">
                                     <div class="icon-container">
                                         <img src="assets/image/users/' . $avatar . '" class="user-online" />
                                         <div class="status-circle"></div>
@@ -299,7 +304,8 @@ class Approvals extends CI_Controller
                 </li>';
     }
 
-    public function user($approved_to, $created_by, $approved_by){
+    public function user($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -312,7 +318,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function sales_order($approved_to, $created_by, $approved_by){
+    public function sales_order($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -325,7 +332,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function sales_order_os($approved_to, $created_by, $approved_by){
+    public function sales_order_os($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -338,7 +346,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function fg_stock($approved_to, $created_by, $approved_by){
+    public function fg_stock($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -351,7 +360,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function mst_forecast($approved_to, $created_by, $approved_by){
+    public function mst_forecast($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -364,7 +374,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function mst_wip($approved_to, $created_by, $approved_by){
+    public function mst_wip($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -377,7 +388,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function mpp_os($approved_to, $created_by, $approved_by){
+    public function mpp_os($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -390,7 +402,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function mst_umh($approved_to, $created_by, $approved_by){
+    public function mst_umh($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -403,7 +416,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function mst_umh_havcp($approved_to, $created_by, $approved_by){
+    public function mst_umh_havcp($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -416,7 +430,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function rm_stock($approved_to, $created_by, $approved_by){
+    public function rm_stock($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -429,7 +444,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function os_vendor($approved_to, $created_by, $approved_by){
+    public function os_vendor($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -442,7 +458,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function os_mpp($approved_to, $created_by, $approved_by){
+    public function os_mpp($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -455,7 +472,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function balance_wip($approved_to, $created_by, $approved_by){
+    public function balance_wip($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -468,7 +486,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function upload_gp($approved_to, $created_by, $approved_by){
+    public function upload_gp($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -481,7 +500,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function generate_mrp_finals($approved_to, $created_by, $approved_by){
+    public function generate_mrp_finals($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -494,7 +514,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function purchase_orders($approved_to, $created_by, $approved_by){
+    public function purchase_orders($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -507,7 +528,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function purchase_order_npd($approved_to, $created_by, $approved_by){
+    public function purchase_order_npd($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -520,7 +542,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function purchase_requests($approved_to, $created_by, $approved_by){
+    public function purchase_requests($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -533,7 +556,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function supplier_items($approved_to, $created_by, $approved_by){
+    public function supplier_items($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -546,7 +570,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function supplier_item_prices($approved_to, $created_by, $approved_by){
+    public function supplier_item_prices($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -559,7 +584,8 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function simulation_mps($approved_to, $created_by, $approved_by){
+    public function simulation_mps($approved_to, $created_by, $approved_by)
+    {
         if (empty($this->session->username)) {
             redirect('error_session');
         } else {
@@ -569,6 +595,20 @@ class Approvals extends CI_Controller
             $data['table'] = "simulation_mps";
             $this->load->view('template/header', $data);
             $this->load->view('approval/simulation_mps');
+        }
+    }
+
+    public function forecast_supplier($approved_to, $created_by, $approved_by)
+    {
+        if (empty($this->session->username)) {
+            redirect('error_session');
+        } else {
+            $data['approved_to'] = base64_decode($approved_to);
+            $data['created_by'] = base64_decode($created_by);
+            $data['approved_by'] = base64_decode($approved_by);
+            $data['table'] = "forecast_supplier";
+            $this->load->view('template/header', $data);
+            $this->load->view('approval/forecast_supplier');
         }
     }
 
@@ -811,7 +851,7 @@ class Approvals extends CI_Controller
         $result = array_merge($result, ['rows' => $records]);
         echo json_encode($result);
     }
-    
+
     public function approvalMppOs($approved_to, $created_by, $approved_by)
     {
         $approved_to = base64_decode($approved_to);
@@ -880,14 +920,14 @@ class Approvals extends CI_Controller
         $this->db->order_by('a.created_date', 'DESC');
         if (@count($filters) > 0) {
             foreach ($filters as $filter) {
-                if($filter->field == "process_main_name"){
+                if ($filter->field == "process_main_name") {
                     $this->db->like("c.name", $filter->value);
-                }elseif($filter->field == "process_sub_name"){
+                } elseif ($filter->field == "process_sub_name") {
                     $this->db->like("d.name", $filter->value);
-                }elseif($filter->field == "process_name"){
+                } elseif ($filter->field == "process_name") {
                     $this->db->like("e.name", $filter->value);
-                }else{
-                    $this->db->like("a.".$filter->field, $filter->value);
+                } else {
+                    $this->db->like("a." . $filter->field, $filter->value);
                 }
             }
         }
@@ -931,14 +971,14 @@ class Approvals extends CI_Controller
         $this->db->order_by('a.created_date', 'DESC');
         if (@count($filters) > 0) {
             foreach ($filters as $filter) {
-                if($filter->field == "process_main_name"){
+                if ($filter->field == "process_main_name") {
                     $this->db->like("c.name", $filter->value);
-                }elseif($filter->field == "process_sub_name"){
+                } elseif ($filter->field == "process_sub_name") {
                     $this->db->like("d.name", $filter->value);
-                }elseif($filter->field == "process_name"){
+                } elseif ($filter->field == "process_name") {
                     $this->db->like("e.name", $filter->value);
-                }else{
-                    $this->db->like("a.".$filter->field, $filter->value);
+                } else {
+                    $this->db->like("a." . $filter->field, $filter->value);
                 }
             }
         }
@@ -1114,7 +1154,7 @@ class Approvals extends CI_Controller
         $result = array_merge($result, ['rows' => $records]);
         echo json_encode($result);
     }
-    
+
     public function approvalUploadGp($approved_to, $created_by, $approved_by)
     {
         $approved_to = base64_decode($approved_to);
@@ -1144,16 +1184,16 @@ class Approvals extends CI_Controller
         $this->db->where('a.approved_by', $approved_by);
         if (@count($filters) > 0) {
             foreach ($filters as $filter) {
-                if($filter->field == "product_family"){
+                if ($filter->field == "product_family") {
                     $this->db->like("c.name", $filter->value);
-                }elseif($filter->field == "supplier_name"){
+                } elseif ($filter->field == "supplier_name") {
                     $this->db->like("d.name", $filter->value);
-                }elseif($filter->field == "maker_name"){
+                } elseif ($filter->field == "maker_name") {
                     $this->db->like("f.name", $filter->value);
-                }elseif($filter->field == "item_name"){
+                } elseif ($filter->field == "item_name") {
                     $this->db->like("b.item_name", $filter->value);
-                }else{
-                    $this->db->like("a.".$filter->field, $filter->value);
+                } else {
+                    $this->db->like("a." . $filter->field, $filter->value);
                 }
             }
         }
@@ -1237,17 +1277,18 @@ class Approvals extends CI_Controller
         $this->db->where('a.approved_by', $approved_by);
         if (@count($filters) > 0) {
             foreach ($filters as $filter) {
-                if($filter->field == "supplier_name"){
+                if ($filter->field == "supplier_name") {
                     $this->db->like("b.name", $filter->value);
-                }elseif($filter->field == "maker_name"){
+                } elseif ($filter->field == "maker_name") {
                     $this->db->like("d.name", $filter->value);
-                }else{
-                    $this->db->like("a.".$filter->field, $filter->value);
+                } else {
+                    $this->db->like("a." . $filter->field, $filter->value);
                 }
             }
         }
         $this->db->group_by('a.id');
-        $this->db->order_by('a.created_date', 'desc');
+        $this->db->order_by('a.purchase_order_no', 'asc');
+        $this->db->order_by('a.item_id', 'asc');
         //Total Data
         $totalRows = $this->db->count_all_results('', false);
         //Limit 1 - 10
@@ -1283,7 +1324,7 @@ class Approvals extends CI_Controller
         $this->db->where('a.approved_by', $approved_by);
         if (@count($filters) > 0) {
             foreach ($filters as $filter) {
-                $this->db->like("a.".$filter->field, $filter->value);
+                $this->db->like("a." . $filter->field, $filter->value);
             }
         }
         $this->db->group_by('a.id');
@@ -1324,14 +1365,15 @@ class Approvals extends CI_Controller
         $this->db->where('a.approved_by', $approved_by);
         if (@count($filters) > 0) {
             foreach ($filters as $filter) {
-                if($filter->field == "supplier_name"){
+                if ($filter->field == "supplier_name") {
                     $this->db->like("b.name", $filter->value);
-                }else{
-                    $this->db->like("a.".$filter->field, $filter->value);
+                } else {
+                    $this->db->like("a." . $filter->field, $filter->value);
                 }
             }
         }
-        $this->db->order_by('a.created_date', 'desc');
+        $this->db->order_by('a.purchase_request_no', 'asc');
+        $this->db->order_by('a.part_no', 'asc');
         //Total Data
         $totalRows = $this->db->count_all_results('', false);
         //Limit 1 - 10
@@ -1369,12 +1411,12 @@ class Approvals extends CI_Controller
         $this->db->where('a.approved_by', $approved_by);
         if (@count($filters) > 0) {
             foreach ($filters as $filter) {
-                if($filter->field == "supplier_name"){
+                if ($filter->field == "supplier_name") {
                     $this->db->like("b.name", $filter->value);
-                }elseif($filter->field == "maker_name"){
+                } elseif ($filter->field == "maker_name") {
                     $this->db->like("c.name", $filter->value);
-                }else{
-                    $this->db->like("a.".$filter->field, $filter->value);
+                } else {
+                    $this->db->like("a." . $filter->field, $filter->value);
                 }
             }
         }
@@ -1417,14 +1459,14 @@ class Approvals extends CI_Controller
         $this->db->where('d.approved_by', $approved_by);
         if (@count($filters) > 0) {
             foreach ($filters as $filter) {
-                if($filter->field == "supplier_name"){
+                if ($filter->field == "supplier_name") {
                     $this->db->like("b.name", $filter->value);
-                }elseif($filter->field == "maker_name"){
+                } elseif ($filter->field == "maker_name") {
                     $this->db->like("c.name", $filter->value);
-                }elseif($filter->field == "item_id"){
+                } elseif ($filter->field == "item_id") {
                     $this->db->like("a.item_id", $filter->value);
-                }else{
-                    $this->db->like("d.".$filter->field, $filter->value);
+                } else {
+                    $this->db->like("d." . $filter->field, $filter->value);
                 }
             }
         }
@@ -1467,7 +1509,7 @@ class Approvals extends CI_Controller
         $this->db->where('a.balance < 0');
         if (@count($filters) > 0) {
             foreach ($filters as $filter) {
-                $this->db->like("a.".$filter->field, $filter->value);
+                $this->db->like("a." . $filter->field, $filter->value);
             }
         }
         $this->db->order_by('c.number', 'asc');
@@ -1476,6 +1518,47 @@ class Approvals extends CI_Controller
         $totalRows = $this->db->count_all_results('', false);
         //Limit 1 - 10
         $this->db->limit($rows, $offset);
+        //Get Data Array
+        $records = $this->db->get()->result_array();
+        //Mapping Data
+        $result['total'] = $totalRows;
+        $result = array_merge($result, ['rows' => $records]);
+        echo json_encode($result);
+    }
+
+    public function approvalForecastSupplier($approved_to, $created_by, $approved_by)
+    {
+        $approved_to = base64_decode($approved_to);
+        $created_by = base64_decode($created_by);
+        $approved_by = base64_decode($approved_by);
+
+        $filters = json_decode($this->input->post('filterRules'));
+        $page = $this->input->post('page');
+        $rows = $this->input->post('rows');
+
+        //Pagination 1-10
+        $page   = isset($page) ? intval($page) : 1;
+        $rows   = isset($rows) ? intval($rows) : 10;
+        $offset = ($page - 1) * $rows;
+        $result = array();
+
+        //Select Query
+        $this->db->select('a.*');
+        $this->db->from('forecast_supplier a');
+        $this->db->where('a.approved_to', $approved_to);
+        $this->db->where('a.approved_by', $approved_by);
+        $this->db->where('a.share_order >', 0);
+        if (@count($filters) > 0) {
+            foreach ($filters as $filter) {
+                $this->db->like("a." . $filter->field, $filter->value);
+            }
+        }
+        $this->db->order_by('a.vendor_name', 'asc');
+        $this->db->order_by('a.part_no', 'asc');
+        //Total Data
+        $totalRows = $this->db->count_all_results('', false);
+        //Limit 1 - 10
+        // $this->db->limit($rows, $offset);
         //Get Data Array
         $records = $this->db->get()->result_array();
         //Mapping Data
