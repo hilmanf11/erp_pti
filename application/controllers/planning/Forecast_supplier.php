@@ -53,7 +53,7 @@ class Forecast_supplier extends CI_Controller
             $this->db->like('a.product_family', $filter_product_family);
             $this->db->like('a.part_no', $item_id);
             $this->db->like('a.vendor_id', $filter_supplier);
-            $this->db->group_by('a.id');
+            // $this->db->group_by('a.id');
             $this->db->order_by('a.vendor_name', 'asc');
             $this->db->order_by('a.product_family', 'asc');
             //Total Data
@@ -119,13 +119,20 @@ class Forecast_supplier extends CI_Controller
             $filter_product_family = base64_decode($this->input->get('filter_product_family'));
             $item_id = trim(base64_decode($this->input->get('item_id')));
             //Select Query
-            $this->db->select('a.*,
-                    ((a.need_1 + a.need_2 + a.need_3 + a.need_4) / 4) as need_avg,
+            $this->db->select('a.p_month,
+                    a.p_year,a.revision,a.part_no, a.part_name, a.product_family, 
+                    a.issued_1, a.issued_2, a.issued_3, a.issued_avg, a.qty_rm, a.qty_wip, a.qty_vendor, a.total_stock, a.qty_supply, a.qty_wo,a.total_wo, 
+                    a.need_1, a.need_2, a.need_3, a.need_4,
+                    a.balance_1, a.balance_2, a.balance_3, a.balance_4,
+                    a.avg_need, a.avg_balance, a.total_need, a.purchase_order,
                     b.id as vendor_id, 
                     b.name as vendor_name, 
                     b.type as vendor_type, 
                     b.origin as vendor_origin, 
                     c.share_order,
+                    c.leadtime,
+                    c.mpq,
+                    c.moq,
                     d.name as maker_name, 
                     d.type as maker_type');
             $this->db->from('generate_mrp_finals a');
@@ -138,16 +145,138 @@ class Forecast_supplier extends CI_Controller
             $this->db->where('c.share_order >', 0);
             $this->db->like('a.product_family', $filter_product_family);
             $this->db->like('a.part_no', $item_id);
-            $this->db->group_by('a.id');
-            $this->db->order_by('b.name', 'asc');
-            $this->db->order_by('a.product_family', 'asc');
+            $this->db->order_by('a.part_no', 'asc');
             // $this->db->limit(2);
             //Total Data
             $totalRows = $this->db->count_all_results('', false);
             $records = $this->db->get()->result_array();
             //Mapping Data
+            foreach ($records as $record) {
+                if ($record['share_order'] < '100') {
+                    if ($record['need_1'] > 0) {
+                        $need_1 = (ceil((($record['need_1'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $need_1 =  $record['need_1'];
+                    }
+
+                    if ($record['need_2'] > 0) {
+                        $need_2 = (ceil((($record['need_2'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $need_2 = $record['need_2'];
+                    }
+
+                    if ($record['need_3'] > 0) {
+                        $need_3 = (ceil((($record['need_3'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $need_3 = $record['need_3'];
+                    }
+
+                    if ($record['need_4'] > 0) {
+                        $need_4 = (ceil((($record['need_4'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $need_4 = $record['need_4'];
+                    }
+
+                    if ($record['balance_1'] > 0) {
+                        $balance_1 = (ceil((($record['balance_1'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $balance_1 = $record['balance_1'];
+                    }
+
+                    if ($record['balance_2'] > 0) {
+                        $balance_2 = (ceil((($record['balance_2'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $balance_2 = $record['balance_2'];
+                    }
+
+                    if ($record['balance_3'] > 0) {
+                        $balance_3 = (ceil((($record['balance_3'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $balance_3 = $record['balance_3'];
+                    }
+
+                    if ($record['balance_4'] > 0) {
+                        $balance_4 = (ceil((($record['balance_4'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $balance_4 = $record['balance_4'];
+                    }
+
+                    if ($need_1 + $need_2 + $need_3 + $need_4 > 0) {
+                        $avg_need = ($need_1 + $need_2 + $need_3 + $need_4) / 4;
+                    } else {
+                        $avg_need = $record['avg_need'];
+                    }
+
+                    if ($balance_1 + $balance_2 + $balance_3 + $balance_4 > 0) {
+                        $avg_balance = ($balance_1 + $balance_2 + $balance_3 + $balance_4) / 4;
+                    } else {
+                        $avg_balance = $record['avg_balance'];
+                    }
+
+                    $total_need = $need_1 + $need_2 + $need_3 + $need_4;
+                    if ($total_need > 0) {
+                        $purchase_order = (ceil((($total_need) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $purchase_order = $total_need;
+                    }
+                } else {
+                    $need_1 = $record['need_1'];
+                    $need_2 = $record['need_2'];
+                    $need_3 = $record['need_3'];
+                    $need_4 = $record['need_4'];
+                    $balance_1 = $record['balance_1'];
+                    $balance_2 = $record['balance_2'];
+                    $balance_3 = $record['balance_3'];
+                    $balance_4 = $record['balance_4'];
+                    $avg_need = $record['avg_need'];
+                    $avg_balance = $record['avg_balance'];
+                    $total_need = $record['total_need'];
+                    $purchase_order = $record['purchase_order'];
+                }
+                $arr[] = array(
+                    "p_month" => $record['p_month'],
+                    "p_year" => $record['p_year'],
+                    "revision" => $record['revision'],
+                    "part_no" => $record['part_no'],
+                    "part_name" => $record['part_name'],
+                    "product_family" => $record['product_family'],
+                    "issued_1" => $record['issued_1'],
+                    "issued_2" => $record['issued_2'],
+                    "issued_3" => $record['issued_3'],
+                    "issued_avg" => $record['issued_avg'],
+                    "qty_rm" => $record['qty_rm'],
+                    "qty_wip" => $record['qty_wip'],
+                    "qty_vendor" => $record['qty_vendor'],
+                    "total_stock" => $record['total_stock'],
+                    "qty_supply" => $record['qty_supply'],
+                    "qty_wo" => $record['qty_wo'],
+                    "total_wo" => $record['total_wo'],
+                    "need_1" => $need_1,
+                    "need_2" => $need_2,
+                    "need_3" => $need_3,
+                    "need_4" => $need_4,
+                    "balance_1" => $balance_1,
+                    "balance_2" => $balance_2,
+                    "balance_3" => $balance_3,
+                    "balance_4" => $balance_4,
+                    "avg_need" => $avg_need,
+                    "avg_balance" => $avg_balance,
+                    "total_need" => $total_need,
+                    "purchase_order" => $purchase_order,
+                    "vendor_id" => $record['vendor_id'],
+                    "vendor_name" => $record['vendor_name'],
+                    "vendor_type" => $record['vendor_type'],
+                    "vendor_origin" => $record['vendor_origin'],
+                    "share_order" => $record['share_order'],
+                    "leadtime" => $record['leadtime'],
+                    "mpq" => $record['mpq'],
+                    "moq" => $record['moq'],
+                    "maker_name" => $record['maker_name'],
+                    "maker_type" => $record['maker_type'],
+                );
+            }
             $result['total'] = $totalRows;
-            $result = array_merge($result, ['rows' => $records]);
+            $result = array_merge($result, ['rows' => @$arr]);
             echo json_encode($result);
         }
     }
@@ -159,7 +288,7 @@ class Forecast_supplier extends CI_Controller
             $post = $this->input->post();
             // $post = $post['data'];
 
-            $forecast_supplier = $this->api->read("forecast_supplier", [], ["p_month" => $post['p_month'], "p_year" => $post['p_year'], "revision" => $post['revision'], "part_no" => $post['part_no']]);
+            $forecast_supplier = $this->api->read("forecast_supplier", [], ["p_month" => $post['p_month'], "p_year" => $post['p_year'], "revision" => $post['revision'], "part_no" => $post['part_no'], "vendor_id" => $post['vendor_id']]);
             if (@$forecast_supplier->part_no != "") {
                 // $send = $this->api->update('forecast_supplier', ["item_id" => $post['item_id'], "component_id" => $post['component_id']], $post);
                 $send = $this->api->update('forecast_supplier', ["id" => @$forecast_supplier->id], $post);
@@ -372,16 +501,22 @@ class Forecast_supplier extends CI_Controller
         $fc_3 = $this->readMonths(date('m', strtotime('+3 month', strtotime($periode))));
         $fc_4 = $this->readMonths(date('m', strtotime('+4 month', strtotime($periode))));
 
-        //Select Query
-        $this->db->select('a.*,
-            ((a.need_1 + a.need_2 + a.need_3 + a.need_4) / 4) as need_avg,
-            b.number as vendor_id, 
-            b.name as vendor_name, 
-            b.type as vendor_type, 
-            b.origin as vendor_origin, 
-            c.share_order,
-            d.name as maker_name, 
-            d.type as maker_type');
+        $this->db->select('a.p_month,
+                    a.p_year,a.revision,a.part_no, a.part_name, a.product_family, 
+                    a.issued_1, a.issued_2, a.issued_3, a.issued_avg, a.qty_rm, a.qty_wip, a.qty_vendor, a.total_stock, a.qty_supply, a.qty_wo,a.total_wo, 
+                    a.need_1, a.need_2, a.need_3, a.need_4,
+                    a.balance_1, a.balance_2, a.balance_3, a.balance_4,
+                    a.avg_need, a.avg_balance, a.total_need, a.purchase_order,
+                    b.id as vendor_id, 
+                    b.name as vendor_name, 
+                    b.type as vendor_type, 
+                    b.origin as vendor_origin, 
+                    c.share_order,
+                    c.leadtime,
+                    c.mpq,
+                    c.moq,
+                    d.name as maker_name, 
+                    d.type as maker_type');
         $this->db->from('generate_mrp_finals a');
         $this->db->join('supplier_items c', 'a.part_no = c.item_id', 'left');
         $this->db->join('suppliers b', 'c.supplier_id = b.id', 'left');
@@ -390,9 +525,9 @@ class Forecast_supplier extends CI_Controller
         $this->db->where('a.p_year', $filter_year);
         $this->db->where('a.revision', $filter_revision);
         $this->db->where('c.share_order >', 0);
-        $this->db->group_by('a.id');
-        $this->db->order_by('b.name', 'asc');
-        $this->db->order_by('a.product_family', 'asc');
+        $this->db->order_by('a.part_no', 'asc');
+        // $this->db->limit(2);
+        //Total Data
         $records = $this->db->get()->result_array();
         $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
         <center>
@@ -459,6 +594,87 @@ class Forecast_supplier extends CI_Controller
             </tr>';
         $no = 1;
         foreach ($records as $data) {
+            if ($data['share_order'] < '100') {
+                if ($data['need_1'] > 0) {
+                    $need_1 = (ceil((($data['need_1'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                } else {
+                    $need_1 =  $data['need_1'];
+                }
+
+                if ($data['need_2'] > 0) {
+                    $need_2 = (ceil((($data['need_2'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                } else {
+                    $need_2 = $data['need_2'];
+                }
+
+                if ($data['need_3'] > 0) {
+                    $need_3 = (ceil((($data['need_3'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                } else {
+                    $need_3 = $data['need_3'];
+                }
+
+                if ($data['need_4'] > 0) {
+                    $need_4 = (ceil((($data['need_4'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                } else {
+                    $need_4 = $data['need_4'];
+                }
+
+                if ($data['balance_1'] > 0) {
+                    $balance_1 = (ceil((($data['balance_1'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                } else {
+                    $balance_1 = $data['balance_1'];
+                }
+
+                if ($data['balance_2'] > 0) {
+                    $balance_2 = (ceil((($data['balance_2'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                } else {
+                    $balance_2 = $data['balance_2'];
+                }
+
+                if ($data['balance_3'] > 0) {
+                    $balance_3 = (ceil((($data['balance_3'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                } else {
+                    $balance_3 = $data['balance_3'];
+                }
+
+                if ($data['balance_4'] > 0) {
+                    $balance_4 = (ceil((($data['balance_4'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                } else {
+                    $balance_4 = $data['balance_4'];
+                }
+
+                if ($need_1 + $need_2 + $need_3 + $need_4 > 0) {
+                    $avg_need = ($need_1 + $need_2 + $need_3 + $need_4) / 4;
+                } else {
+                    $avg_need = $data['avg_need'];
+                }
+
+                if ($balance_1 + $balance_2 + $balance_3 + $balance_4 > 0) {
+                    $avg_balance = ($balance_1 + $balance_2 + $balance_3 + $balance_4) / 4;
+                } else {
+                    $avg_balance = $data['avg_balance'];
+                }
+
+                $total_need = $need_1 + $need_2 + $need_3 + $need_4;
+                if ($total_need > 0) {
+                    $purchase_order = (ceil((($total_need) / $data['moq'])) * $data['moq']);
+                } else {
+                    $purchase_order = $total_need;
+                }
+            } else {
+                $need_1 = $data['need_1'];
+                $need_2 = $data['need_2'];
+                $need_3 = $data['need_3'];
+                $need_4 = $data['need_4'];
+                $balance_1 = $data['balance_1'];
+                $balance_2 = $data['balance_2'];
+                $balance_3 = $data['balance_3'];
+                $balance_4 = $data['balance_4'];
+                $avg_need = $data['avg_need'];
+                $avg_balance = $data['avg_balance'];
+                $total_need = $data['total_need'];
+                $purchase_order = $data['purchase_order'];
+            }
             $html .= ' <tr>
                             <td>' . $no . '</td>
                             <td style="mso-number-format:\@;">' . $data['part_no'] . '</td>
@@ -479,15 +695,15 @@ class Forecast_supplier extends CI_Controller
                             <td>' . $data['issued_avg'] . '</td>
                             <td>' . $data['total_stock'] . '</td>
                             <td>' . $data['qty_vendor'] . '</td>
-                            <td>' . $data['need_1'] . '</td>
-                            <td>' . $data['balance_1'] . '</td>
-                            <td>' . $data['need_2'] . '</td>
-                            <td>' . $data['balance_2'] . '</td>
-                            <td>' . $data['need_3'] . '</td>
-                            <td>' . $data['balance_3'] . '</td>
-                            <td>' . $data['need_4'] . '</td>
-                            <td>' . $data['balance_4'] . '</td>
-                            <td>' . $data['need_avg'] . '</td>
+                            <td>' . $need_1 . '</td>
+                            <td>' . $balance_1 . '</td>
+                            <td>' . $need_2 . '</td>
+                            <td>' . $balance_2 . '</td>
+                            <td>' . $need_3 . '</td>
+                            <td>' . $balance_3 . '</td>
+                            <td>' . $need_4 . '</td>
+                            <td>' . $balance_4 . '</td>
+                            <td>' . $avg_need . '</td>
                         </tr>';
             $no++;
         }

@@ -38,7 +38,7 @@
                 <th data-options="field:'balance_3',width:100,halign:'center',align:'right',formatter:numberformat">Suggest PO</th>
                 <th data-options="field:'need_4',width:100,halign:'center',align:'right',formatter:numberformat">M 4</th>
                 <th data-options="field:'balance_4',width:100,halign:'center',align:'right',formatter:numberformat">Suggest PO</th>
-                <th data-options="field:'need_avg',width:100,halign:'center',align:'right',formatter:numberformat">Xbar</th>
+                <th data-options="field:'avg_need',width:100,halign:'center',align:'right',formatter:numberformat">Xbar</th>
                 <th data-options="field:'approved_to',width:80,align:'center', styler:cellStylerApproval, formatter:cellFormatterApproval">Status</th>
                 <th data-options="field:'approved_by',width:80,align:'center'">By</th>
                 <th data-options="field:'approved_date',width:120,align:'center'">Date</th>
@@ -105,9 +105,9 @@
     <!-- Insert & Update -->
     <div id="dlg_insert" class="easyui-dialog" title="Add New" data-options="closed: true,modal:true" style="width: 90%; height: 400px; padding:10px; top: 20px;">
         <form id="frm_insert" method="post" novalidate>
-            <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
+            <fieldset style="width:60%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
                 <legend><b>Form Data</b></legend>
-                <div style="width: 50%; float: left;">
+                <div style="width: 70%; float: left;">
                     <div class="fitem">
                         <span style="width:35%; display:inline-block;">Period Cutoff</span>
                         <input style="width:30%;" name="p_month" id="p_month" class="easyui-combobox" data-options="prompt:'Month'">
@@ -130,8 +130,11 @@
                         <a href="javascript:;" class="easyui-linkbutton" onclick="excelPreview()"><i class="fa fa-file"></i> Export to Excel</a>
                     </div>
                 </div>
-                <div style="width: 50%; float: left;">
-                </div>
+            </fieldset>
+            <fieldset style="width:39%; height:140px; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
+                <legend><b>Saving Process</b></legend>
+                <div id="p_upload" class="easyui-progressbar" style="width:100%;"></div>
+                <center><b id="p_start">0</b> Of <b id="p_finish">0</b></center>
             </fieldset>
             <table id="dg2" class="easyui-datagrid" style="width:100%;" title="Material Lists" toolbar="#toolbar2"></table>
         </form>
@@ -147,6 +150,9 @@
             $('#p_month').combobox('setValue', '<?= date("m") ?>');
             $('#p_year').combobox('setValue', '<?= date("Y") ?>');
             $('#revision').combobox('setValue', '0');
+            $('#p_upload').progressbar('setValue', '0');
+            $('#p_start').html('0');
+            $('#p_finish').html('0');
         }
 
         //DELETE DATA
@@ -667,11 +673,26 @@
                             formatter: numberformat
                         },
                         {
-                            field: 'need_avg',
+                            field: 'avg_need',
                             align: 'right',
                             width: 100,
                             halign: 'center',
                             title: "Xbar",
+                            editor: {
+                                type: 'textbox',
+                                options: {
+                                    readonly: true
+                                }
+                            },
+                            formatter: numberformat
+                        },
+                        {
+                            field: 'purchase_order',
+                            hidden: true,
+                            align: 'right',
+                            width: 100,
+                            halign: 'center',
+                            title: "Purchase Order",
                             editor: {
                                 type: 'textbox',
                                 options: {
@@ -742,22 +763,42 @@
                         var totalrows = json.length;
                         // endEditing();
 
-                        Swal.fire({
-                            title: 'Please Wait...',
-                            showConfirmButton: false,
-                            allowOutsideClick: false,
-                            allowEscapeKey: false,
-                            didOpen: () => {
-                                Swal.showLoading();
-                            },
+                        $.messager.confirm('Warning', 'Are you sure you want to Send to Approval?', function(r) {
+                            if (r) {
+                                var p_month = $("#p_month").combobox('getValue');
+                                var p_year = $("#p_year").combobox('getValue');
+                                var revision = $("#revision").combobox('getValue');
+                                $.ajax({
+                                    url: '<?= base_url('planning/forecast_supplier/delete') ?>',
+                                    data: {
+                                        p_month: p_month,
+                                        p_year: p_year,
+                                        revision: revision
+                                    },
+                                    type: 'POST',
+                                    dataType: 'json',
+                                    success: function(result) {
+                                        if (result.theme == "success") {
+                                            requestData(totalrows, json);
+                                        } else {
+                                            var result = eval('(' + result + ')');
+                                            toastr.error(result.message);
+                                        }
+                                    },
+                                    error: function(jqXHR, textStatus, errorThrown) {
+                                        toastr.error(jqXHR.statusText);
+                                        $.messager.alert("Error", jqXHR.statusText, 'error');
+                                    }
+                                });
+                            }
                         });
 
-                        $('#dlg_insert').dialog('close');
-                        requestData(totalrows, json);
-
-                        function requestData(total, json, number = 1, value = 0) {
+                        function requestData(total, json, number = 1, value = 0, success = 1, failed = 1) {
                             if (value < 100) {
                                 value = Math.floor((number / total) * 100);
+                                $('#p_upload').progressbar('setValue', value);
+                                $('#p_start').html(number);
+                                $('#p_finish').html(total);
                                 var dataFinal = {
                                     p_month: json[number - 1].p_month,
                                     p_year: json[number - 1].p_year,
@@ -789,27 +830,29 @@
                                     balance_3: json[number - 1].balance_3,
                                     need_4: json[number - 1].need_4,
                                     balance_4: json[number - 1].balance_4,
-                                    need_avg: json[number - 1].need_avg,
+                                    avg_need: json[number - 1].avg_need,
                                 };
                                 $.post('<?= base_url('planning/forecast_supplier/create') ?>', dataFinal, function(note) {
                                     var result = eval('(' + note + ')');
                                     if (result.theme == "success") {
-                                        requestData(total, json, number + 1, value);
+                                        Swal.close();
+                                        requestData(total, json, number + 1, value, success + 1, failed + 0);
                                     } else {
-                                        requestData(total, json, number + 1, value);
+                                        Swal.close();
+                                        requestData(total, json, number + 1, value, success + 0, failed + 1);
                                     }
                                 }).fail(function(jqXHR, textStatus) {
-                                    // Swal.fire({
-                                    //     title: 'Connection Time Out, Re-connecting..',
-                                    //     showConfirmButton: false,
-                                    //     allowOutsideClick: false,
-                                    //     allowEscapeKey: false,
-                                    //     didOpen: () => {
-                                    //         Swal.showLoading();
-                                    //     },
-                                    // });
+                                    Swal.fire({
+                                        title: 'Connection Time Out, Re-connecting..',
+                                        showConfirmButton: false,
+                                        allowOutsideClick: false,
+                                        allowEscapeKey: false,
+                                        didOpen: () => {
+                                            Swal.showLoading();
+                                        },
+                                    });
                                     // reconnect
-                                    requestData(total, json, number, value);
+                                    requestData(total, json, number, value, success + 0, failed + 1);
                                 });
                             } else {
                                 Swal.close();
@@ -820,7 +863,7 @@
                                     allowOutsideClick: false,
                                 }).then((result) => {
                                     if (result.isConfirmed) {
-                                        window.location.reload();
+                                        // window.location.reload();
                                     }
                                 });
                             }
