@@ -736,7 +736,7 @@
             if (filter_supplier == "") {
                 toastr.info("Please Select Supplier");
             } else {
-                window.open("<?= base_url('planning/forecast_supplier/printForecast') ?>" + url, "_blank");
+                window.open("<?= base_url('planning/forecast_supplier/printForecast') ?>" + url, "_blank", 'noopener, noreferrer');
             }
 
         }

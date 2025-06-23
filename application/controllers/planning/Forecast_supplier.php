@@ -820,7 +820,7 @@ class Forecast_supplier extends CI_Controller
         $html = '<html>
                     <head>
                         <title>' . @$supplier->name . ' (' . $periode_from . '-' . $periode_to . '_Plant ' . @$records[0]['plant_name'] . ')</title>
-                        <link rel="icon" href="' . $config->favicon . '" type="image/png" sizes="16x16">
+                        <link rel="icon" href="' . base_url('assets/image/config/' . $config->favicon) . '" type="image/png" sizes="16x16">
                     </head>
                     
                     <style>
