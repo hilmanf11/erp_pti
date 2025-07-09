@@ -13,6 +13,9 @@
             <th rowspan="2" data-options="field:'etd',width:100,align:'center'">ETD</th>
             <th rowspan="2" data-options="field:'eta',width:100,align:'center'">ETA</th>
             <th rowspan="2" data-options="field:'document_no',width:150,halign:'center'">Document No</th>
+            <th rowspan="2" data-options="field:'awb',width:150,halign:'center'">AWB</th>
+            <th rowspan="2" data-options="field:'receive',width:100,halign:'center',align:'right',formatter:numberformat">Receive</th>
+            <th rowspan="2" data-options="field:'balance',width:100,halign:'center',align:'right',formatter:numberformat">Balance</th>
             <!-- <th rowspan="2" data-options="field:'status',width:100,align:'center',styler:cellStyler, formatter:cellFormatter">Status</th> -->
             <th colspan="2" data-options="field:'',width:100,halign:'center'">Created</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'">Updated</th>
@@ -25,12 +28,15 @@
         </tr>
     </thead>
 </table>
-
-<div id="toolbar" style="height: 200px; padding: 10px;">
+<div id="toolbar" style="height: 235px; padding: 10px;">
     <fieldset style="width:70%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px; display: grid; grid-template-columns: auto auto auto; grid-gap: 5px; display: flex;">
-        
-    <legend><b>Filter Data</b></legend>
+        <legend><b>Filter Data</b></legend>
         <div style="width: 50%;">
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Period (ETA)</span>
+                <input style="width:28%;" id="filter_from" class="easyui-datebox" value="<?php echo date('Y-m-01'); ?>" data-options="formatter:myformatter,parser:myparser, editable:false"> To
+                <input style="width:28%;" id="filter_to" class="easyui-datebox" value="<?php echo date('Y-m-t'); ?>" data-options="formatter:myformatter,parser:myparser, editable:false">
+            </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Supplier</span>
                 <input style="width:60%;" id="filter_supplier" class="easyui-combobox">
@@ -65,7 +71,6 @@
     </fieldset>
     <?= $button ?>
 </div>
-
 <div id="dlg_insert" class="easyui-dialog" title="Update Data" data-options="closed: true,modal:true" style="width: 800px; padding:10px; top: 20px;">
     <form id="frm_insert" method="post" novalidate>
         <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
@@ -73,7 +78,7 @@
             <div style="width: 50%; float: left;">
                 <div class="fitem">
                     <span style="width:35%; display:inline-block;">Supplier name</span>
-                    <input style="width:60%;" name="supplier_name" id="supplier_name" required class="easyui-combobox">
+                    <input style="width:60%;" name="supplier_id" id="supplier_id" required class="easyui-combobox">
                 </div>
                 <div class="fitem">
                     <span style="width:35%; display:inline-block;">Product Family</span>
@@ -121,11 +126,14 @@
                     <span style="width:35%; display:inline-block;">Document No</span>
                     <input style="width:60%;" name="document_no" id="document_no" required class="easyui-textbox">
                 </div>
+                <div class="fitem">
+                    <span style="width:35%; display:inline-block;">AWB</span>
+                    <input style="width:60%;" name="awb" id="awb" class="easyui-textbox">
+                </div>
             </div>
         </fieldset>
     </form>
 </div>
-
 <!-- Upload -->
 <div id="dlg_upload" class="easyui-dialog" title="Upload Data" data-options="closed: true,modal:true" style="width: 400px; padding:10px; top: 20px;">
     <form id="frm_upload" method="post" enctype="multipart/form-data" novalidate>
@@ -142,14 +150,11 @@
     <div id="p_remarks" class="easyui-panel" style="width:100%; height:200px; padding:10px; margin-top: 10px;">
         <p>History Upload</p>
         <ul id="remarks">
-
         </ul>
     </div>
 </div>
-
 <!-- PDF -->
 <iframe id="printout" src="" style="width: 100%;" hidden></iframe>
-
 <script>
     //Add Data
     function add() {
@@ -157,7 +162,6 @@
         url_save = '<?= base_url('planning/delivery_confirm/create') ?>';
         $('#frm_insert').form('clear');
     }
-
     //Edit Data
     function update() {
         var row = $('#dg').datagrid('getSelected');
@@ -169,7 +173,6 @@
             toastr.warning("Please select one of the data in the table first!", "Information");
         }
     }
-
     //Delete Data
     function deleted() {
         var rows = $('#dg').datagrid('getSelections');
@@ -204,7 +207,6 @@
             toastr.warning("Please select one of the data in the table first!", "Information");
         }
     }
-
     //Upload Data
     function upload() {
         $('#dlg_upload').dialog('open');
@@ -213,24 +215,29 @@
     function download_excel() {
         window.location.assign('<?= base_url('template/tmp_delivery_confirm.xls') ?>');
     }
-    
+
     function filter() {
+        var filter_from = $("#filter_from").datebox('getValue');
+        var filter_to = $("#filter_to").datebox('getValue');
         var filter_supplier = $("#filter_supplier").combobox('getValue');
         var filter_status = $("#filter_status").combobox('getValue');
         var filter_po_no = $("#filter_po_no").combobox('getValue');
         var filter_product_family = $("#filter_product_family").combobox('getValue');
         var filter_item_id = $("#filter_item_id").combogrid('getValue');
-
         var url = "?filter_supplier=" + window.btoa(filter_supplier) +
             "&filter_status=" + window.btoa(filter_status) +
             "&filter_po_no=" + window.btoa(filter_po_no) +
             "&filter_product_family=" + window.btoa(filter_product_family) +
-            "&filter_item_id=" + window.btoa(filter_item_id);
+            "&filter_item_id=" + window.btoa(filter_item_id) +
+            "&filter_from=" + window.btoa(filter_from) +
+            "&filter_to=" + window.btoa(filter_to);
 
         $('#dg').datagrid({
             url: '<?= base_url('planning/delivery_confirm/datatables') ?>' + url,
+            pagination: true,
+            rownumbers: true,
+            fit: true
         });
-
         $("#printout").attr('src', '<?= base_url('planning/delivery_confirm/print') ?>' + url);
     }
 
@@ -244,28 +251,23 @@
         var filter_po_no = $("#filter_po_no").combobox('getValue');
         var filter_product_family = $("#filter_product_family").combobox('getValue');
         var filter_item_id = $("#filter_item_id").combogrid('getValue');
-
+        var filter_from = $("#filter_from").datebox('getValue');
+        var filter_to = $("#filter_to").datebox('getValue');
         var url = "?filter_supplier=" + window.btoa(filter_supplier) +
             "&filter_status=" + window.btoa(filter_status) +
             "&filter_po_no=" + window.btoa(filter_po_no) +
             "&filter_product_family=" + window.btoa(filter_product_family) +
-            "&filter_item_id=" + window.btoa(filter_item_id);
-
+            "&filter_item_id=" + window.btoa(filter_item_id) +
+            "&filter_from=" + window.btoa(filter_from) +
+            "&filter_to=" + window.btoa(filter_to);
         window.location.assign('<?= base_url('planning/delivery_confirm/print/excel') ?>' + url);
     }
 
     function reload() {
         window.location.reload();
     }
-
     $(function() {
-        $('#dg').datagrid({
-            url: '<?= base_url('planning/delivery_confirm/datatables') ?>',
-            pagination: true,
-            rownumbers: true,
-            fit: true
-        });
-
+        filter();
         //Save Data
         $('#dlg_insert').dialog({
             buttons: [{
@@ -274,8 +276,7 @@
                 handler: function() {
                     var qty = $("#qty").numberbox('getValue');
                     var delivery = $("#delivery").numberbox('getValue');
-
-                    if(qty >= delivery){
+                    if (qty >= delivery) {
                         $('#frm_insert').form('submit', {
                             url: url_save,
                             onSubmit: function() {
@@ -283,24 +284,21 @@
                             },
                             success: function(result) {
                                 var result = eval('(' + result + ')');
-
                                 if (result.theme == "success") {
                                     toastr.success(result.message, result.title);
                                 } else {
                                     toastr.error(result.message, result.title);
                                 }
-
                                 $('#dlg_insert').dialog('close');
                                 $('#dg').datagrid('reload');
                             }
                         });
-                    }else{
+                    } else {
                         toastr.error("Delivery must not be greater than qty");
                     }
                 }
             }]
         });
-
         //Upload Data
         $('#dlg_upload').dialog({
             buttons: [{
@@ -330,7 +328,6 @@
                                     $('#p_upload').progressbar('setValue', value);
                                     $('#p_start').html(number);
                                     $('#p_finish').html(total);
-
                                     $.post('<?= base_url('planning/delivery_confirm/uploadCreate') ?>', {
                                         data: json[number - 1]
                                     }, function(note) {
@@ -350,7 +347,6 @@
                 }
             }]
         });
-
         $('#filter_supplier').combobox({
             url: '<?php echo base_url('planning/suppliers/reads'); ?>',
             valueField: 'id',
@@ -362,7 +358,7 @@
                     $(e.data.target).combobox('clear').combobox('textbox').focus();
                 }
             }],
-            onSelect: function(supp){
+            onSelect: function(supp) {
                 $('#filter_product_family').combobox({
                     url: '<?php echo base_url('planning/mst_item/readFamily'); ?>',
                     valueField: 'name',
@@ -374,7 +370,7 @@
                             $(e.data.target).combobox('clear').combobox('textbox').focus();
                         }
                     }],
-                    onSelect: function(po){
+                    onSelect: function(po) {
                         $('#filter_po_no').combobox({
                             url: '<?php echo base_url('planning/delivery_confirm/readFilterPo/'); ?>' + btoa(supp.id) + "/" + btoa(po.name),
                             valueField: 'po_no',
@@ -387,7 +383,6 @@
                                 }
                             }],
                         });
-
                         $('#filter_item_id').combogrid({
                             url: '<?= base_url('planning/mst_item/reads/') ?>' + po.number,
                             panelWidth: 400,
@@ -418,27 +413,25 @@
                 });
             }
         });
-
-        $('#supplier_name').combobox({
+        $('#supplier_id').combobox({
             url: '<?php echo base_url('planning/delivery_confirm/readSupplier'); ?>',
             valueField: 'supplier_id',
             textField: 'name',
             prompt: 'Choose Supplier',
-            onSelect: function(supplier){
+            onSelect: function(supplier) {
                 $('#product_family').combobox({
                     url: '<?php echo base_url('planning/delivery_confirm/readProductFamily/'); ?>' + window.btoa(supplier.supplier_id),
                     valueField: 'product_family_name',
                     textField: 'product_family_name',
                     prompt: 'Choose Product Family',
-                    onSelect: function(prodfam){
+                    onSelect: function(prodfam) {
                         $('#po_no').combobox({
                             url: '<?php echo base_url('planning/delivery_confirm/readPo/'); ?>' + window.btoa(supplier.supplier_id) + "/" + window.btoa(prodfam.product_family_name),
                             valueField: 'purchase_order_no',
                             textField: 'purchase_order_no',
                             prompt: 'Choose PO No',
-                            onSelect: function(po){
+                            onSelect: function(po) {
                                 $("#po_date").datebox('setValue', po.purchase_order_date);
-
                                 $('#item_id').combogrid({
                                     url: '<?= base_url('planning/delivery_confirm/readProducts/') ?>' + btoa(po.purchase_order_no),
                                     panelWidth: 400,
@@ -458,7 +451,7 @@
                                             width: 150
                                         }]
                                     ],
-                                    onSelect: function(row, item){
+                                    onSelect: function(row, item) {
                                         $("#item_name").textbox('setValue', item.item_name);
                                         $("#uom").textbox('setValue', item.uom);
                                         $("#qty").numberbox('setValue', item.qty);
@@ -473,7 +466,6 @@
             }
         });
     });
-
     //Format Datepicker
     function myformatter(date) {
         var y = date.getFullYear();
@@ -481,7 +473,6 @@
         var d = date.getDate();
         return y + '-' + (m < 10 ? ('0' + m) : m) + '-' + (d < 10 ? ('0' + d) : d);
     }
-
     //Format Datepicker
     function myparser(s) {
         if (!s) return new Date();
@@ -495,7 +486,6 @@
             return new Date();
         }
     }
-
     //CELLSTYLE STATUS
     function cellStyler(value, row, index) {
         if (value == "OPEN") {
@@ -504,7 +494,6 @@
             return 'background: #FF5F5F; color:white;';
         }
     }
-
     //FORMATTER STATUS
     function cellFormatter(value) {
         if (value == "OPEN") {
@@ -518,7 +507,6 @@
         const formatter = new Intl.NumberFormat('id-ID', {
             minimumFractionDigits: 0
         });
-
         return "<b>" + formatter.format(value) + "</b>";
     }
 </script>

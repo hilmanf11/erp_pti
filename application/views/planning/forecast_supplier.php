@@ -20,7 +20,7 @@
                 <th colspan="4" data-options="field:'wo',width:240,halign:'center'">WORKORDER</th>
                 <th rowspan="2" data-options="field:'total_stock',width:100,halign:'center',align:'right',formatter:numberformat">Stock WHS</th>
                 <th rowspan="2" data-options="field:'qty_vendor',width:100,halign:'center',align:'right',formatter:numberformat">OS PO</th>
-                <th colspan="9" data-options="field:'fcst',width:240,halign:'center'">FORECAST</th>
+                <th colspan="13" data-options="field:'fcst',width:240,halign:'center'">FORECAST</th>
                 <th colspan="3" data-options="field:'',width:100,halign:'center'"> Approved</th>
                 <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
                 <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
@@ -30,14 +30,18 @@
                 <th data-options="field:'issued_2',width:100,halign:'center',align:'right',formatter:numberformat">WO M-2</th>
                 <th data-options="field:'issued_3',width:100,halign:'center',align:'right',formatter:numberformat">WO M-3</th>
                 <th data-options="field:'issued_avg',width:100,halign:'center',align:'right',formatter:numberformat">Xbar</th>
-                <th data-options="field:'need_1',width:100,halign:'center',align:'right',formatter:numberformat">M 1</th>
-                <th data-options="field:'balance_1',width:100,halign:'center',align:'right',formatter:numberformat">Suggest PO</th>
-                <th data-options="field:'need_2',width:100,halign:'center',align:'right',formatter:numberformat">M 2</th>
-                <th data-options="field:'balance_2',width:100,halign:'center',align:'right',formatter:numberformat">Suggest PO</th>
-                <th data-options="field:'need_3',width:100,halign:'center',align:'right',formatter:numberformat">M 3</th>
-                <th data-options="field:'balance_3',width:100,halign:'center',align:'right',formatter:numberformat">Suggest PO</th>
-                <th data-options="field:'need_4',width:100,halign:'center',align:'right',formatter:numberformat">M 4</th>
-                <th data-options="field:'balance_4',width:100,halign:'center',align:'right',formatter:numberformat">Suggest PO</th>
+                <th data-options="field:'need_1',width:100,halign:'center',align:'right',formatter:numberformat">Need M1</th>
+                <th data-options="field:'balance_1',width:100,halign:'center',align:'right',formatter:numberformat">Bal 1</th>
+                <th data-options="field:'forecast_1',width:100,halign:'center',align:'right',formatter:numberformat">FC 1</th>
+                <th data-options="field:'need_2',width:100,halign:'center',align:'right',formatter:numberformat">Need M2</th>
+                <th data-options="field:'balance_2',width:100,halign:'center',align:'right',formatter:numberformat">Bal 2</th>
+                <th data-options="field:'forecast_2',width:100,halign:'center',align:'right',formatter:numberformat">FC 2</th>
+                <th data-options="field:'need_3',width:100,halign:'center',align:'right',formatter:numberformat">Need M3</th>
+                <th data-options="field:'balance_3',width:100,halign:'center',align:'right',formatter:numberformat">Bal 3</th>
+                <th data-options="field:'forecast_3',width:100,halign:'center',align:'right',formatter:numberformat">FC 3</th>
+                <th data-options="field:'need_4',width:100,halign:'center',align:'right',formatter:numberformat">Need M4</th>
+                <th data-options="field:'balance_4',width:100,halign:'center',align:'right',formatter:numberformat">Bal 4</th>
+                <th data-options="field:'forecast_4',width:100,halign:'center',align:'right',formatter:numberformat">FC 4</th>
                 <th data-options="field:'avg_need',width:100,halign:'center',align:'right',formatter:numberformat">Xbar</th>
                 <th data-options="field:'approved_to',width:80,align:'center', styler:cellStylerApproval, formatter:cellFormatterApproval">Status</th>
                 <th data-options="field:'approved_by',width:80,align:'center'">By</th>
@@ -291,8 +295,8 @@
                 "&filter_supplier=" + window.btoa(filter_supplier) +
                 "&filter_product_family=" + window.btoa(filter_product_family) +
                 "&item_id=" + window.btoa(item_id);
-            if (filter_month == "" || filter_year == "") {
-                toastr.warning("Please Choose Filter Date!", "Information");
+            if (filter_supplier == "") {
+                toastr.info("Please Select Supplier");
             } else {
                 window.location.assign('<?= base_url('planning/forecast_supplier/print2/excel') ?>' + url);
             }
@@ -572,7 +576,7 @@
                             width: 100,
                             halign: 'center',
                             align: 'right',
-                            title: "M 1",
+                            title: "Need M1",
                             editor: {
                                 type: 'textbox',
                                 options: {
@@ -585,7 +589,20 @@
                             width: 100,
                             halign: 'center',
                             align: 'right',
-                            title: "Suggest PO",
+                            title: "Bal 1",
+                            editor: {
+                                type: 'textbox',
+                                options: {
+                                    readonly: true
+                                }
+                            },
+                            formatter: numberformat
+                        }, {
+                            field: 'forecast_1',
+                            width: 100,
+                            halign: 'center',
+                            align: 'right',
+                            title: "FC 1",
                             editor: {
                                 type: 'textbox',
                                 options: {
@@ -598,7 +615,7 @@
                             width: 100,
                             halign: 'center',
                             align: 'right',
-                            title: "M 2",
+                            title: "Need M2",
                             editor: {
                                 type: 'textbox',
                                 options: {
@@ -611,7 +628,20 @@
                             width: 100,
                             halign: 'center',
                             align: 'right',
-                            title: "Suggest PO",
+                            title: "Bal 2",
+                            editor: {
+                                type: 'textbox',
+                                options: {
+                                    readonly: true
+                                }
+                            },
+                            formatter: numberformat
+                        }, {
+                            field: 'forecast_2',
+                            width: 100,
+                            halign: 'center',
+                            align: 'right',
+                            title: "FC 2",
                             editor: {
                                 type: 'textbox',
                                 options: {
@@ -624,7 +654,7 @@
                             width: 100,
                             halign: 'center',
                             align: 'right',
-                            title: "M 3",
+                            title: "Need M3",
                             editor: {
                                 type: 'textbox',
                                 options: {
@@ -637,7 +667,20 @@
                             width: 100,
                             halign: 'center',
                             align: 'right',
-                            title: "Suggest PO",
+                            title: "Bal 3",
+                            editor: {
+                                type: 'textbox',
+                                options: {
+                                    readonly: true
+                                }
+                            },
+                            formatter: numberformat
+                        }, {
+                            field: 'forecast_3',
+                            width: 100,
+                            halign: 'center',
+                            align: 'right',
+                            title: "FC 3",
                             editor: {
                                 type: 'textbox',
                                 options: {
@@ -650,7 +693,7 @@
                             width: 100,
                             halign: 'center',
                             align: 'right',
-                            title: "M 4",
+                            title: "Need M4",
                             editor: {
                                 type: 'textbox',
                                 options: {
@@ -663,7 +706,106 @@
                             width: 100,
                             halign: 'center',
                             align: 'right',
-                            title: "Suggest PO",
+                            title: "Bal 4",
+                            editor: {
+                                type: 'textbox',
+                                options: {
+                                    readonly: true
+                                }
+                            },
+                            formatter: numberformat
+                        }, {
+                            field: 'forecast_4',
+                            width: 100,
+                            halign: 'center',
+                            align: 'right',
+                            title: "FC 4",
+                            editor: {
+                                type: 'textbox',
+                                options: {
+                                    readonly: true
+                                }
+                            },
+                            formatter: numberformat
+                        },
+                        {
+                            hidden: true,
+                            field: 'need_5',
+                            width: 100,
+                            halign: 'center',
+                            align: 'right',
+                            title: "Need M5",
+                            editor: {
+                                type: 'textbox',
+                                options: {
+                                    readonly: true
+                                }
+                            },
+                            formatter: numberformat
+                        }, {
+                            hidden: true,
+                            field: 'balance_5',
+                            width: 100,
+                            halign: 'center',
+                            align: 'right',
+                            title: "Bal 5",
+                            editor: {
+                                type: 'textbox',
+                                options: {
+                                    readonly: true
+                                }
+                            },
+                            formatter: numberformat
+                        }, {
+                            hidden: true,
+                            field: 'forecast_5',
+                            width: 100,
+                            halign: 'center',
+                            align: 'right',
+                            title: "FC 5",
+                            editor: {
+                                type: 'textbox',
+                                options: {
+                                    readonly: true
+                                }
+                            },
+                            formatter: numberformat
+                        },
+                        {
+                            hidden: true,
+                            field: 'need_6',
+                            width: 100,
+                            halign: 'center',
+                            align: 'right',
+                            title: "Need M6",
+                            editor: {
+                                type: 'textbox',
+                                options: {
+                                    readonly: true
+                                }
+                            },
+                            formatter: numberformat
+                        }, {
+                            hidden: true,
+                            field: 'balance_6',
+                            width: 100,
+                            halign: 'center',
+                            align: 'right',
+                            title: "Bal 6",
+                            editor: {
+                                type: 'textbox',
+                                options: {
+                                    readonly: true
+                                }
+                            },
+                            formatter: numberformat
+                        }, {
+                            hidden: true,
+                            field: 'forecast_6',
+                            width: 100,
+                            halign: 'center',
+                            align: 'right',
+                            title: "FC 6",
                             editor: {
                                 type: 'textbox',
                                 options: {
@@ -701,19 +843,6 @@
                             },
                             formatter: numberformat
                         },
-                        // {
-                        //     field: 'qty',
-                        //     width: 100,
-                        //     halign: 'center',
-                        //     align: 'right',
-                        //     title: "QPA",
-                        //     editor: {
-                        //         type: 'numberbox',
-                        //         options: {
-                        //             precision: 5,
-                        //         }
-                        //     }
-                        // }
                     ]
                 ],
                 // onClickCell: onClickCell
@@ -824,12 +953,22 @@
                                     issued_avg: json[number - 1].issued_avg,
                                     need_1: json[number - 1].need_1,
                                     balance_1: json[number - 1].balance_1,
+                                    forecast_1: json[number - 1].forecast_1,
                                     need_2: json[number - 1].need_2,
                                     balance_2: json[number - 1].balance_2,
+                                    forecast_2: json[number - 1].forecast_2,
                                     need_3: json[number - 1].need_3,
                                     balance_3: json[number - 1].balance_3,
+                                    forecast_3: json[number - 1].forecast_3,
                                     need_4: json[number - 1].need_4,
                                     balance_4: json[number - 1].balance_4,
+                                    forecast_4: json[number - 1].forecast_4,
+                                    need_5: json[number - 1].need_5,
+                                    balance_5: json[number - 1].balance_5,
+                                    forecast_5: json[number - 1].forecast_5,
+                                    need_6: json[number - 1].need_6,
+                                    balance_6: json[number - 1].balance_6,
+                                    forecast_6: json[number - 1].forecast_6,
                                     avg_need: json[number - 1].avg_need,
                                 };
                                 $.post('<?= base_url('planning/forecast_supplier/create') ?>', dataFinal, function(note) {

@@ -12,6 +12,7 @@ class Forecast_supplier extends CI_Controller
         $this->load->library('session');
         $this->load->model('api');
         $this->load->library('Ciqrcode');
+        $this->load->library('dompdf_gen');
     }
     public function index()
     {
@@ -122,8 +123,15 @@ class Forecast_supplier extends CI_Controller
             $this->db->select('a.p_month,
                     a.p_year,a.revision,a.part_no, a.part_name, a.product_family, 
                     a.issued_1, a.issued_2, a.issued_3, a.issued_avg, a.qty_rm, a.qty_wip, a.qty_vendor, a.total_stock, a.qty_supply, a.qty_wo,a.total_wo, 
-                    a.need_1, a.need_2, a.need_3, a.need_4,
-                    a.balance_1, a.balance_2, a.balance_3, a.balance_4,
+                    a.need_1, a.need_2, a.need_3, a.need_4,a.need_5, a.need_6,
+                    a.balance_1, a.balance_2, a.balance_3, a.balance_4, a.balance_5, a.balance_6,
+                    (case when a.balance_1 > 0 then 0  else a.need_1 end) as forecast_1,
+                    (case when a.balance_2 > 0 then 0  else a.need_2 end) as forecast_2,
+                    (case when a.balance_3 > 0 then 0  else a.need_3 end) as forecast_3,
+                    (case when a.balance_4 > 0 then 0  else a.need_4 end) as forecast_4,
+                    (case when a.balance_5 > 0 then 0  else a.need_5 end) as forecast_5,
+                    (case when a.balance_6 > 0 then 0  else a.need_6 end) as forecast_6,
+                    (case when a.avg_balance > 0 then 0  else a.avg_need end) as avg_forecast,
                     a.avg_need, a.avg_balance, a.total_need, a.purchase_order,
                     b.id as vendor_id, 
                     b.name as vendor_name, 
@@ -146,59 +154,337 @@ class Forecast_supplier extends CI_Controller
             $this->db->like('a.product_family', $filter_product_family);
             $this->db->like('a.part_no', $item_id);
             $this->db->order_by('a.part_no', 'asc');
-            // $this->db->limit(2);
+            // $this->db->limit(100);
             //Total Data
             $totalRows = $this->db->count_all_results('', false);
             $records = $this->db->get()->result_array();
             //Mapping Data
             foreach ($records as $record) {
+                $month_from_leadtime = ceil($record['leadtime'] / 30);
+
+                if ($record['maker_type'] == 'IMPORT') { // jika maker type import maka need dimulai m+2 atau need_3
+                    if ($month_from_leadtime == 1) {
+                        $record_need_1 = $record['need_3'];
+                        $record_need_2 = $record['need_4'];
+                        $record_need_3 = $record['need_5'];
+                        $record_need_4 = $record['need_6'];
+                        $record_need_5 = $record['avg_need'];
+                        $record_need_6 = $record['avg_need'];
+                        $record_balance_1 = $record['balance_3'];
+                        $record_balance_2 = $record['balance_4'];
+                        $record_balance_3 = $record['balance_5'];
+                        $record_balance_4 = $record['balance_6'];
+                        $record_balance_5 = $record['avg_balance'];
+                        $record_balance_6 = $record['avg_balance'];
+                        $record_forecast_1 = $record['forecast_3'];
+                        $record_forecast_2 = $record['forecast_4'];
+                        $record_forecast_3 = $record['forecast_5'];
+                        $record_forecast_4 = $record['forecast_6'];
+                        $record_forecast_5 = $record['avg_forecast'];
+                        $record_forecast_6 = $record['avg_forecast'];
+                    } else if ($month_from_leadtime == 2) {
+                        $record_need_1 = $record['need_4'];
+                        $record_need_2 = $record['need_5'];
+                        $record_need_3 = $record['need_6'];
+                        $record_need_4 = $record['avg_need'];
+                        $record_need_5 = $record['avg_need'];
+                        $record_need_6 = $record['avg_need'];
+                        $record_balance_1 = $record['balance_4'];
+                        $record_balance_2 = $record['balance_5'];
+                        $record_balance_3 = $record['balance_6'];
+                        $record_balance_4 = $record['avg_balance'];
+                        $record_balance_5 = $record['avg_balance'];
+                        $record_balance_6 = $record['avg_balance'];
+                        $record_forecast_1 = $record['forecast_4'];
+                        $record_forecast_2 = $record['forecast_5'];
+                        $record_forecast_3 = $record['forecast_6'];
+                        $record_forecast_4 = $record['avg_forecast'];
+                        $record_forecast_5 = $record['avg_forecast'];
+                        $record_forecast_6 = $record['avg_forecast'];
+                    } else if ($month_from_leadtime == 3) {
+                        $record_need_1 = $record['need_5'];
+                        $record_need_2 = $record['need_6'];
+                        $record_need_3 = $record['avg_need'];
+                        $record_need_4 = $record['avg_need'];
+                        $record_need_5 = $record['avg_need'];
+                        $record_need_6 = $record['avg_need'];
+                        $record_balance_1 = $record['balance_5'];
+                        $record_balance_2 = $record['balance_6'];
+                        $record_balance_3 = $record['avg_balance'];
+                        $record_balance_4 = $record['avg_balance'];
+                        $record_balance_5 = $record['avg_balance'];
+                        $record_balance_6 = $record['avg_balance'];
+                        $record_forecast_1 = $record['forecast_5'];
+                        $record_forecast_2 = $record['forecast_6'];
+                        $record_forecast_3 = $record['avg_forecast'];
+                        $record_forecast_4 = $record['avg_forecast'];
+                        $record_forecast_5 = $record['avg_forecast'];
+                        $record_forecast_6 = $record['avg_forecast'];
+                    } else if ($month_from_leadtime == 4) {
+                        $record_need_1 = $record['need_6'];
+                        $record_need_2 = $record['avg_need'];
+                        $record_need_3 = $record['avg_need'];
+                        $record_need_4 = $record['avg_need'];
+                        $record_need_5 = $record['avg_need'];
+                        $record_need_6 = $record['avg_need'];
+                        $record_balance_1 = $record['balance_6'];
+                        $record_balance_2 = $record['avg_balance'];
+                        $record_balance_3 = $record['avg_balance'];
+                        $record_balance_4 = $record['avg_balance'];
+                        $record_balance_5 = $record['avg_balance'];
+                        $record_balance_6 = $record['avg_balance'];
+                        $record_forecast_1 = $record['forecast_6'];
+                        $record_forecast_2 = $record['avg_forecast'];
+                        $record_forecast_3 = $record['avg_forecast'];
+                        $record_forecast_4 = $record['avg_forecast'];
+                        $record_forecast_5 = $record['avg_forecast'];
+                        $record_forecast_6 = $record['avg_forecast'];
+                    } else {
+                        $record_need_1 = $record['avg_need'];
+                        $record_need_2 = $record['avg_need'];
+                        $record_need_3 = $record['avg_need'];
+                        $record_need_4 = $record['avg_need'];
+                        $record_need_5 = $record['avg_need'];
+                        $record_need_6 = $record['avg_need'];
+                        $record_balance_1 = $record['avg_balance'];
+                        $record_balance_2 = $record['avg_balance'];
+                        $record_balance_3 = $record['avg_balance'];
+                        $record_balance_4 = $record['avg_balance'];
+                        $record_balance_5 = $record['avg_balance'];
+                        $record_balance_6 = $record['avg_balance'];
+                        $record_forecast_1 = $record['avg_forecast'];
+                        $record_forecast_2 = $record['avg_forecast'];
+                        $record_forecast_3 = $record['avg_forecast'];
+                        $record_forecast_4 = $record['avg_forecast'];
+                        $record_forecast_5 = $record['avg_forecast'];
+                        $record_forecast_6 = $record['avg_forecast'];
+                    }
+                } else { // jika maker type local maka need dimulai m+1 atau need_2
+                    if ($month_from_leadtime == 1) {
+                        $record_need_1 = $record['need_2'];
+                        $record_need_2 = $record['need_3'];
+                        $record_need_3 = $record['need_4'];
+                        $record_need_4 = $record['need_5'];
+                        $record_need_5 = $record['need_6'];
+                        $record_need_6 = $record['avg_need'];
+                        $record_balance_1 = $record['balance_2'];
+                        $record_balance_2 = $record['balance_3'];
+                        $record_balance_3 = $record['balance_4'];
+                        $record_balance_4 = $record['balance_5'];
+                        $record_balance_5 = $record['balance_6'];
+                        $record_balance_6 = $record['avg_balance'];
+                        $record_forecast_1 = $record['forecast_2'];
+                        $record_forecast_2 = $record['forecast_3'];
+                        $record_forecast_3 = $record['forecast_4'];
+                        $record_forecast_4 = $record['forecast_5'];
+                        $record_forecast_5 = $record['forecast_6'];
+                        $record_forecast_6 = $record['avg_forecast'];
+                    } else if ($month_from_leadtime == 2) {
+                        $record_need_1 = $record['need_3'];
+                        $record_need_2 = $record['need_4'];
+                        $record_need_3 = $record['need_5'];
+                        $record_need_4 = $record['need_6'];
+                        $record_need_5 = $record['avg_need'];
+                        $record_need_6 = $record['avg_need'];
+                        $record_balance_1 = $record['balance_3'];
+                        $record_balance_2 = $record['balance_4'];
+                        $record_balance_3 = $record['balance_5'];
+                        $record_balance_4 = $record['balance_6'];
+                        $record_balance_5 = $record['avg_balance'];
+                        $record_balance_6 = $record['avg_balance'];
+                        $record_forecast_1 = $record['forecast_3'];
+                        $record_forecast_2 = $record['forecast_4'];
+                        $record_forecast_3 = $record['forecast_5'];
+                        $record_forecast_4 = $record['forecast_6'];
+                        $record_forecast_5 = $record['avg_forecast'];
+                        $record_forecast_6 = $record['avg_forecast'];
+                    } else if ($month_from_leadtime == 3) {
+                        $record_need_1 = $record['need_4'];
+                        $record_need_2 = $record['need_5'];
+                        $record_need_3 = $record['need_6'];
+                        $record_need_4 = $record['avg_need'];
+                        $record_need_5 = $record['avg_need'];
+                        $record_need_6 = $record['avg_need'];
+                        $record_balance_1 = $record['balance_4'];
+                        $record_balance_2 = $record['balance_5'];
+                        $record_balance_3 = $record['balance_6'];
+                        $record_balance_4 = $record['avg_balance'];
+                        $record_balance_5 = $record['avg_balance'];
+                        $record_balance_6 = $record['avg_balance'];
+                        $record_forecast_1 = $record['forecast_4'];
+                        $record_forecast_2 = $record['forecast_5'];
+                        $record_forecast_3 = $record['forecast_6'];
+                        $record_forecast_4 = $record['avg_forecast'];
+                        $record_forecast_5 = $record['avg_forecast'];
+                        $record_forecast_6 = $record['avg_forecast'];
+                    } else if ($month_from_leadtime == 4) {
+                        $record_need_1 = $record['need_5'];
+                        $record_need_2 = $record['need_6'];
+                        $record_need_3 = $record['avg_need'];
+                        $record_need_4 = $record['avg_need'];
+                        $record_need_5 = $record['avg_need'];
+                        $record_need_6 = $record['avg_need'];
+                        $record_balance_1 = $record['balance_5'];
+                        $record_balance_2 = $record['balance_6'];
+                        $record_balance_3 = $record['avg_balance'];
+                        $record_balance_4 = $record['avg_balance'];
+                        $record_balance_5 = $record['avg_balance'];
+                        $record_balance_6 = $record['avg_balance'];
+                        $record_forecast_1 = $record['forecast_5'];
+                        $record_forecast_2 = $record['forecast_6'];
+                        $record_forecast_3 = $record['avg_forecast'];
+                        $record_forecast_4 = $record['avg_forecast'];
+                        $record_forecast_5 = $record['avg_forecast'];
+                        $record_forecast_6 = $record['avg_forecast'];
+                    } else if ($month_from_leadtime == 5) {
+                        $record_need_1 = $record['need_6'];
+                        $record_need_2 = $record['avg_need'];
+                        $record_need_3 = $record['avg_need'];
+                        $record_need_4 = $record['avg_need'];
+                        $record_need_5 = $record['avg_need'];
+                        $record_need_6 = $record['avg_need'];
+                        $record_balance_1 = $record['balance_6'];
+                        $record_balance_2 = $record['avg_balance'];
+                        $record_balance_3 = $record['avg_balance'];
+                        $record_balance_4 = $record['avg_balance'];
+                        $record_balance_5 = $record['avg_balance'];
+                        $record_balance_6 = $record['avg_balance'];
+                        $record_forecast_1 = $record['forecast_6'];
+                        $record_forecast_2 = $record['avg_forecast'];
+                        $record_forecast_3 = $record['avg_forecast'];
+                        $record_forecast_4 = $record['avg_forecast'];
+                        $record_forecast_5 = $record['avg_forecast'];
+                        $record_forecast_6 = $record['avg_forecast'];
+                    } else {
+                        $record_need_1 = $record['avg_need'];
+                        $record_need_2 = $record['avg_need'];
+                        $record_need_3 = $record['avg_need'];
+                        $record_need_4 = $record['avg_need'];
+                        $record_need_5 = $record['avg_need'];
+                        $record_need_6 = $record['avg_need'];
+                        $record_balance_1 = $record['avg_balance'];
+                        $record_balance_2 = $record['avg_balance'];
+                        $record_balance_3 = $record['avg_balance'];
+                        $record_balance_4 = $record['avg_balance'];
+                        $record_balance_5 = $record['avg_balance'];
+                        $record_balance_6 = $record['avg_balance'];
+                        $record_forecast_1 = $record['avg_forecast'];
+                        $record_forecast_2 = $record['avg_forecast'];
+                        $record_forecast_3 = $record['avg_forecast'];
+                        $record_forecast_4 = $record['avg_forecast'];
+                        $record_forecast_5 = $record['avg_forecast'];
+                        $record_forecast_6 = $record['avg_forecast'];
+                    }
+                }
+
+                // jika ada share order maka split
                 if ($record['share_order'] < '100') {
-                    if ($record['need_1'] > 0) {
-                        $need_1 = (ceil((($record['need_1'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    if ($record_need_1 > 0) {
+                        $need_1 = (ceil((($record_need_1 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                     } else {
-                        $need_1 =  $record['need_1'];
+                        $need_1 =  $record_need_1;
                     }
 
-                    if ($record['need_2'] > 0) {
-                        $need_2 = (ceil((($record['need_2'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    if ($record_need_2 > 0) {
+                        $need_2 = (ceil((($record_need_2 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                     } else {
-                        $need_2 = $record['need_2'];
+                        $need_2 = $record_need_2;
                     }
 
-                    if ($record['need_3'] > 0) {
-                        $need_3 = (ceil((($record['need_3'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    if ($record_need_3 > 0) {
+                        $need_3 = (ceil((($record_need_3 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                     } else {
-                        $need_3 = $record['need_3'];
+                        $need_3 = $record_need_3;
                     }
 
-                    if ($record['need_4'] > 0) {
-                        $need_4 = (ceil((($record['need_4'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    if ($record_need_4 > 0) {
+                        $need_4 = (ceil((($record_need_4 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                     } else {
-                        $need_4 = $record['need_4'];
+                        $need_4 = $record_need_4;
                     }
 
-                    if ($record['balance_1'] > 0) {
-                        $balance_1 = (ceil((($record['balance_1'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    if ($record_need_5 > 0) {
+                        $need_5 = (ceil((($record_need_5 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                     } else {
-                        $balance_1 = $record['balance_1'];
+                        $need_5 = $record_need_5;
                     }
 
-                    if ($record['balance_2'] > 0) {
-                        $balance_2 = (ceil((($record['balance_2'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    if ($record_need_6 > 0) {
+                        $need_6 = (ceil((($record_need_6 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                     } else {
-                        $balance_2 = $record['balance_2'];
+                        $need_6 = $record_need_6;
                     }
 
-                    if ($record['balance_3'] > 0) {
-                        $balance_3 = (ceil((($record['balance_3'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    if ($record_balance_1 > 0) {
+                        $balance_1 = (ceil((($record_balance_1 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                     } else {
-                        $balance_3 = $record['balance_3'];
+                        $balance_1 = $record_balance_1;
                     }
 
-                    if ($record['balance_4'] > 0) {
-                        $balance_4 = (ceil((($record['balance_4'] * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    if ($record_balance_2 > 0) {
+                        $balance_2 = (ceil((($record_balance_2 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                     } else {
-                        $balance_4 = $record['balance_4'];
+                        $balance_2 = $record_balance_2;
+                    }
+
+                    if ($record_balance_3 > 0) {
+                        $balance_3 = (ceil((($record_balance_3 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $balance_3 = $record_balance_3;
+                    }
+
+                    if ($record_balance_4 > 0) {
+                        $balance_4 = (ceil((($record_balance_4 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $balance_4 = $record_balance_4;
+                    }
+
+                    if ($record_balance_5 > 0) {
+                        $balance_5 = (ceil((($record_balance_5 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $balance_5 = $record_balance_5;
+                    }
+
+                    if ($record_balance_6 > 0) {
+                        $balance_6 = (ceil((($record_balance_6 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $balance_6 = $record_balance_6;
+                    }
+
+                    if ($record_forecast_1 > 0) {
+                        $forecast_1 = (ceil((($record_forecast_1 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $forecast_1 = $record_forecast_1;
+                    }
+
+                    if ($record_forecast_2 > 0) {
+                        $forecast_2 = (ceil((($record_forecast_2 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $forecast_2 = $record_forecast_2;
+                    }
+
+                    if ($record_forecast_3 > 0) {
+                        $forecast_3 = (ceil((($record_forecast_3 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $forecast_3 = $record_forecast_3;
+                    }
+
+                    if ($record_forecast_4 > 0) {
+                        $forecast_4 = (ceil((($record_forecast_4 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $forecast_4 = $record_forecast_4;
+                    }
+
+                    if ($record_forecast_5 > 0) {
+                        $forecast_5 = (ceil((($record_forecast_5 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $forecast_5 = $record_forecast_5;
+                    }
+
+                    if ($record_forecast_6 > 0) {
+                        $forecast_6 = (ceil((($record_forecast_6 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                    } else {
+                        $forecast_6 = $record_forecast_6;
                     }
 
                     if ($need_1 + $need_2 + $need_3 + $need_4 > 0) {
@@ -213,6 +499,12 @@ class Forecast_supplier extends CI_Controller
                         $avg_balance = $record['avg_balance'];
                     }
 
+                    if ($forecast_1 + $forecast_2 + $forecast_3 + $forecast_4 > 0) {
+                        $avg_forecast = ($forecast_1 + $forecast_2 + $forecast_3 + $forecast_4) / 4;
+                    } else {
+                        $avg_forecast = $record['avg_forecast'];
+                    }
+
                     $total_need = $need_1 + $need_2 + $need_3 + $need_4;
                     if ($total_need > 0) {
                         $purchase_order = (ceil((($total_need) / $record['moq'])) * $record['moq']);
@@ -220,16 +512,27 @@ class Forecast_supplier extends CI_Controller
                         $purchase_order = $total_need;
                     }
                 } else {
-                    $need_1 = $record['need_1'];
-                    $need_2 = $record['need_2'];
-                    $need_3 = $record['need_3'];
-                    $need_4 = $record['need_4'];
-                    $balance_1 = $record['balance_1'];
-                    $balance_2 = $record['balance_2'];
-                    $balance_3 = $record['balance_3'];
-                    $balance_4 = $record['balance_4'];
+                    $need_1 = $record_need_1;
+                    $need_2 = $record_need_2;
+                    $need_3 = $record_need_3;
+                    $need_4 = $record_need_4;
+                    $need_5 = $record_need_5;
+                    $need_6 = $record_need_6;
+                    $balance_1 = $record_balance_1;
+                    $balance_2 = $record_balance_2;
+                    $balance_3 = $record_balance_3;
+                    $balance_4 = $record_balance_4;
+                    $balance_5 = $record_balance_5;
+                    $balance_6 = $record_balance_6;
+                    $forecast_1 = $record_forecast_1;
+                    $forecast_2 = $record_forecast_2;
+                    $forecast_3 = $record_forecast_3;
+                    $forecast_4 = $record_forecast_4;
+                    $forecast_5 = $record_forecast_5;
+                    $forecast_6 = $record_forecast_6;
                     $avg_need = $record['avg_need'];
                     $avg_balance = $record['avg_balance'];
+                    $avg_forecast = $record['avg_forecast'];
                     $total_need = $record['total_need'];
                     $purchase_order = $record['purchase_order'];
                 }
@@ -255,12 +558,23 @@ class Forecast_supplier extends CI_Controller
                     "need_2" => $need_2,
                     "need_3" => $need_3,
                     "need_4" => $need_4,
+                    "need_5" => $need_5,
+                    "need_6" => $need_6,
                     "balance_1" => $balance_1,
                     "balance_2" => $balance_2,
                     "balance_3" => $balance_3,
                     "balance_4" => $balance_4,
+                    "balance_5" => $balance_5,
+                    "balance_6" => $balance_6,
+                    "forecast_1" => $forecast_1,
+                    "forecast_2" => $forecast_2,
+                    "forecast_3" => $forecast_3,
+                    "forecast_4" => $forecast_4,
+                    "forecast_5" => $forecast_5,
+                    "forecast_6" => $forecast_6,
                     "avg_need" => $avg_need,
                     "avg_balance" => $avg_balance,
+                    "avg_forecast" => $avg_forecast,
                     "total_need" => $total_need,
                     "purchase_order" => $purchase_order,
                     "vendor_id" => $record['vendor_id'],
@@ -422,21 +736,25 @@ class Forecast_supplier extends CI_Controller
                 <th colspan="4" style="text-align:center;">Workorder</th>
                 <th rowspan="2" style="text-align:center;">Stock WHS</th>
                 <th rowspan="2" style="text-align:center;">OS PO</th>
-                <th colspan="9" style="text-align:center;">Forecast</th>
+                <th colspan="13" style="text-align:center;">Forecast</th>
             </tr>
             <tr>
                 <th>' . $wo_1 . '</th>
                 <th>' . $wo_2 . '</th>
                 <th>' . $wo_3 . '</th>
                 <th>Xbar</th>
-                <th>' . $fc_1 . '</th>
-                <th>Sugest PO</th>
-                <th>' . $fc_2 . '</th>
-                <th>Sugest PO</th>
-                <th>' . $fc_3 . '</th>
-                <th>Sugest PO</th>
-                <th>' . $fc_4 . '</th>
-                <th>Sugest PO</th>
+                <th>Need M1</th>
+                <th>Bal 1</th>
+                <th>Fc 1</th>
+                <th>Need M2</th>
+                <th>Bal 2</th>
+                <th>Fc 2</th>
+                <th>Need M3</th>
+                <th>Bal 3</th>
+                <th>Fc 3</th>
+                <th>Need M4</th>
+                <th>Bal 4</th>
+                <th>Fc 4</th>
                 <th>Xbar</th>
             </tr>';
         $no = 1;
@@ -463,13 +781,17 @@ class Forecast_supplier extends CI_Controller
                             <td>' . $data['qty_vendor'] . '</td>
                             <td>' . $data['need_1'] . '</td>
                             <td>' . $data['balance_1'] . '</td>
+                            <td>' . $data['forecast_1'] . '</td>
                             <td>' . $data['need_2'] . '</td>
                             <td>' . $data['balance_2'] . '</td>
+                            <td>' . $data['forecast_2'] . '</td>
                             <td>' . $data['need_3'] . '</td>
                             <td>' . $data['balance_3'] . '</td>
+                            <td>' . $data['forecast_3'] . '</td>
                             <td>' . $data['need_4'] . '</td>
                             <td>' . $data['balance_4'] . '</td>
-                            <td>' . $data['need_avg'] . '</td>
+                            <td>' . $data['forecast_4'] . '</td>
+                            <td>' . $data['avg_need'] . '</td>
                         </tr>';
             $no++;
         }
@@ -504,8 +826,15 @@ class Forecast_supplier extends CI_Controller
         $this->db->select('a.p_month,
                     a.p_year,a.revision,a.part_no, a.part_name, a.product_family, 
                     a.issued_1, a.issued_2, a.issued_3, a.issued_avg, a.qty_rm, a.qty_wip, a.qty_vendor, a.total_stock, a.qty_supply, a.qty_wo,a.total_wo, 
-                    a.need_1, a.need_2, a.need_3, a.need_4,
-                    a.balance_1, a.balance_2, a.balance_3, a.balance_4,
+                    a.need_1, a.need_2, a.need_3, a.need_4,a.need_5, a.need_6,
+                    a.balance_1, a.balance_2, a.balance_3, a.balance_4, a.balance_5, a.balance_6,
+                    (case when a.balance_1 > 0 then 0  else a.need_1 end) as forecast_1,
+                    (case when a.balance_2 > 0 then 0  else a.need_2 end) as forecast_2,
+                    (case when a.balance_3 > 0 then 0  else a.need_3 end) as forecast_3,
+                    (case when a.balance_4 > 0 then 0  else a.need_4 end) as forecast_4,
+                    (case when a.balance_5 > 0 then 0  else a.need_5 end) as forecast_5,
+                    (case when a.balance_6 > 0 then 0  else a.need_6 end) as forecast_6,
+                    (case when a.avg_balance > 0 then 0  else a.avg_need end) as avg_forecast,
                     a.avg_need, a.avg_balance, a.total_need, a.purchase_order,
                     b.id as vendor_id, 
                     b.name as vendor_name, 
@@ -575,134 +904,437 @@ class Forecast_supplier extends CI_Controller
                 <th colspan="4" style="text-align:center;">Workorder</th>
                 <th rowspan="2" style="text-align:center;">Stock WHS</th>
                 <th rowspan="2" style="text-align:center;">OS PO</th>
-                <th colspan="9" style="text-align:center;">Forecast</th>
+                <th colspan="13" style="text-align:center;">Forecast</th>
             </tr>
             <tr>
                 <th>' . $wo_1 . '</th>
                 <th>' . $wo_2 . '</th>
                 <th>' . $wo_3 . '</th>
                 <th>Xbar</th>
-                <th>' . $fc_1 . '</th>
-                <th>Sugest PO</th>
-                <th>' . $fc_2 . '</th>
-                <th>Sugest PO</th>
-                <th>' . $fc_3 . '</th>
-                <th>Sugest PO</th>
-                <th>' . $fc_4 . '</th>
-                <th>Sugest PO</th>
+                <th>NEED M1</th>
+                <th>BAL 1</th>
+                <th>FC 1</th>
+                <th>NEED M2</th>
+                <th>BAL 2</th>
+                <th>FC 2</th>
+                <th>NEED M3</th>
+                <th>BAL 3</th>
+                <th>FC 3</th>
+                <th>NEED M4</th>
+                <th>BAL 4</th>
+                <th>FC 4</th>
                 <th>Xbar</th>
             </tr>';
         $no = 1;
-        foreach ($records as $data) {
-            if ($data['share_order'] < '100') {
-                if ($data['need_1'] > 0) {
-                    $need_1 = (ceil((($data['need_1'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+        foreach ($records as $record) {
+            $month_from_leadtime = ceil($record['leadtime'] / 30);
+            if ($record['maker_type'] == 'IMPORT') { // jika maker type import maka need dimulai m+2 atau need_3
+                if ($month_from_leadtime == 1) {
+                    $record_need_1 = $record['need_3'];
+                    $record_need_2 = $record['need_4'];
+                    $record_need_3 = $record['need_5'];
+                    $record_need_4 = $record['need_6'];
+                    $record_need_5 = $record['avg_need'];
+                    $record_need_6 = $record['avg_need'];
+                    $record_balance_1 = $record['balance_3'];
+                    $record_balance_2 = $record['balance_4'];
+                    $record_balance_3 = $record['balance_5'];
+                    $record_balance_4 = $record['balance_6'];
+                    $record_balance_5 = $record['avg_balance'];
+                    $record_balance_6 = $record['avg_balance'];
+                    $record_forecast_1 = $record['forecast_3'];
+                    $record_forecast_2 = $record['forecast_4'];
+                    $record_forecast_3 = $record['forecast_5'];
+                    $record_forecast_4 = $record['forecast_6'];
+                    $record_forecast_5 = $record['avg_forecast'];
+                    $record_forecast_6 = $record['avg_forecast'];
+                } else if ($month_from_leadtime == 2) {
+                    $record_need_1 = $record['need_4'];
+                    $record_need_2 = $record['need_5'];
+                    $record_need_3 = $record['need_6'];
+                    $record_need_4 = $record['avg_need'];
+                    $record_need_5 = $record['avg_need'];
+                    $record_need_6 = $record['avg_need'];
+                    $record_balance_1 = $record['balance_4'];
+                    $record_balance_2 = $record['balance_5'];
+                    $record_balance_3 = $record['balance_6'];
+                    $record_balance_4 = $record['avg_balance'];
+                    $record_balance_5 = $record['avg_balance'];
+                    $record_balance_6 = $record['avg_balance'];
+                    $record_forecast_1 = $record['forecast_4'];
+                    $record_forecast_2 = $record['forecast_5'];
+                    $record_forecast_3 = $record['forecast_6'];
+                    $record_forecast_4 = $record['avg_forecast'];
+                    $record_forecast_5 = $record['avg_forecast'];
+                    $record_forecast_6 = $record['avg_forecast'];
+                } else if ($month_from_leadtime == 3) {
+                    $record_need_1 = $record['need_5'];
+                    $record_need_2 = $record['need_6'];
+                    $record_need_3 = $record['avg_need'];
+                    $record_need_4 = $record['avg_need'];
+                    $record_need_5 = $record['avg_need'];
+                    $record_need_6 = $record['avg_need'];
+                    $record_balance_1 = $record['balance_5'];
+                    $record_balance_2 = $record['balance_6'];
+                    $record_balance_3 = $record['avg_balance'];
+                    $record_balance_4 = $record['avg_balance'];
+                    $record_balance_5 = $record['avg_balance'];
+                    $record_balance_6 = $record['avg_balance'];
+                    $record_forecast_1 = $record['forecast_5'];
+                    $record_forecast_2 = $record['forecast_6'];
+                    $record_forecast_3 = $record['avg_forecast'];
+                    $record_forecast_4 = $record['avg_forecast'];
+                    $record_forecast_5 = $record['avg_forecast'];
+                    $record_forecast_6 = $record['avg_forecast'];
+                } else if ($month_from_leadtime == 4) {
+                    $record_need_1 = $record['need_6'];
+                    $record_need_2 = $record['avg_need'];
+                    $record_need_3 = $record['avg_need'];
+                    $record_need_4 = $record['avg_need'];
+                    $record_need_5 = $record['avg_need'];
+                    $record_need_6 = $record['avg_need'];
+                    $record_balance_1 = $record['balance_6'];
+                    $record_balance_2 = $record['avg_balance'];
+                    $record_balance_3 = $record['avg_balance'];
+                    $record_balance_4 = $record['avg_balance'];
+                    $record_balance_5 = $record['avg_balance'];
+                    $record_balance_6 = $record['avg_balance'];
+                    $record_forecast_1 = $record['forecast_6'];
+                    $record_forecast_2 = $record['avg_forecast'];
+                    $record_forecast_3 = $record['avg_forecast'];
+                    $record_forecast_4 = $record['avg_forecast'];
+                    $record_forecast_5 = $record['avg_forecast'];
+                    $record_forecast_6 = $record['avg_forecast'];
                 } else {
-                    $need_1 =  $data['need_1'];
+                    $record_need_1 = $record['avg_need'];
+                    $record_need_2 = $record['avg_need'];
+                    $record_need_3 = $record['avg_need'];
+                    $record_need_4 = $record['avg_need'];
+                    $record_need_5 = $record['avg_need'];
+                    $record_need_6 = $record['avg_need'];
+                    $record_balance_1 = $record['avg_balance'];
+                    $record_balance_2 = $record['avg_balance'];
+                    $record_balance_3 = $record['avg_balance'];
+                    $record_balance_4 = $record['avg_balance'];
+                    $record_balance_5 = $record['avg_balance'];
+                    $record_balance_6 = $record['avg_balance'];
+                    $record_forecast_1 = $record['avg_forecast'];
+                    $record_forecast_2 = $record['avg_forecast'];
+                    $record_forecast_3 = $record['avg_forecast'];
+                    $record_forecast_4 = $record['avg_forecast'];
+                    $record_forecast_5 = $record['avg_forecast'];
+                    $record_forecast_6 = $record['avg_forecast'];
+                }
+            } else { // jika maker type local maka need dimulai m+1 atau need_2
+                if ($month_from_leadtime == 1) {
+                    $record_need_1 = $record['need_2'];
+                    $record_need_2 = $record['need_3'];
+                    $record_need_3 = $record['need_4'];
+                    $record_need_4 = $record['need_5'];
+                    $record_need_5 = $record['need_6'];
+                    $record_need_6 = $record['avg_need'];
+                    $record_balance_1 = $record['balance_2'];
+                    $record_balance_2 = $record['balance_3'];
+                    $record_balance_3 = $record['balance_4'];
+                    $record_balance_4 = $record['balance_5'];
+                    $record_balance_5 = $record['balance_6'];
+                    $record_balance_6 = $record['avg_balance'];
+                    $record_forecast_1 = $record['forecast_2'];
+                    $record_forecast_2 = $record['forecast_3'];
+                    $record_forecast_3 = $record['forecast_4'];
+                    $record_forecast_4 = $record['forecast_5'];
+                    $record_forecast_5 = $record['forecast_6'];
+                    $record_forecast_6 = $record['avg_forecast'];
+                } else if ($month_from_leadtime == 2) {
+                    $record_need_1 = $record['need_3'];
+                    $record_need_2 = $record['need_4'];
+                    $record_need_3 = $record['need_5'];
+                    $record_need_4 = $record['need_6'];
+                    $record_need_5 = $record['avg_need'];
+                    $record_need_6 = $record['avg_need'];
+                    $record_balance_1 = $record['balance_3'];
+                    $record_balance_2 = $record['balance_4'];
+                    $record_balance_3 = $record['balance_5'];
+                    $record_balance_4 = $record['balance_6'];
+                    $record_balance_5 = $record['avg_balance'];
+                    $record_balance_6 = $record['avg_balance'];
+                    $record_forecast_1 = $record['forecast_3'];
+                    $record_forecast_2 = $record['forecast_4'];
+                    $record_forecast_3 = $record['forecast_5'];
+                    $record_forecast_4 = $record['forecast_6'];
+                    $record_forecast_5 = $record['avg_forecast'];
+                    $record_forecast_6 = $record['avg_forecast'];
+                } else if ($month_from_leadtime == 3) {
+                    $record_need_1 = $record['need_4'];
+                    $record_need_2 = $record['need_5'];
+                    $record_need_3 = $record['need_6'];
+                    $record_need_4 = $record['avg_need'];
+                    $record_need_5 = $record['avg_need'];
+                    $record_need_6 = $record['avg_need'];
+                    $record_balance_1 = $record['balance_4'];
+                    $record_balance_2 = $record['balance_5'];
+                    $record_balance_3 = $record['balance_6'];
+                    $record_balance_4 = $record['avg_balance'];
+                    $record_balance_5 = $record['avg_balance'];
+                    $record_balance_6 = $record['avg_balance'];
+                    $record_forecast_1 = $record['forecast_4'];
+                    $record_forecast_2 = $record['forecast_5'];
+                    $record_forecast_3 = $record['forecast_6'];
+                    $record_forecast_4 = $record['avg_forecast'];
+                    $record_forecast_5 = $record['avg_forecast'];
+                    $record_forecast_6 = $record['avg_forecast'];
+                } else if ($month_from_leadtime == 4) {
+                    $record_need_1 = $record['need_5'];
+                    $record_need_2 = $record['need_6'];
+                    $record_need_3 = $record['avg_need'];
+                    $record_need_4 = $record['avg_need'];
+                    $record_need_5 = $record['avg_need'];
+                    $record_need_6 = $record['avg_need'];
+                    $record_balance_1 = $record['balance_5'];
+                    $record_balance_2 = $record['balance_6'];
+                    $record_balance_3 = $record['avg_balance'];
+                    $record_balance_4 = $record['avg_balance'];
+                    $record_balance_5 = $record['avg_balance'];
+                    $record_balance_6 = $record['avg_balance'];
+                    $record_forecast_1 = $record['forecast_5'];
+                    $record_forecast_2 = $record['forecast_6'];
+                    $record_forecast_3 = $record['avg_forecast'];
+                    $record_forecast_4 = $record['avg_forecast'];
+                    $record_forecast_5 = $record['avg_forecast'];
+                    $record_forecast_6 = $record['avg_forecast'];
+                } else if ($month_from_leadtime == 5) {
+                    $record_need_1 = $record['need_6'];
+                    $record_need_2 = $record['avg_need'];
+                    $record_need_3 = $record['avg_need'];
+                    $record_need_4 = $record['avg_need'];
+                    $record_need_5 = $record['avg_need'];
+                    $record_need_6 = $record['avg_need'];
+                    $record_balance_1 = $record['balance_6'];
+                    $record_balance_2 = $record['avg_balance'];
+                    $record_balance_3 = $record['avg_balance'];
+                    $record_balance_4 = $record['avg_balance'];
+                    $record_balance_5 = $record['avg_balance'];
+                    $record_balance_6 = $record['avg_balance'];
+                    $record_forecast_1 = $record['forecast_6'];
+                    $record_forecast_2 = $record['avg_forecast'];
+                    $record_forecast_3 = $record['avg_forecast'];
+                    $record_forecast_4 = $record['avg_forecast'];
+                    $record_forecast_5 = $record['avg_forecast'];
+                    $record_forecast_6 = $record['avg_forecast'];
+                } else {
+                    $record_need_1 = $record['avg_need'];
+                    $record_need_2 = $record['avg_need'];
+                    $record_need_3 = $record['avg_need'];
+                    $record_need_4 = $record['avg_need'];
+                    $record_need_5 = $record['avg_need'];
+                    $record_need_6 = $record['avg_need'];
+                    $record_balance_1 = $record['avg_balance'];
+                    $record_balance_2 = $record['avg_balance'];
+                    $record_balance_3 = $record['avg_balance'];
+                    $record_balance_4 = $record['avg_balance'];
+                    $record_balance_5 = $record['avg_balance'];
+                    $record_balance_6 = $record['avg_balance'];
+                    $record_forecast_1 = $record['avg_forecast'];
+                    $record_forecast_2 = $record['avg_forecast'];
+                    $record_forecast_3 = $record['avg_forecast'];
+                    $record_forecast_4 = $record['avg_forecast'];
+                    $record_forecast_5 = $record['avg_forecast'];
+                    $record_forecast_6 = $record['avg_forecast'];
+                }
+            }
+
+            // jika ada share order maka split
+            if ($record['share_order'] < '100') {
+                if ($record_need_1 > 0) {
+                    $need_1 = (ceil((($record_need_1 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                } else {
+                    $need_1 =  $record_need_1;
                 }
 
-                if ($data['need_2'] > 0) {
-                    $need_2 = (ceil((($data['need_2'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                if ($record_need_2 > 0) {
+                    $need_2 = (ceil((($record_need_2 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                 } else {
-                    $need_2 = $data['need_2'];
+                    $need_2 = $record_need_2;
                 }
 
-                if ($data['need_3'] > 0) {
-                    $need_3 = (ceil((($data['need_3'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                if ($record_need_3 > 0) {
+                    $need_3 = (ceil((($record_need_3 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                 } else {
-                    $need_3 = $data['need_3'];
+                    $need_3 = $record_need_3;
                 }
 
-                if ($data['need_4'] > 0) {
-                    $need_4 = (ceil((($data['need_4'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                if ($record_need_4 > 0) {
+                    $need_4 = (ceil((($record_need_4 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                 } else {
-                    $need_4 = $data['need_4'];
+                    $need_4 = $record_need_4;
                 }
 
-                if ($data['balance_1'] > 0) {
-                    $balance_1 = (ceil((($data['balance_1'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                if ($record_need_5 > 0) {
+                    $need_5 = (ceil((($record_need_5 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                 } else {
-                    $balance_1 = $data['balance_1'];
+                    $need_5 = $record_need_5;
                 }
 
-                if ($data['balance_2'] > 0) {
-                    $balance_2 = (ceil((($data['balance_2'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                if ($record_need_6 > 0) {
+                    $need_6 = (ceil((($record_need_6 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                 } else {
-                    $balance_2 = $data['balance_2'];
+                    $need_6 = $record_need_6;
                 }
 
-                if ($data['balance_3'] > 0) {
-                    $balance_3 = (ceil((($data['balance_3'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                if ($record_balance_1 > 0) {
+                    $balance_1 = (ceil((($record_balance_1 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                 } else {
-                    $balance_3 = $data['balance_3'];
+                    $balance_1 = $record_balance_1;
                 }
 
-                if ($data['balance_4'] > 0) {
-                    $balance_4 = (ceil((($data['balance_4'] * ($data['share_order'] / 100)) / $data['moq'])) * $data['moq']);
+                if ($record_balance_2 > 0) {
+                    $balance_2 = (ceil((($record_balance_2 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
                 } else {
-                    $balance_4 = $data['balance_4'];
+                    $balance_2 = $record_balance_2;
+                }
+
+                if ($record_balance_3 > 0) {
+                    $balance_3 = (ceil((($record_balance_3 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                } else {
+                    $balance_3 = $record_balance_3;
+                }
+
+                if ($record_balance_4 > 0) {
+                    $balance_4 = (ceil((($record_balance_4 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                } else {
+                    $balance_4 = $record_balance_4;
+                }
+
+                if ($record_balance_5 > 0) {
+                    $balance_5 = (ceil((($record_balance_5 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                } else {
+                    $balance_5 = $record_balance_5;
+                }
+
+                if ($record_balance_6 > 0) {
+                    $balance_6 = (ceil((($record_balance_6 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                } else {
+                    $balance_6 = $record_balance_6;
+                }
+
+
+                if ($record_forecast_1 > 0) {
+                    $forecast_1 = (ceil((($record_forecast_1 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                } else {
+                    $forecast_1 = $record_forecast_1;
+                }
+
+                if ($record_forecast_2 > 0) {
+                    $forecast_2 = (ceil((($record_forecast_2 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                } else {
+                    $forecast_2 = $record_forecast_2;
+                }
+
+                if ($record_forecast_3 > 0) {
+                    $forecast_3 = (ceil((($record_forecast_3 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                } else {
+                    $forecast_3 = $record_forecast_3;
+                }
+
+                if ($record_forecast_4 > 0) {
+                    $forecast_4 = (ceil((($record_forecast_4 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                } else {
+                    $forecast_4 = $record_forecast_4;
+                }
+
+                if ($record_forecast_5 > 0) {
+                    $forecast_5 = (ceil((($record_forecast_5 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                } else {
+                    $forecast_5 = $record_forecast_5;
+                }
+
+                if ($record_forecast_6 > 0) {
+                    $forecast_6 = (ceil((($record_forecast_6 * ($record['share_order'] / 100)) / $record['moq'])) * $record['moq']);
+                } else {
+                    $forecast_6 = $record_forecast_6;
                 }
 
                 if ($need_1 + $need_2 + $need_3 + $need_4 > 0) {
                     $avg_need = ($need_1 + $need_2 + $need_3 + $need_4) / 4;
                 } else {
-                    $avg_need = $data['avg_need'];
+                    $avg_need = $record['avg_need'];
                 }
 
                 if ($balance_1 + $balance_2 + $balance_3 + $balance_4 > 0) {
                     $avg_balance = ($balance_1 + $balance_2 + $balance_3 + $balance_4) / 4;
                 } else {
-                    $avg_balance = $data['avg_balance'];
+                    $avg_balance = $record['avg_balance'];
+                }
+
+                if ($forecast_1 + $forecast_2 + $forecast_3 + $forecast_4 > 0) {
+                    $avg_forecast = ($forecast_1 + $forecast_2 + $forecast_3 + $forecast_4) / 4;
+                } else {
+                    $avg_forecast = $record['avg_forecast'];
                 }
 
                 $total_need = $need_1 + $need_2 + $need_3 + $need_4;
                 if ($total_need > 0) {
-                    $purchase_order = (ceil((($total_need) / $data['moq'])) * $data['moq']);
+                    $purchase_order = (ceil((($total_need) / $record['moq'])) * $record['moq']);
                 } else {
                     $purchase_order = $total_need;
                 }
             } else {
-                $need_1 = $data['need_1'];
-                $need_2 = $data['need_2'];
-                $need_3 = $data['need_3'];
-                $need_4 = $data['need_4'];
-                $balance_1 = $data['balance_1'];
-                $balance_2 = $data['balance_2'];
-                $balance_3 = $data['balance_3'];
-                $balance_4 = $data['balance_4'];
-                $avg_need = $data['avg_need'];
-                $avg_balance = $data['avg_balance'];
-                $total_need = $data['total_need'];
-                $purchase_order = $data['purchase_order'];
+                $need_1 = $record_need_1;
+                $need_2 = $record_need_2;
+                $need_3 = $record_need_3;
+                $need_4 = $record_need_4;
+                $need_5 = $record_need_5;
+                $need_6 = $record_need_6;
+                $balance_1 = $record_balance_1;
+                $balance_2 = $record_balance_2;
+                $balance_3 = $record_balance_3;
+                $balance_4 = $record_balance_4;
+                $balance_5 = $record_balance_5;
+                $balance_6 = $record_balance_6;
+                $forecast_1 = $record_forecast_1;
+                $forecast_2 = $record_forecast_2;
+                $forecast_3 = $record_forecast_3;
+                $forecast_4 = $record_forecast_4;
+                $forecast_5 = $record_forecast_5;
+                $forecast_6 = $record_forecast_6;
+                $avg_need = $record['avg_need'];
+                $avg_balance = $record['avg_balance'];
+                $avg_forecast = $record['avg_forecast'];
+                $total_need = $record['total_need'];
+                $purchase_order = $record['purchase_order'];
             }
             $html .= ' <tr>
                             <td>' . $no . '</td>
-                            <td style="mso-number-format:\@;">' . $data['part_no'] . '</td>
-                            <td style="mso-number-format:\@;">' . $data['part_name'] . '</td>
-                            <td style="mso-number-format:\@;">' . $data['product_family'] . '</td>
-                            <td>' . $data['vendor_name'] . '</td>
-                            <td>' . $data['vendor_type'] . '</td>
-                            <td>' . $data['vendor_origin'] . '</td>
-                            <td style="mso-number-format:\@;">' . $data['leadtime'] . '</td>
-                            <td style="mso-number-format:\@;">' . $data['share_order'] . '</td>
-                            <td style="mso-number-format:\@;">' . $data['mpq'] . '</td>
-                            <td style="mso-number-format:\@;">' . $data['moq'] . '</td>
-                            <td>' . $data['maker_name'] . '</td>
-                            <td>' . $data['maker_type'] . '</td>
-                            <td>' . $data['issued_1'] . '</td>
-                            <td>' . $data['issued_2'] . '</td>
-                            <td>' . $data['issued_3'] . '</td>
-                            <td>' . $data['issued_avg'] . '</td>
-                            <td>' . $data['total_stock'] . '</td>
-                            <td>' . $data['qty_vendor'] . '</td>
+                            <td style="mso-number-format:\@;">' . $record['part_no'] . '</td>
+                            <td style="mso-number-format:\@;">' . $record['part_name'] . '</td>
+                            <td style="mso-number-format:\@;">' . $record['product_family'] . '</td>
+                            <td>' . $record['vendor_name'] . '</td>
+                            <td>' . $record['vendor_type'] . '</td>
+                            <td>' . $record['vendor_origin'] . '</td>
+                            <td style="mso-number-format:\@;">' . $record['leadtime'] . '</td>
+                            <td style="mso-number-format:\@;">' . $record['share_order'] . '</td>
+                            <td style="mso-number-format:\@;">' . $record['mpq'] . '</td>
+                            <td style="mso-number-format:\@;">' . $record['moq'] . '</td>
+                            <td>' . $record['maker_name'] . '</td>
+                            <td>' . $record['maker_type'] . '</td>
+                            <td>' . $record['issued_1'] . '</td>
+                            <td>' . $record['issued_2'] . '</td>
+                            <td>' . $record['issued_3'] . '</td>
+                            <td>' . $record['issued_avg'] . '</td>
+                            <td>' . $record['total_stock'] . '</td>
+                            <td>' . $record['qty_vendor'] . '</td>
                             <td>' . $need_1 . '</td>
                             <td>' . $balance_1 . '</td>
+                            <td>' . $forecast_1 . '</td>
                             <td>' . $need_2 . '</td>
                             <td>' . $balance_2 . '</td>
+                            <td>' . $forecast_2 . '</td>
                             <td>' . $need_3 . '</td>
                             <td>' . $balance_3 . '</td>
+                            <td>' . $forecast_3 . '</td>
                             <td>' . $need_4 . '</td>
                             <td>' . $balance_4 . '</td>
+                            <td>' . $forecast_4 . '</td>
                             <td>' . $avg_need . '</td>
                         </tr>';
             $no++;
@@ -734,8 +1366,11 @@ class Forecast_supplier extends CI_Controller
         }
     }
 
-    public function printForecast($option = "")
+    public function printForecast($export = "")
     {
+        set_time_limit(1800); // 1800 detik = 30 menit
+        ini_set('max_execution_time', '1800'); // 1800 detik = 30 menit
+        ini_set('memory_limit', '1024M'); // Set memory limit to 1024MB
         //Config
         $this->db->select('*');
         $this->db->from('config');
@@ -761,11 +1396,7 @@ class Forecast_supplier extends CI_Controller
         $fc_2 = $this->readMonths(date('m', strtotime('+2 month', strtotime($periode))));
         $fc_3 = $this->readMonths(date('m', strtotime('+3 month', strtotime($periode))));
         //Select Query
-        $this->db->select('a.*,
-            c.item_supplier,
-            e.class,
-            g.name as uom,
-            h.name as plant_name');
+        $this->db->select('a.id, a.approved_to, h.name as plant_name');
         $this->db->from('forecast_supplier a');
         $this->db->join('supplier_items c', 'a.part_no = c.item_id', 'left');
         $this->db->join('generate_mrp_abcclass e', 'a.part_no = e.part_no and a.p_month = e.p_month and a.p_year = e.p_year and a.revision = e.revision', 'left');
@@ -776,13 +1407,14 @@ class Forecast_supplier extends CI_Controller
         $this->db->where('a.p_year', $filter_year);
         $this->db->where('a.revision', $filter_revision);
         $this->db->where('c.share_order >', 0);
+        $this->db->where('a.vendor_id', $filter_supplier);
         $this->db->like('a.product_family', $filter_product_family);
         $this->db->like('a.part_no', $item_id);
-        $this->db->like('c.supplier_id', $filter_supplier);
         $this->db->group_by('a.id');
         $this->db->order_by('a.vendor_name', 'asc');
         $this->db->order_by('a.product_family', 'asc');
-        $records = $this->db->get()->result_array();
+        $totalRows = $this->db->count_all_results('', false);
+        $datas = $this->db->get()->result_array();
 
         $approval = $this->api->read('approval', [], ["table_name" => "forecast_supplier"]);
         $user_1 = $this->api->read('user', [], ["username" => $approval->user_approval_1]);
@@ -791,7 +1423,7 @@ class Forecast_supplier extends CI_Controller
         $qr_user_1 = "";
         $qr_user_2 = "";
 
-        if (@$records[0]['approved_to'] == "") {
+        if (@$datas[0]['approved_to'] == "") {
             $hidden = "";
         } else {
             $hidden = "hidden";
@@ -802,154 +1434,216 @@ class Forecast_supplier extends CI_Controller
 
         $this->createQrcode(@$user_1->name, "assets/image/qrcode/");
         $this->createQrcode(@$user_2->name, "assets/image/qrcode/");
-        $media = "@media screen {
-                        .print {
-                            display: none !important;
+        if ($export == "") {
+            $media = "@media screen {
+                            .print {
+                                display: none !important;
+                            }
                         }
-                    }
-                    @media print {
-                        .noprint {
-                            display: none !important;
-                        }
+                        @media print {
+                            .noprint {
+                                display: none !important;
+                            }
+                        }";
+            $media2 = ' <div style="margin:20%;" class="noprint">
+                            <center>
+                                <h1>Press CTRL + P for Print</h1>
+                            </center>
+                        </div>';
+        } else {
+            $media = ".print {
+                        zoom: 0.5;
                     }";
-        $media2 = ' <div style="margin:20%;" class="noprint">
-                        <center>
-                            <h1>Press CTRL + P to Print</h1>
-                        </center>
-                    </div>';
+            $media2 = "";
+        }
         $html = '<html>
                     <head>
-                        <title>' . @$supplier->name . ' (' . $periode_from . '-' . $periode_to . '_Plant ' . @$records[0]['plant_name'] . ')</title>
+                        <title>' . @$supplier->name . ' (' . $periode_from . '-' . $periode_to . '_Plant ' . @$datas[0]['plant_name'] . ')</title>
                         <link rel="icon" href="' . base_url('assets/image/config/' . $config->favicon) . '" type="image/png" sizes="16x16">
                     </head>
                     
                     <style>
-                        * {
-                        box-sizing: border-box;
-                        }
                         body {
                             font-family: Arial, Helvetica, sans-serif;
                         }
-                        #customers {
-                        border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}
+                        .customers {
+                            border-collapse: collapse;
+                            font-size: 11px;
+                        }
+                        .customers td, .customers th {
+                            border: 1px solid black;padding: 2px;
+                        }
+                        .customers th {
+                            padding-top: 2px;
+                            padding-bottom: 2px;
+                            text-align: center;color: black;
+                        }
                         ' . $media . '
-                        .column {
-                        float: left;
-                        width: 50%;
-                        border: 1px black solid;
-                        }
-
-                        /* Clear floats after the columns */
-                        .row:after {
-                        content: "";
-                        display: table;
-                        clear: both;
-                        }
                     </style>
                     <body>
                         ' . $media2 . '
                         <div class="print">';
-        $html .= '<center>
-            <div style="float: left; font-size: 12px; text-align: left;">
-                <table style="width: 100%;">
-                    <tr>
-                        <td width="50" style="font-size: 12px; vertical-align: top; text-align: center; vertical-align:jus margin-right:10px;">
-                            <img src="' . base_url('assets/image/config/' . $config->logo) . '" width="30">
-                        </td>
-                        <td style="font-size: 14px; text-align: left; margin:2px;">
-                            <b>' . $config->name . '</b><br>
-                            <small>FORECAST</small>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-            <div style="float: right; font-size: 12px; text-align: right;">
-                Print Date ' . date("d M Y H:i:s") . '
-            </div>
-            <br><br>
-            <div style="float: center; font-size: 16px; text-align: center;">
-                <h3>FORECAST ' . $period_header . ' ' . $filter_year . '</h3>
-            </div>
-        </center>
-        <table id="customers" border="1">
-            <tr>
-                <th rowspan="2" width="20" style="text-align:center; background:#6ba7e1">NO</th>
-                <th rowspan="2" style="text-align:center; background:#6ba7e1">PART NO</th>
-                <th rowspan="2" style="text-align:center; background:#6ba7e1">PART NAME</th>
-                <th rowspan="2" style="text-align:center; background:#6ba7e1">PRODUCT FAMILY</th>
-                <th rowspan="2" style="text-align:center; background:#6ba7e1">PART NO. VENDOR</th>
-                <th rowspan="2" style="text-align:center; background:#6ba7e1">MAKER</th>
-                <th rowspan="2" style="text-align:center; background:#6ba7e1">MAKER TYPE</th>
-                <th rowspan="2" style="text-align:center; background:#6ba7e1">CLASS<br>A/B/C</th>
-                <th colspan="3" style="text-align:center; background:#6ba7e1">WORKORDER</th>
-                <th rowspan="2" style="text-align:center; background:#6ba7e1">XBAR</th>
-                <th colspan="3" style="text-align:center; background:#6ba7e1">FORECAST</th>
-                <th rowspan="2" style="text-align:center; background:#6ba7e1">UOM</th>
-                <th rowspan="2" style="text-align:center; background:#6ba7e1">SUPPLIER\'S CAPACITY</th>
-                <th rowspan="2" style="text-align:center; background:#6ba7e1">CONFIRMATION OF<br> SUPPLIER\'S ABILITY</th>
-            </tr>
-            <tr>
-                <th style="text-align:center; background:#6ba7e1">' . $wo_1 . '</th>
-                <th style="text-align:center; background:#6ba7e1">' . $wo_2 . '</th>
-                <th style="text-align:center; background:#6ba7e1">' . $wo_3 . '</th>
-                <th style="text-align:center; background:#6ba7e1">' . $fc_1 . '</th>
-                <th style="text-align:center; background:#6ba7e1">' . $fc_2 . '</th>
-                <th style="text-align:center; background:#6ba7e1">' . $fc_3 . '</th>
-            </tr>';
+
+        //Config Page
+        $rows = 15;
+        $page = ceil($totalRows / $rows);
+        //Loop Page
         $no = 1;
-        foreach ($records as $data) {
-            $html .= ' <tr>
-                            <td>' . $no . '</td>
-                            <td style="mso-number-format:\@;">' . $data['part_no'] . '</td>
-                            <td style="mso-number-format:\@;">' . $data['part_name'] . '</td>
-                            <td style="mso-number-format:\@;">' . $data['product_family'] . '</td>
-                            <td style="mso-number-format:\@;">' . $data['item_supplier'] . '</td>
-                            <td>' . $data['maker_name'] . '</td>
-                            <td>' . $data['maker_type'] . '</td>
-                            <td align="center">' . $data['class'] . '</td>
-                            <td align="right">' . $data['issued_1'] . '</td>
-                            <td align="right">' . $data['issued_2'] . '</td>
-                            <td align="right">' . $data['issued_3'] . '</td>
-                            <td align="right">' . $data['issued_avg'] . '</td>
-                            <td align="right">' . $data['need_1'] . '</td>
-                            <td align="right">' . $data['need_2'] . '</td>
-                            <td align="right">' . $data['need_3'] . '</td>
-                            <td align="center">' . $data['uom'] . '</td>
-                            <td align="center"></td>
-                            <td align="center"></td>
-                        </tr>';
-            $no++;
+        $hal = 1;
+        for ($i = 0; $i < $page; $i++) {
+            $this->db->select('a.*,
+            f.item_supplier,
+            e.class,
+            g.name as uom,
+            h.name as plant_name');
+            $this->db->from('forecast_supplier a');
+            $this->db->join('supplier_items c', 'a.part_no = c.item_id', 'left');
+            $this->db->join('generate_mrp_abcclass e', 'a.part_no = e.part_no and a.p_month = e.p_month and a.p_year = e.p_year and a.revision = e.revision', 'left');
+            $this->db->join('mst_item_raw f', 'a.part_no = f.item_id', 'left');
+            $this->db->join('uom g', 'g.number = f.um_id', 'left');
+            $this->db->join('plants h', 'c.plant = h.number', 'left');
+            $this->db->where('a.p_month', $filter_month);
+            $this->db->where('a.p_year', $filter_year);
+            $this->db->where('a.revision', $filter_revision);
+            $this->db->where('c.share_order >', 0);
+            $this->db->where('a.vendor_id', $filter_supplier);
+            $this->db->like('a.product_family', $filter_product_family);
+            $this->db->like('a.part_no', $item_id);
+            $this->db->group_by('a.id');
+            $this->db->order_by('a.vendor_name', 'asc');
+            $this->db->order_by('a.product_family', 'asc');
+            $this->db->limit(15, ($i * 15));
+            $records = $this->db->get()->result_array();
+            $html .= '<center>
+                    <div style="float: left; font-size: 12px; text-align: left;">
+                        <table style="width: 100%;">
+                            <tr>
+                                <td width="50" style="font-size: 12px; vertical-align: top; text-align: center; vertical-align:jus margin-right:10px;">
+                                    <img src="' . base_url('assets/image/config/' . $config->logo) . '" width="30">
+                                </td>
+                                <td style="font-size: 14px; text-align: left; margin:2px;">
+                                    <b>' . $config->name . '</b><br>
+                                    <small>FORECAST</small>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div style="float: right; font-size: 12px; text-align: right;">
+                        Print Date ' . date("d M Y H:i:s") . '
+                    </div>
+                    <br><br>
+                    <div style="float: center; font-size: 16px; text-align: center;">
+                        <h3>FORECAST ' . $period_header . ' ' . $filter_year . '</h3>
+                    </div>
+                </center>
+                <table class="customers" style="width:100%;">
+                    <tr>
+                        <th rowspan="2" width="20" style="text-align:center; background:#6ba7e1">NO</th>
+                        <th rowspan="2" style="text-align:center; background:#6ba7e1">PART NO</th>
+                        <th rowspan="2" style="text-align:center; background:#6ba7e1">PART NAME</th>
+                        <th rowspan="2" style="text-align:center; background:#6ba7e1">PRODUCT FAMILY</th>
+                        <th rowspan="2" style="text-align:center; background:#6ba7e1">PART NO. VENDOR</th>
+                        <th rowspan="2" style="text-align:center; background:#6ba7e1">MAKER</th>
+                        <th rowspan="2" style="text-align:center; background:#6ba7e1">MAKER TYPE</th>
+                        <th rowspan="2" style="text-align:center; background:#6ba7e1">CLASS<br>A/B/C</th>
+                        <th colspan="3" style="text-align:center; background:#6ba7e1">WORKORDER</th>
+                        <th rowspan="2" style="text-align:center; background:#6ba7e1">XBAR</th>
+                        <th colspan="3" style="text-align:center; background:#6ba7e1">FORECAST</th>
+                        <th rowspan="2" style="text-align:center; background:#6ba7e1">UOM</th>
+                        <th rowspan="2" style="text-align:center; background:#6ba7e1">SUPPLIER\'S CAPACITY</th>
+                        <th rowspan="2" style="text-align:center; background:#6ba7e1">CONFIRMATION OF<br> SUPPLIER\'S ABILITY</th>
+                    </tr>
+                    <tr>
+                        <th style="text-align:center; background:#6ba7e1">' . $wo_1 . '</th>
+                        <th style="text-align:center; background:#6ba7e1">' . $wo_2 . '</th>
+                        <th style="text-align:center; background:#6ba7e1">' . $wo_3 . '</th>
+                        <th style="text-align:center; background:#6ba7e1">' . $fc_1 . '</th>
+                        <th style="text-align:center; background:#6ba7e1">' . $fc_2 . '</th>
+                        <th style="text-align:center; background:#6ba7e1">' . $fc_3 . '</th>
+                    </tr>';
+
+            foreach ($records as $data) {
+                $html .= ' <tr>
+                                    <td align="center">' . $no . '</td>
+                                    <td style="mso-number-format:\@;">' . $data['part_no'] . '</td>
+                                    <td style="mso-number-format:\@;">' . $data['part_name'] . '</td>
+                                    <td style="mso-number-format:\@;">' . $data['product_family'] . '</td>
+                                    <td style="mso-number-format:\@;">' . $data['item_supplier'] . '</td>
+                                    <td>' . $data['maker_name'] . '</td>
+                                    <td>' . $data['maker_type'] . '</td>
+                                    <td align="center">' . $data['class'] . '</td>
+                                    <td align="right">' . $data['issued_1'] . '</td>
+                                    <td align="right">' . $data['issued_2'] . '</td>
+                                    <td align="right">' . $data['issued_3'] . '</td>
+                                    <td align="right">' . $data['issued_avg'] . '</td>
+                                    <td align="right">' . $data['forecast_1'] . '</td>
+                                    <td align="right">' . $data['forecast_2'] . '</td>
+                                    <td align="right">' . $data['forecast_3'] . '</td>
+                                    <td align="center">' . $data['uom'] . '</td>
+                                    <td align="center"></td>
+                                    <td align="center"></td>
+                                </tr>';
+                $no++;
+            }
+
+            $html .= '</table>';
+            if (($i + 1) == $page) {
+                $html .= '<br><span style="font-size:12px"><b>Note :</b><br>
+                            1. Angka pada kolom forecast merupakan estimasi quantity open PO oleh BEI pada bulan tersebut <i>(The number in the forecast column is the estimated quantity of open PO by BEI in that month).</i><br>
+                            2. Data Forecast berdasarkan hasil dari Generate MRP bulan berjalan <i>(Forecast data is based on the results of the current month\'s MRP Generate).</i><br>
+                            </span>';
+                $html .= '<br><center><table width="85%" border="0" style="font-size:12px;">
+                            <tr>
+                                <td align="center" width="250px"><b>' . @$supplier->name . '</b></td>
+                                <td align="center" colspan="2"><b>PT. ' . @$config->name . '</b></td>
+                            </tr>
+                            <tr>
+                                <td align="center"><b>ACCEPTED BY,</td>
+                                <td align="center"><b>CONFIRM,</td>
+                                <td align="center"><b>CHECKED,</td>
+                            </tr>
+                            <tr>
+                                <td align="center" style="height:80px; width:120px;"></td>
+                                <td align="center" style="height:80px; width:120px;"' . $hidden . '><img ' . $qr_user_2 . ' width="80"/></td>
+                                <td align="center" style="height:80px; width:120px;"' . $hidden . '><img ' . $qr_user_1 . ' width="80"/></td>
+                            </tr>
+                            <tr>
+                                <td align="center">________________________</td>
+                                <td align="center"><b><u>' . @$user_2->name . '</u><br>' . @$user_2->position . '</b></td>
+                                <td align="center"><b><u>' . @$user_1->name . '</u><br>' . @$user_1->position . '</b></td>
+                            </tr>
+                
+                </table></center>';
+            }
+
+            if (($i + 1) != $page) {
+                $html .= '<div style="page-break-after:always;"></div>';
+            }
+            $hal++;
         }
-        $html .= '</table>';
-        $html .= '<br><span style="font-size:12px"><b>Note :</b><br>
-                    1. Angka pada kolom forecast merupakan estimasi quantity open PO oleh BEI pada bulan tersebut <i>(The number in the forecast column is the estimated quantity of open PO by BEI in that month).</i><br>
-                    2. Data Forecast berdasarkan hasil dari Generate MRP bulan berjalan <i>(Forecast data is based on the results of the current month\'s MRP Generate).</i><br>
-                    </span>';
-        $html .= '<br><center><table width="85%" border="0" style="font-size:12px;">
-                    <tr>
-                        <td align="center" width="250px"><b>' . @$supplier->name . '</b></td>
-                        <td align="center" colspan="2"><b>PT. ' . @$config->name . '</b></td>
-                    </tr>
-                    <tr>
-                        <td align="center"><b>ACCEPTED BY,</td>
-                        <td align="center"><b>CONFIRM,</td>
-                        <td align="center"><b>CHECKED,</td>
-                    </tr>
-                    <tr>
-                        <td align="center" style="height:80px; width:120px;"></td>
-                        <td align="center" style="height:80px; width:120px;"' . $hidden . '><img ' . $qr_user_2 . ' width="80"/></td>
-                        <td align="center" style="height:80px; width:120px;"' . $hidden . '><img ' . $qr_user_1 . ' width="80"/></td>
-                    </tr>
-                    <tr>
-                        <td align="center">________________________</td>
-                        <td align="center"><b><u>' . @$user_2->name . '</u><br>' . @$user_2->position . '</b></td>
-                        <td align="center"><b><u>' . @$user_1->name . '</u><br>' . @$user_1->position . '</b></td>
-                    </tr>
-        
-        </table></center>';
-        $html .= '</body></html>';
-        $html .= '</div><script>window.print()</script>';
-        die($html);
+
+        $html .= '</div></body></html>';
+        if ($export == "") {
+            $html .= '<script>window.print()</script>';
+            die($html);
+        } else {
+            // Load HTML content
+            $this->dompdf_gen->loadHtml($html);
+
+            // (Optional) Set paper size and orientation
+            $this->dompdf_gen->setPaper('A4', 'landscape');
+
+            // Render the HTML as PDF
+            $this->dompdf_gen->render();
+
+            // Output the generated PDF (1 = download and 0 = preview)
+            // $this->dompdf_gen->stream("sample.pdf", array("Attachment" => 0));
+            $judul_file = @$supplier->name . ' (' . $periode_from . '-' . $periode_to . '_Plant ' . @$datas[0]['plant_name'] . ')';
+            $filePath = FCPATH . 'assets/fcs/' . $judul_file . '.pdf'; // FCPATH ensures the path is relative to the project root
+            $this->dompdf_gen->save($filePath);
+
+            $this->dompdf_gen->stream($judul_file, ['Attachment' => true]);
+        }
     }
 
     public function print2($option = "")
@@ -970,6 +1664,7 @@ class Forecast_supplier extends CI_Controller
         $item_id = trim(base64_decode($this->input->get('item_id')));
         $filter_po = trim(base64_decode($this->input->get('filter_po')));
         $filter_supplier = trim(base64_decode($this->input->get('filter_supplier')));
+        $supplier = $this->db->get_where('suppliers', ['id' => $filter_supplier])->row();
 
         $period_header = strtoupper(date("F", strtotime($filter_year . "-" . $filter_month . "-01")));
         $periode = date("Y-m-d", strtotime($filter_year . "-" . $filter_month . "-01"));
@@ -981,7 +1676,7 @@ class Forecast_supplier extends CI_Controller
         $fc_3 = $this->readMonths(date('m', strtotime('+3 month', strtotime($periode))));
         //Select Query
         $this->db->select('a.*,
-            c.item_supplier,
+            f.item_supplier,
             e.class,
             g.name as uom');
         $this->db->from('forecast_supplier a');
@@ -1000,6 +1695,24 @@ class Forecast_supplier extends CI_Controller
         $this->db->order_by('a.vendor_name', 'asc');
         $this->db->order_by('a.product_family', 'asc');
         $records = $this->db->get()->result_array();
+
+        $approval = $this->api->read('approval', [], ["table_name" => "forecast_supplier"]);
+        $user_1 = $this->api->read('user', [], ["username" => $approval->user_approval_1]);
+        $user_2 = $this->api->read('user', [], ["username" => $approval->user_approval_2]);
+
+        $qr_user_1 = "";
+        $qr_user_2 = "";
+
+        if (@$records[0]['approved_to'] == "") {
+            $qr_user_1 = "<img src='" . base_url('assets/image/qrcode/' . @$user_1->name . '.png') . "' width='80'/>";
+            $qr_user_2 = "<img src='" . base_url('assets/image/qrcode/' . @$user_2->name . '.png') . "' width='80'/>";
+        } else {
+            $qr_user_1 = "";
+            $qr_user_2 = "";
+        }
+
+        $this->createQrcode(@$user_1->name, "assets/image/qrcode/");
+        $this->createQrcode(@$user_2->name, "assets/image/qrcode/");
 
         $html = '<html>
                     <head>
@@ -1092,9 +1805,9 @@ class Forecast_supplier extends CI_Controller
                             <td align="right">' . $data['issued_2'] . '</td>
                             <td align="right">' . $data['issued_3'] . '</td>
                             <td align="right">' . $data['issued_avg'] . '</td>
-                            <td align="right">' . $data['need_1'] . '</td>
-                            <td align="right">' . $data['need_2'] . '</td>
-                            <td align="right">' . $data['need_3'] . '</td>
+                            <td align="right">' . $data['forecast_1'] . '</td>
+                            <td align="right">' . $data['forecast_2'] . '</td>
+                            <td align="right">' . $data['forecast_3'] . '</td>
                             <td align="center">' . $data['uom'] . '</td>
                             <td align="center"></td>
                             <td align="center"></td>
@@ -1102,6 +1815,62 @@ class Forecast_supplier extends CI_Controller
             $no++;
         }
         $html .= '</table>';
+        $html .= '<br><span style="font-size:12px"><b>Note :</b><br>
+                            1. Angka pada kolom forecast merupakan estimasi quantity open PO oleh BEI pada bulan tersebut <i>(The number in the forecast column is the estimated quantity of open PO by BEI in that month).</i><br>
+                            2. Data Forecast berdasarkan hasil dari Generate MRP bulan berjalan <i>(Forecast data is based on the results of the current month\'s MRP Generate).</i><br>
+                            </span>';
+        $html .= '<br><center><table width="85%" border="0" style="font-size:12px;">
+                            <tr>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center" width="250px"><b>' . @$supplier->name . '</b></td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center" colspan="4"><b>PT. ' . @$config->name . '</b></td>
+                                </tr>
+                            <tr>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center"><b>ACCEPTED BY,</td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center"><b>CONFIRM,</td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center"><b>CHECKED,</td>
+                            </tr>
+                            <tr>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center" style="height:80px; width:120px;"></td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center" style="height:80px; width:120px;">' . $qr_user_2 . '</td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center" style="height:80px; width:120px;">' . $qr_user_1 . '</td>
+                                </tr>
+                            <tr>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center">________________________</td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center"><b><u>' . @$user_2->name . '</u><br>' . @$user_2->position . '</b></td>
+                                <td align="center"></td>
+                                <td align="center"></td>
+                                <td align="center"><b><u>' . @$user_1->name . '</u><br>' . @$user_1->position . '</b></td>
+                            </tr>
+                
+                </table></center>';
         $html .= '</body></html>';
         echo $html;
     }
