@@ -1546,17 +1546,12 @@ class Forecast_supplier extends CI_Controller
                         <th rowspan="2" style="text-align:center; background:#6ba7e1">MAKER</th>
                         <th rowspan="2" style="text-align:center; background:#6ba7e1">MAKER TYPE</th>
                         <th rowspan="2" style="text-align:center; background:#6ba7e1">CLASS<br>A/B/C</th>
-                        <th colspan="3" style="text-align:center; background:#6ba7e1">WORKORDER</th>
-                        <th rowspan="2" style="text-align:center; background:#6ba7e1">XBAR</th>
                         <th colspan="3" style="text-align:center; background:#6ba7e1">FORECAST</th>
                         <th rowspan="2" style="text-align:center; background:#6ba7e1">UOM</th>
                         <th rowspan="2" style="text-align:center; background:#6ba7e1">SUPPLIER\'S CAPACITY</th>
                         <th rowspan="2" style="text-align:center; background:#6ba7e1">CONFIRMATION OF<br> SUPPLIER\'S ABILITY</th>
                     </tr>
                     <tr>
-                        <th style="text-align:center; background:#6ba7e1">' . $wo_1 . '</th>
-                        <th style="text-align:center; background:#6ba7e1">' . $wo_2 . '</th>
-                        <th style="text-align:center; background:#6ba7e1">' . $wo_3 . '</th>
                         <th style="text-align:center; background:#6ba7e1">' . $fc_1 . '</th>
                         <th style="text-align:center; background:#6ba7e1">' . $fc_2 . '</th>
                         <th style="text-align:center; background:#6ba7e1">' . $fc_3 . '</th>
@@ -1572,10 +1567,6 @@ class Forecast_supplier extends CI_Controller
                                     <td>' . $data['maker_name'] . '</td>
                                     <td>' . $data['maker_type'] . '</td>
                                     <td align="center">' . $data['class'] . '</td>
-                                    <td align="right">' . $data['issued_1'] . '</td>
-                                    <td align="right">' . $data['issued_2'] . '</td>
-                                    <td align="right">' . $data['issued_3'] . '</td>
-                                    <td align="right">' . $data['issued_avg'] . '</td>
                                     <td align="right">' . $data['forecast_1'] . '</td>
                                     <td align="right">' . $data['forecast_2'] . '</td>
                                     <td align="right">' . $data['forecast_3'] . '</td>
@@ -1775,17 +1766,12 @@ class Forecast_supplier extends CI_Controller
                 <th rowspan="2" style="text-align:center; background:#6ba7e1">MAKER</th>
                 <th rowspan="2" style="text-align:center; background:#6ba7e1">MAKER TYPE</th>
                 <th rowspan="2" style="text-align:center; background:#6ba7e1">CLASS<br>A/B/C</th>
-                <th colspan="3" style="text-align:center; background:#6ba7e1">WORKORDER</th>
-                <th rowspan="2" style="text-align:center; background:#6ba7e1">XBAR</th>
                 <th colspan="3" style="text-align:center; background:#6ba7e1">FORECAST</th>
                 <th rowspan="2" style="text-align:center; background:#6ba7e1">UOM</th>
                 <th rowspan="2" style="text-align:center; background:#6ba7e1">SUPPLIER\'S CAPACITY</th>
                 <th rowspan="2" style="text-align:center; background:#6ba7e1">CONFIRMATION OF<br> SUPPLIER\'S ABILITY</th>
             </tr>
             <tr>
-                <th style="text-align:center; background:#6ba7e1">' . $wo_1 . '</th>
-                <th style="text-align:center; background:#6ba7e1">' . $wo_2 . '</th>
-                <th style="text-align:center; background:#6ba7e1">' . $wo_3 . '</th>
                 <th style="text-align:center; background:#6ba7e1">' . $fc_1 . '</th>
                 <th style="text-align:center; background:#6ba7e1">' . $fc_2 . '</th>
                 <th style="text-align:center; background:#6ba7e1">' . $fc_3 . '</th>
@@ -1801,10 +1787,6 @@ class Forecast_supplier extends CI_Controller
                             <td>' . $data['maker_name'] . '</td>
                             <td>' . $data['maker_type'] . '</td>
                             <td align="center">' . $data['class'] . '</td>
-                            <td align="right">' . $data['issued_1'] . '</td>
-                            <td align="right">' . $data['issued_2'] . '</td>
-                            <td align="right">' . $data['issued_3'] . '</td>
-                            <td align="right">' . $data['issued_avg'] . '</td>
                             <td align="right">' . $data['forecast_1'] . '</td>
                             <td align="right">' . $data['forecast_2'] . '</td>
                             <td align="right">' . $data['forecast_3'] . '</td>
