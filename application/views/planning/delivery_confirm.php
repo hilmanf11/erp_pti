@@ -302,6 +302,11 @@
         //Upload Data
         $('#dlg_upload').dialog({
             buttons: [{
+                text: 'List Failed',
+                handler: function() {
+                    window.open('<?= base_url('planning/delivery_confirm/uploadDownloadFailed') ?>', '_blank');
+                }
+            }, {
                 text: 'Upload',
                 iconCls: 'icon-ok',
                 handler: function() {
@@ -336,6 +341,16 @@
                                             var title = "<b style='color: green;'>" + result.title + "</b> | " + result.message;
                                         } else {
                                             var title = "<b style='color: red;'>" + result.title + "</b> | " + result.message;
+                                            $.ajax({
+                                                type: "POST",
+                                                async: true,
+                                                url: "<?= base_url('planning/delivery_confirm/uploadcreateFailed') ?>",
+                                                data: {
+                                                    data: json[number - 1],
+                                                    message: result.message
+                                                },
+                                                cache: false
+                                            });
                                         }
                                         $("#p_remarks").append(title + "<br>");
                                         requestData(total, json, number + 1, value);

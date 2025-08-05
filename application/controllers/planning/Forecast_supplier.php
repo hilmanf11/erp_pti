@@ -120,19 +120,25 @@ class Forecast_supplier extends CI_Controller
             $filter_product_family = base64_decode($this->input->get('filter_product_family'));
             $item_id = trim(base64_decode($this->input->get('item_id')));
             //Select Query
-            $this->db->select('a.p_month,
+            $this->db->select("a.p_month,
                     a.p_year,a.revision,a.part_no, a.part_name, a.product_family, 
                     a.issued_1, a.issued_2, a.issued_3, a.issued_avg, a.qty_rm, a.qty_wip, a.qty_vendor, a.total_stock, a.qty_supply, a.qty_wo,a.total_wo, 
-                    a.need_1, a.need_2, a.need_3, a.need_4,a.need_5, a.need_6,
-                    a.balance_1, a.balance_2, a.balance_3, a.balance_4, a.balance_5, a.balance_6,
+                    a.need_1, a.need_2, a.need_3, a.need_4, a.need_5, a.need_6,
+                    a.balance_1, 
+                    coalesce(a.balance_1-a.need_2,0) as balance_2, 
+                    coalesce(a.balance_2-a.need_3,0) as balance_3, 
+                    coalesce(a.balance_3-a.need_4,0) as balance_4, 
+                    coalesce(a.balance_4-a.need_5,0) as balance_5, 
+                    coalesce(a.balance_5-a.need_6,0) as balance_6,
                     (case when a.balance_1 > 0 then 0  else a.need_1 end) as forecast_1,
-                    (case when a.balance_2 > 0 then 0  else a.need_2 end) as forecast_2,
-                    (case when a.balance_3 > 0 then 0  else a.need_3 end) as forecast_3,
-                    (case when a.balance_4 > 0 then 0  else a.need_4 end) as forecast_4,
-                    (case when a.balance_5 > 0 then 0  else a.need_5 end) as forecast_5,
-                    (case when a.balance_6 > 0 then 0  else a.need_6 end) as forecast_6,
-                    (case when a.avg_balance > 0 then 0  else a.avg_need end) as avg_forecast,
-                    a.avg_need, a.avg_balance, a.total_need, a.purchase_order,
+                    (case when coalesce(a.balance_1 - a.need_2,0) > 0 then 0  else a.need_2 end) as forecast_2,
+                    (case when coalesce(a.balance_2 - a.need_3,0) > 0 then 0  else a.need_3 end) as forecast_3,
+                    (case when coalesce(a.balance_3 - a.need_4,0) > 0 then 0  else a.need_4 end) as forecast_4,
+                    (case when coalesce(a.balance_4 - a.need_5,0) > 0 then 0  else a.need_5 end) as forecast_5,
+                    (case when coalesce(a.balance_5 - a.need_6,0) > 0 then 0  else a.need_6 end) as forecast_6,
+                    (case when coalesce(a.avg_balance,0) > 0 then 0  else a.avg_need end) as avg_forecast,
+                    a.avg_need, coalesce(a.avg_balance,0) as avg_balance, 
+                    a.total_need, a.purchase_order,
                     b.id as vendor_id, 
                     b.name as vendor_name, 
                     b.type as vendor_type, 
@@ -142,7 +148,7 @@ class Forecast_supplier extends CI_Controller
                     c.mpq,
                     c.moq,
                     d.name as maker_name, 
-                    d.type as maker_type');
+                    d.type as maker_type");
             $this->db->from('generate_mrp_finals a');
             $this->db->join('supplier_items c', 'a.part_no = c.item_id', 'left');
             $this->db->join('suppliers b', 'c.supplier_id = b.id', 'left');
@@ -154,7 +160,7 @@ class Forecast_supplier extends CI_Controller
             $this->db->like('a.product_family', $filter_product_family);
             $this->db->like('a.part_no', $item_id);
             $this->db->order_by('a.part_no', 'asc');
-            // $this->db->limit(100);
+            $this->db->limit(10);
             //Total Data
             $totalRows = $this->db->count_all_results('', false);
             $records = $this->db->get()->result_array();
@@ -247,11 +253,11 @@ class Forecast_supplier extends CI_Controller
                         $record_need_5 = $record['avg_need'];
                         $record_need_6 = $record['avg_need'];
                         $record_balance_1 = $record['avg_balance'];
-                        $record_balance_2 = $record['avg_balance'];
-                        $record_balance_3 = $record['avg_balance'];
-                        $record_balance_4 = $record['avg_balance'];
-                        $record_balance_5 = $record['avg_balance'];
-                        $record_balance_6 = $record['avg_balance'];
+                        $record_balance_2 = $record_balance_1 - $record['avg_need'];
+                        $record_balance_3 = $record_balance_2 - $record['avg_need'];
+                        $record_balance_4 = $record_balance_3 - $record['avg_need'];
+                        $record_balance_5 = $record_balance_4 - $record['avg_need'];
+                        $record_balance_6 =  $record_balance_5 - $record['avg_need'];
                         $record_forecast_1 = $record['avg_forecast'];
                         $record_forecast_2 = $record['avg_forecast'];
                         $record_forecast_3 = $record['avg_forecast'];
@@ -363,11 +369,11 @@ class Forecast_supplier extends CI_Controller
                         $record_need_5 = $record['avg_need'];
                         $record_need_6 = $record['avg_need'];
                         $record_balance_1 = $record['avg_balance'];
-                        $record_balance_2 = $record['avg_balance'];
-                        $record_balance_3 = $record['avg_balance'];
-                        $record_balance_4 = $record['avg_balance'];
-                        $record_balance_5 = $record['avg_balance'];
-                        $record_balance_6 = $record['avg_balance'];
+                        $record_balance_2 = $record_balance_1 - $record['avg_need'];
+                        $record_balance_3 = $record_balance_2 - $record['avg_need'];
+                        $record_balance_4 = $record_balance_3 - $record['avg_need'];
+                        $record_balance_5 = $record_balance_4 - $record['avg_need'];
+                        $record_balance_6 = $record_balance_5 - $record['avg_need'];
                         $record_forecast_1 = $record['avg_forecast'];
                         $record_forecast_2 = $record['avg_forecast'];
                         $record_forecast_3 = $record['avg_forecast'];
@@ -543,48 +549,48 @@ class Forecast_supplier extends CI_Controller
                     "part_no" => $record['part_no'],
                     "part_name" => $record['part_name'],
                     "product_family" => $record['product_family'],
-                    "issued_1" => $record['issued_1'],
-                    "issued_2" => $record['issued_2'],
-                    "issued_3" => $record['issued_3'],
-                    "issued_avg" => $record['issued_avg'],
-                    "qty_rm" => $record['qty_rm'],
-                    "qty_wip" => $record['qty_wip'],
-                    "qty_vendor" => $record['qty_vendor'],
-                    "total_stock" => $record['total_stock'],
-                    "qty_supply" => $record['qty_supply'],
-                    "qty_wo" => $record['qty_wo'],
-                    "total_wo" => $record['total_wo'],
-                    "need_1" => $need_1,
-                    "need_2" => $need_2,
-                    "need_3" => $need_3,
-                    "need_4" => $need_4,
-                    "need_5" => $need_5,
-                    "need_6" => $need_6,
-                    "balance_1" => $balance_1,
-                    "balance_2" => $balance_2,
-                    "balance_3" => $balance_3,
-                    "balance_4" => $balance_4,
-                    "balance_5" => $balance_5,
-                    "balance_6" => $balance_6,
-                    "forecast_1" => $forecast_1,
-                    "forecast_2" => $forecast_2,
-                    "forecast_3" => $forecast_3,
-                    "forecast_4" => $forecast_4,
-                    "forecast_5" => $forecast_5,
-                    "forecast_6" => $forecast_6,
-                    "avg_need" => $avg_need,
-                    "avg_balance" => $avg_balance,
-                    "avg_forecast" => $avg_forecast,
-                    "total_need" => $total_need,
-                    "purchase_order" => $purchase_order,
+                    "issued_1" => round($record['issued_1']),
+                    "issued_2" => round($record['issued_2']),
+                    "issued_3" => round($record['issued_3']),
+                    "issued_avg" => round($record['issued_avg']),
+                    "qty_rm" => round($record['qty_rm']),
+                    "qty_wip" => round($record['qty_wip']),
+                    "qty_vendor" => round($record['qty_vendor']),
+                    "total_stock" => round($record['total_stock']),
+                    "qty_supply" => round($record['qty_supply']),
+                    "qty_wo" => round($record['qty_wo']),
+                    "total_wo" => round($record['total_wo']),
+                    "need_1" => round($need_1),
+                    "need_2" => round($need_2),
+                    "need_3" => round($need_3),
+                    "need_4" => round($need_4),
+                    "need_5" => round($need_5),
+                    "need_6" => round($need_6),
+                    "balance_1" => round($balance_1),
+                    "balance_2" => round($balance_2),
+                    "balance_3" => round($balance_3),
+                    "balance_4" => round($balance_4),
+                    "balance_5" => round($balance_5),
+                    "balance_6" => round($balance_6),
+                    "forecast_1" => round($forecast_1),
+                    "forecast_2" => round($forecast_2),
+                    "forecast_3" => round($forecast_3),
+                    "forecast_4" => round($forecast_4),
+                    "forecast_5" => round($forecast_5),
+                    "forecast_6" => round($forecast_6),
+                    "avg_need" => round($avg_need),
+                    "avg_balance" => round($avg_balance),
+                    "avg_forecast" => round($avg_forecast),
+                    "total_need" => round($total_need),
+                    "purchase_order" => round($purchase_order),
                     "vendor_id" => $record['vendor_id'],
                     "vendor_name" => $record['vendor_name'],
                     "vendor_type" => $record['vendor_type'],
                     "vendor_origin" => $record['vendor_origin'],
-                    "share_order" => $record['share_order'],
-                    "leadtime" => $record['leadtime'],
-                    "mpq" => $record['mpq'],
-                    "moq" => $record['moq'],
+                    "share_order" => round($record['share_order']),
+                    "leadtime" => round($record['leadtime']),
+                    "mpq" => round($record['mpq']),
+                    "moq" => round($record['moq']),
                     "maker_name" => $record['maker_name'],
                     "maker_type" => $record['maker_type'],
                 );
@@ -609,6 +615,26 @@ class Forecast_supplier extends CI_Controller
             } else {
                 $send = $this->api->create('forecast_supplier', $post, "MRP", "JUTA");
             }
+            echo $send;
+        } else {
+            show_error("Cannot Process your request");
+        }
+    }
+
+    public function updatefc()
+    {
+        if ($this->input->post()) {
+            $post = $this->input->post();
+            $postFinal = array(
+                "forecast_1" => $post['forecast_1'],
+                "forecast_2" => $post['forecast_2'],
+                "forecast_3" => $post['forecast_3'],
+                "forecast_4" => $post['forecast_4'],
+                "reason" => $post['reason'],
+                "status" => 'EDIT',
+            );
+
+            $send = $this->api->update('forecast_supplier', ["id" => $post['id']], $postFinal);
             echo $send;
         } else {
             show_error("Cannot Process your request");
@@ -826,16 +852,22 @@ class Forecast_supplier extends CI_Controller
         $this->db->select('a.p_month,
                     a.p_year,a.revision,a.part_no, a.part_name, a.product_family, 
                     a.issued_1, a.issued_2, a.issued_3, a.issued_avg, a.qty_rm, a.qty_wip, a.qty_vendor, a.total_stock, a.qty_supply, a.qty_wo,a.total_wo, 
-                    a.need_1, a.need_2, a.need_3, a.need_4,a.need_5, a.need_6,
-                    a.balance_1, a.balance_2, a.balance_3, a.balance_4, a.balance_5, a.balance_6,
+                    a.need_1, a.need_2, a.need_3, a.need_4, a.need_5, a.need_6,
+                    a.balance_1, 
+                    coalesce(a.balance_1-a.need_2,0) as balance_2, 
+                    coalesce(a.balance_2-a.need_3,0) as balance_3, 
+                    coalesce(a.balance_3-a.need_4,0) as balance_4, 
+                    coalesce(a.balance_4-a.need_5,0) as balance_5, 
+                    coalesce(a.balance_5-a.need_6,0) as balance_6,
                     (case when a.balance_1 > 0 then 0  else a.need_1 end) as forecast_1,
-                    (case when a.balance_2 > 0 then 0  else a.need_2 end) as forecast_2,
-                    (case when a.balance_3 > 0 then 0  else a.need_3 end) as forecast_3,
-                    (case when a.balance_4 > 0 then 0  else a.need_4 end) as forecast_4,
-                    (case when a.balance_5 > 0 then 0  else a.need_5 end) as forecast_5,
-                    (case when a.balance_6 > 0 then 0  else a.need_6 end) as forecast_6,
-                    (case when a.avg_balance > 0 then 0  else a.avg_need end) as avg_forecast,
-                    a.avg_need, a.avg_balance, a.total_need, a.purchase_order,
+                    (case when coalesce(a.balance_1 - a.need_2,0) > 0 then 0  else a.need_2 end) as forecast_2,
+                    (case when coalesce(a.balance_2 - a.need_3,0) > 0 then 0  else a.need_3 end) as forecast_3,
+                    (case when coalesce(a.balance_3 - a.need_4,0) > 0 then 0  else a.need_4 end) as forecast_4,
+                    (case when coalesce(a.balance_4 - a.need_5,0) > 0 then 0  else a.need_5 end) as forecast_5,
+                    (case when coalesce(a.balance_5 - a.need_6,0) > 0 then 0  else a.need_6 end) as forecast_6,
+                    (case when coalesce(a.avg_balance,0) > 0 then 0  else a.avg_need end) as avg_forecast,
+                    a.avg_need, coalesce(a.avg_balance,0) as avg_balance, 
+                    a.total_need, a.purchase_order,
                     b.id as vendor_id, 
                     b.name as vendor_name, 
                     b.type as vendor_type, 
@@ -1013,11 +1045,11 @@ class Forecast_supplier extends CI_Controller
                     $record_need_5 = $record['avg_need'];
                     $record_need_6 = $record['avg_need'];
                     $record_balance_1 = $record['avg_balance'];
-                    $record_balance_2 = $record['avg_balance'];
-                    $record_balance_3 = $record['avg_balance'];
-                    $record_balance_4 = $record['avg_balance'];
-                    $record_balance_5 = $record['avg_balance'];
-                    $record_balance_6 = $record['avg_balance'];
+                    $record_balance_2 = $record_balance_1 - $record['avg_need'];
+                    $record_balance_3 = $record_balance_2 - $record['avg_need'];
+                    $record_balance_4 = $record_balance_3 - $record['avg_need'];
+                    $record_balance_5 = $record_balance_4 - $record['avg_need'];
+                    $record_balance_6 =  $record_balance_5 - $record['avg_need'];
                     $record_forecast_1 = $record['avg_forecast'];
                     $record_forecast_2 = $record['avg_forecast'];
                     $record_forecast_3 = $record['avg_forecast'];
@@ -1129,11 +1161,11 @@ class Forecast_supplier extends CI_Controller
                     $record_need_5 = $record['avg_need'];
                     $record_need_6 = $record['avg_need'];
                     $record_balance_1 = $record['avg_balance'];
-                    $record_balance_2 = $record['avg_balance'];
-                    $record_balance_3 = $record['avg_balance'];
-                    $record_balance_4 = $record['avg_balance'];
-                    $record_balance_5 = $record['avg_balance'];
-                    $record_balance_6 = $record['avg_balance'];
+                    $record_balance_2 = $record_balance_1 - $record['avg_need'];
+                    $record_balance_3 = $record_balance_2 - $record['avg_need'];
+                    $record_balance_4 = $record_balance_3 - $record['avg_need'];
+                    $record_balance_5 = $record_balance_4 - $record['avg_need'];
+                    $record_balance_6 = $record_balance_5 - $record['avg_need'];
                     $record_forecast_1 = $record['avg_forecast'];
                     $record_forecast_2 = $record['avg_forecast'];
                     $record_forecast_3 = $record['avg_forecast'];
@@ -1303,6 +1335,87 @@ class Forecast_supplier extends CI_Controller
                 $total_need = $record['total_need'];
                 $purchase_order = $record['purchase_order'];
             }
+
+            $color_issued_1 = '';
+            $color_issued_2 = '';
+            $color_issued_3 = '';
+            $color_issued_avg = '';
+            $color_total_stock = '';
+            $color_qty_vendor = '';
+            $color_need_1 = '';
+            $color_balance_1 = '';
+            $color_forecast_1 = '';
+            $color_need_2 = '';
+            $color_balance_2 = '';
+            $color_forecast_2 = '';
+            $color_need_3 = '';
+            $color_balance_3 = '';
+            $color_forecast_3 = '';
+            $color_need_4 = '';
+            $color_balance_4 = '';
+            $color_forecast_4 = '';
+            $color_avg_need = '';
+
+            if ($record['issued_1'] <= '0' || $record['issued_1'] <= '0.00') {
+                $color_issued_1 = 'color: red;';
+            }
+            if ($record['issued_2'] <= '0' || $record['issued_2'] <= '0.00') {
+                $color_issued_2 = 'color: red;';
+            }
+            if ($record['issued_3'] <= '0' || $record['issued_3'] <= '0.00') {
+                $color_issued_3 = 'color: red;';
+            }
+            if ($record['issued_avg'] <= '0' || $record['issued_avg'] <= '0.00') {
+                $color_issued_avg = 'color: red;';
+            }
+            if ($record['total_stock'] <= '0' || $record['total_stock'] <= '0.00') {
+                $color_total_stock = 'color: red;';
+            }
+            if ($record['qty_vendor'] <= '0' || $record['qty_vendor'] <= '0.00') {
+                $color_qty_vendor = 'color: red;';
+            }
+            if ($need_1 <= '0' || $need_1 <= '0.00') {
+                $color_need_1 = 'color: red;';
+            }
+            if ($balance_1 <= '0' || $balance_1 <= '0.00') {
+                $color_balance_1 = 'color: red;';
+            }
+            if ($forecast_1 <= '0' || $forecast_1 <= '0.00') {
+                $color_forecast_1 = 'color: red;';
+            }
+
+            if ($need_2 <= '0' || $need_2 <= '0.00') {
+                $color_need_2 = 'color: red;';
+            }
+            if ($balance_2 <= '0' || $balance_2 <= '0.00') {
+                $color_balance_2 = 'color: red;';
+            }
+            if ($forecast_2 <= '0' || $forecast_2 <= '0.00') {
+                $color_forecast_2 = 'color: red;';
+            }
+            if ($need_3 <= '0' || $need_3 <= '0.00') {
+                $color_need_3 = 'color: red;';
+            }
+            if ($balance_3 <= '0' || $balance_3 <= '0.00') {
+                $color_balance_3 = 'color: red;';
+            }
+            if ($forecast_3 <= '0' || $forecast_3 <= '0.00') {
+                $color_forecast_3 = 'color: red;';
+            }
+
+            if ($need_4 <= '0' || $need_4 <= '0.00') {
+                $color_need_4 = 'color: red;';
+            }
+            if ($balance_4 <= '0' || $balance_4 <= '0.00') {
+                $color_balance_4 = 'color: red;';
+            }
+            if ($forecast_4 <= '0' || $forecast_4 <= '0.00') {
+                $color_forecast_4 = 'color: red;';
+            }
+
+            if ($avg_need <= '0' || $avg_need <= '0.00') {
+                $color_avg_need = 'color: red;';
+            }
             $html .= ' <tr>
                             <td>' . $no . '</td>
                             <td style="mso-number-format:\@;">' . $record['part_no'] . '</td>
@@ -1311,31 +1424,31 @@ class Forecast_supplier extends CI_Controller
                             <td>' . $record['vendor_name'] . '</td>
                             <td>' . $record['vendor_type'] . '</td>
                             <td>' . $record['vendor_origin'] . '</td>
-                            <td style="mso-number-format:\@;">' . $record['leadtime'] . '</td>
-                            <td style="mso-number-format:\@;">' . $record['share_order'] . '</td>
-                            <td style="mso-number-format:\@;">' . $record['mpq'] . '</td>
-                            <td style="mso-number-format:\@;">' . $record['moq'] . '</td>
+                            <td align="right" style="mso-number-format:\@;">' . $record['leadtime'] . '</td>
+                            <td align="right" style="mso-number-format:\@;">' . $record['share_order'] . '</td>
+                            <td align="right" style="mso-number-format:\@;">' . round($record['mpq']) . '</td>
+                            <td align="right" style="mso-number-format:\@;">' . round($record['moq']) . '</td>
                             <td>' . $record['maker_name'] . '</td>
                             <td>' . $record['maker_type'] . '</td>
-                            <td>' . $record['issued_1'] . '</td>
-                            <td>' . $record['issued_2'] . '</td>
-                            <td>' . $record['issued_3'] . '</td>
-                            <td>' . $record['issued_avg'] . '</td>
-                            <td>' . $record['total_stock'] . '</td>
-                            <td>' . $record['qty_vendor'] . '</td>
-                            <td>' . $need_1 . '</td>
-                            <td>' . $balance_1 . '</td>
-                            <td>' . $forecast_1 . '</td>
-                            <td>' . $need_2 . '</td>
-                            <td>' . $balance_2 . '</td>
-                            <td>' . $forecast_2 . '</td>
-                            <td>' . $need_3 . '</td>
-                            <td>' . $balance_3 . '</td>
-                            <td>' . $forecast_3 . '</td>
-                            <td>' . $need_4 . '</td>
-                            <td>' . $balance_4 . '</td>
-                            <td>' . $forecast_4 . '</td>
-                            <td>' . $avg_need . '</td>
+                            <td align="right" style="' . $color_issued_1 . '">' . round($record['issued_1']) . '</td>
+                            <td align="right" style="' . $color_issued_2 . '">' . round($record['issued_2']) . '</td>
+                            <td align="right" style="' . $color_issued_3 . '">' . round($record['issued_3']) . '</td>
+                            <td align="right" style="' . $color_issued_avg . '">' . round($record['issued_avg']) . '</td>
+                            <td align="right" style="' . $color_total_stock . '">' . round($record['total_stock']) . '</td>
+                            <td align="right" style="' . $color_qty_vendor . '">' . round($record['qty_vendor']) . '</td>
+                            <td align="right" style="' . $color_need_1 . '">' . round($need_1) . '</td>
+                            <td align="right" style="' . $color_balance_1 . '">' . round($balance_1) . '</td>
+                            <td align="right" style="' . $color_forecast_1 . '">' . round($forecast_1) . '</td>
+                            <td align="right" style="' . $color_need_2 . '">' . round($need_2) . '</td>
+                            <td align="right" style="' . $color_balance_2 . '">' . round($balance_2) . '</td>
+                            <td align="right" style="' . $color_forecast_2 . '">' . round($forecast_2) . '</td>
+                            <td align="right" style="' . $color_need_3 . '">' . round($need_3) . '</td>
+                            <td align="right" style="' . $color_balance_3 . '">' . round($balance_3) . '</td>
+                            <td align="right" style="' . $color_forecast_3 . '">' . round($forecast_3) . '</td>
+                            <td align="right" style="' . $color_need_4 . '">' . round($need_4) . '</td>
+                            <td align="right" style="' . $color_balance_4 . '">' . round($balance_4) . '</td>
+                            <td align="right" style="' . $color_forecast_4 . '">' . round($forecast_4) . '</td>
+                            <td align="right" style="' . $color_avg_need . '">' . round($avg_need) . '</td>
                         </tr>';
             $no++;
         }
@@ -1552,9 +1665,9 @@ class Forecast_supplier extends CI_Controller
                         <th rowspan="2" style="text-align:center; background:#6ba7e1">CONFIRMATION OF<br> SUPPLIER\'S ABILITY</th>
                     </tr>
                     <tr>
-                        <th style="text-align:center; background:#6ba7e1">' . $fc_1 . '</th>
-                        <th style="text-align:center; background:#6ba7e1">' . $fc_2 . '</th>
-                        <th style="text-align:center; background:#6ba7e1">' . $fc_3 . '</th>
+                        <th style="text-align:center; background:#6ba7e1; width:70px;">' . $fc_1 . '</th>
+                        <th style="text-align:center; background:#6ba7e1; width:70px;">' . $fc_2 . '</th>
+                        <th style="text-align:center; background:#6ba7e1; width:70px;">' . $fc_3 . '</th>
                     </tr>';
 
             foreach ($records as $data) {
@@ -1833,10 +1946,10 @@ class Forecast_supplier extends CI_Controller
                                 <td align="center" style="height:80px; width:120px;"></td>
                                 <td align="center"></td>
                                 <td align="center"></td>
-                                <td align="center" style="height:80px; width:120px;">' . $qr_user_2 . '</td>
+                                <td align="center" style="height:80px; width:120px;"></td>
                                 <td align="center"></td>
                                 <td align="center"></td>
-                                <td align="center" style="height:80px; width:120px;">' . $qr_user_1 . '</td>
+                                <td align="center" style="height:80px; width:120px;"></td>
                                 </tr>
                             <tr>
                                 <td align="center"></td>

@@ -191,6 +191,35 @@ class Delivery_confirm extends CI_Controller
         echo json_encode($datas);
         unlink($_FILES['file_upload']['name']);
     }
+
+    public function uploadclearFailed()
+    {
+        @unlink('excel/failed/delivery_confirmation.txt');
+    }
+
+    public function uploadcreateFailed()
+    {
+        if ($this->input->post()) {
+            $message = $this->input->post('message');
+            $textFailed = fopen('excel/failed/delivery_confirmation.txt', 'a');
+            fwrite($textFailed, $message . "\n");
+            fclose($textFailed);
+        }
+    }
+
+    public function uploadDownloadFailed()
+    {
+        $file = "excel/failed/delivery_confirmation.txt";
+        header('Content-Description: File Failed');
+        header('Content-Disposition: attachment; filename=' . basename($file));
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Content-Length: ' . @filesize($file));
+        header("Content-Type: text/plain");
+        @readfile($file);
+    }
+
     public function uploadcreate()
     {
         if ($this->input->post()) {

@@ -20,7 +20,7 @@
                 <th colspan="4" data-options="field:'wo',width:240,halign:'center'">WORKORDER</th>
                 <th rowspan="2" data-options="field:'total_stock',width:100,halign:'center',align:'right',formatter:numberformat">Stock WHS</th>
                 <th rowspan="2" data-options="field:'qty_vendor',width:100,halign:'center',align:'right',formatter:numberformat">OS PO</th>
-                <th colspan="13" data-options="field:'fcst',width:240,halign:'center'">FORECAST</th>
+                <th colspan="14" data-options="field:'fcst',width:240,halign:'center'">FORECAST</th>
                 <th colspan="3" data-options="field:'',width:100,halign:'center'"> Approved</th>
                 <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
                 <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
@@ -43,6 +43,7 @@
                 <th data-options="field:'balance_4',width:100,halign:'center',align:'right',formatter:numberformat">Bal 4</th>
                 <th data-options="field:'forecast_4',width:100,halign:'center',align:'right',formatter:numberformat">FC 4</th>
                 <th data-options="field:'avg_need',width:100,halign:'center',align:'right',formatter:numberformat">Xbar</th>
+                <th data-options="field:'btnView',width:80,halign:'center',align:'right',formatter:btnUpdateFc">#</th>
                 <th data-options="field:'approved_to',width:80,align:'center', styler:cellStylerApproval, formatter:cellFormatterApproval">Status</th>
                 <th data-options="field:'approved_by',width:80,align:'center'">By</th>
                 <th data-options="field:'approved_date',width:120,align:'center'">Date</th>
@@ -141,6 +142,47 @@
                 <center><b id="p_start">0</b> Of <b id="p_finish">0</b></center>
             </fieldset>
             <table id="dg2" class="easyui-datagrid" style="width:100%;" title="Material Lists" toolbar="#toolbar2"></table>
+        </form>
+    </div>
+
+    <!-- Dialog fc -->
+    <div id="dlg_fc" class="easyui-dialog" data-options="closed: true,modal:true" style="width: 500px; height: auto; padding:10px; top: 60px;">
+        <form id="frm_fc" method="post" novalidate>
+            <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
+                <legend><b>Form Data</b></legend>
+                <div class="fitem" hidden>
+                    <span style="width:35%; margin-bottom:5px; display:inline-block;">ID</span>
+                    <input style="width:60%;" name="id" id="id" readonly class="easyui-textbox">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; margin-bottom:5px; display:inline-block;">Part No</span>
+                    <input style="width:60%;" name="item_id_fc" id="item_id_fc" readonly class="easyui-textbox">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; margin-bottom:5px; display:inline-block;">FC 1</span>
+                    <input style="width:30%;" name="forecast_1" id="forecast_1" required="" class="easyui-numberbox" data-options="precision:0">
+                    <input style="width:30%;" name="forecast_1_mrp" id="forecast_1_mrp" disabled class="easyui-numberbox" data-options="precision:0">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; margin-bottom:5px; display:inline-block;">FC 2</span>
+                    <input style="width:30%;" name="forecast_2" id="forecast_2" required="" class="easyui-numberbox" data-options="precision:0">
+                    <input style="width:30%;" name="forecast_2_mrp" id="forecast_2_mrp" disabled class="easyui-numberbox" data-options="precision:0">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; margin-bottom:5px; display:inline-block;">FC 3</span>
+                    <input style="width:30%;" name="forecast_3" id="forecast_3" required="" class="easyui-numberbox" data-options="precision:0">
+                    <input style="width:30%;" name="forecast_3_mrp" id="forecast_3_mrp" disabled class="easyui-numberbox" data-options="precision:0">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; margin-bottom:5px; display:inline-block;">FC 4</span>
+                    <input style="width:30%;" name="forecast_4" id="forecast_4" required="" class="easyui-numberbox" data-options="precision:0">
+                    <input style="width:30%;" name="forecast_4_mrp" id="forecast_4_mrp" disabled class="easyui-numberbox" data-options="precision:0">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; margin-bottom:5px; display:inline-block;">Reason</span>
+                    <input style="width:60%;" name="reason" id="reason" class="easyui-textbox">
+                </div>
+            </fieldset>
         </form>
     </div>
     <!-- PDF -->
@@ -953,23 +995,30 @@
                                     issued_avg: json[number - 1].issued_avg,
                                     need_1: json[number - 1].need_1,
                                     balance_1: json[number - 1].balance_1,
+                                    forecast_1_mrp: json[number - 1].forecast_1,
                                     forecast_1: json[number - 1].forecast_1,
                                     need_2: json[number - 1].need_2,
                                     balance_2: json[number - 1].balance_2,
+                                    forecast_2_mrp: json[number - 1].forecast_2,
                                     forecast_2: json[number - 1].forecast_2,
                                     need_3: json[number - 1].need_3,
                                     balance_3: json[number - 1].balance_3,
+                                    forecast_3_mrp: json[number - 1].forecast_3,
                                     forecast_3: json[number - 1].forecast_3,
                                     need_4: json[number - 1].need_4,
                                     balance_4: json[number - 1].balance_4,
+                                    forecast_4_mrp: json[number - 1].forecast_4,
                                     forecast_4: json[number - 1].forecast_4,
                                     need_5: json[number - 1].need_5,
                                     balance_5: json[number - 1].balance_5,
+                                    forecast_5_mrp: json[number - 1].forecast_5,
                                     forecast_5: json[number - 1].forecast_5,
                                     need_6: json[number - 1].need_6,
                                     balance_6: json[number - 1].balance_6,
+                                    forecast_6_mrp: json[number - 1].forecast_6,
                                     forecast_6: json[number - 1].forecast_6,
                                     avg_need: json[number - 1].avg_need,
+                                    status: 'GENERATE',
                                 };
                                 $.post('<?= base_url('planning/forecast_supplier/create') ?>', dataFinal, function(note) {
                                     var result = eval('(' + note + ')');
@@ -1171,6 +1220,57 @@
                     }
                 }],
             });
+        });
+
+        function btnUpdateFc(val, row) {
+            var view = "view_update_fc('" + row.id + "','" + row.part_no + "','" + row.forecast_1_mrp + "','" + row.forecast_1 + "','" + row.forecast_2_mrp + "','" + row.forecast_2 + "','" + row.forecast_3_mrp + "','" + row.forecast_3 + "','" + row.forecast_4_mrp + "','" + row.forecast_4 + "','" + row.reason + "')";
+            return '<a class="btn btn-warning w-100" onClick="' + view + '" style="pointer-events: visible; opacity:1;"><i class="fa fa-edit"></i> Edit</a>';
+        }
+
+        function view_update_fc(id, part_no, forecast_1_mrp, forecast_1, forecast_2_mrp, forecast_2, forecast_3_mrp, forecast_3, forecast_4_mrp, forecast_4, reason) {
+            $('#dlg_fc').dialog('setTitle', 'Update FC');
+            $("#dlg_fc").dialog('open');
+            $('#frm_fc').form('clear');
+            $('#id').textbox('setValue', id);
+            $('#item_id_fc').textbox('setValue', part_no);
+            $('#forecast_1').numberbox('setValue', forecast_1);
+            $('#forecast_2').numberbox('setValue', forecast_2);
+            $('#forecast_3').numberbox('setValue', forecast_3);
+            $('#forecast_4').numberbox('setValue', forecast_4);
+            $('#forecast_1_mrp').numberbox('setValue', forecast_1_mrp);
+            $('#forecast_2_mrp').numberbox('setValue', forecast_2_mrp);
+            $('#forecast_3_mrp').numberbox('setValue', forecast_3_mrp);
+            $('#forecast_4_mrp').numberbox('setValue', forecast_4_mrp);
+            if (reason !== "null") {
+                $('#reason').textbox('setValue', reason);
+            }
+            url_save = '<?= base_url('planning/forecast_supplier/updatefc') ?>';
+        }
+
+        $('#dlg_fc').dialog({
+            buttons: [{
+                text: 'Save',
+                iconCls: 'icon-ok',
+                handler: function() {
+                    $('#frm_fc').form('submit', {
+                        url: url_save,
+                        onSubmit: function() {
+                            return $(this).form('validate');
+                        },
+                        success: function(result) {
+                            var result = eval('(' + result + ')');
+
+                            if (result.theme == "success") {
+                                toastr.success(result.message, result.title);
+                            } else {
+                                toastr.error(result.message, result.title);
+                            }
+                            $('#dlg_fc').dialog('close');
+                            filter();
+                        }
+                    });
+                }
+            }]
         });
 
         //Format Datepicker
