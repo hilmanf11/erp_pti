@@ -160,7 +160,7 @@ class Forecast_supplier extends CI_Controller
             $this->db->like('a.product_family', $filter_product_family);
             $this->db->like('a.part_no', $item_id);
             $this->db->order_by('a.part_no', 'asc');
-            $this->db->limit(10);
+            // $this->db->limit(10);
             //Total Data
             $totalRows = $this->db->count_all_results('', false);
             $records = $this->db->get()->result_array();
@@ -1508,8 +1508,12 @@ class Forecast_supplier extends CI_Controller
         $fc_1 = $this->readMonths(date('m', strtotime('+1 month', strtotime($periode))));
         $fc_2 = $this->readMonths(date('m', strtotime('+2 month', strtotime($periode))));
         $fc_3 = $this->readMonths(date('m', strtotime('+3 month', strtotime($periode))));
-        //Select Query
-        $this->db->select('a.id, a.approved_to, h.name as plant_name');
+        // 1️⃣ Ambil semua data sekaligus
+        $this->db->select('a.*,
+            f.item_supplier,
+            e.class,
+            g.name as uom,
+            h.name as plant_name');
         $this->db->from('forecast_supplier a');
         $this->db->join('supplier_items c', 'a.part_no = c.item_id', 'left');
         $this->db->join('generate_mrp_abcclass e', 'a.part_no = e.part_no and a.p_month = e.p_month and a.p_year = e.p_year and a.revision = e.revision', 'left');
@@ -1526,8 +1530,8 @@ class Forecast_supplier extends CI_Controller
         $this->db->group_by('a.id');
         $this->db->order_by('a.vendor_name', 'asc');
         $this->db->order_by('a.product_family', 'asc');
-        $totalRows = $this->db->count_all_results('', false);
-        $datas = $this->db->get()->result_array();
+        $records = $this->db->get()->result_array();
+        $totalRows = count($records);
 
         $approval = $this->api->read('approval', [], ["table_name" => "forecast_supplier"]);
         $user_1 = $this->api->read('user', [], ["username" => $approval->user_approval_1]);
@@ -1536,7 +1540,7 @@ class Forecast_supplier extends CI_Controller
         $qr_user_1 = "";
         $qr_user_2 = "";
 
-        if (@$datas[0]['approved_to'] == "") {
+        if (@$records[0]['approved_to'] == "") {
             $hidden = "";
         } else {
             $hidden = "hidden";
@@ -1571,7 +1575,7 @@ class Forecast_supplier extends CI_Controller
         }
         $html = '<html>
                     <head>
-                        <title>' . @$supplier->name . ' (' . $periode_from . '-' . $periode_to . '_Plant ' . @$datas[0]['plant_name'] . ')</title>
+                        <title>' . @$supplier->name . ' (' . $periode_from . '-' . $periode_to . '_Plant ' . @$records[0]['plant_name'] . ')</title>
                         <link rel="icon" href="' . base_url('assets/image/config/' . $config->favicon) . '" type="image/png" sizes="16x16">
                     </head>
                     
@@ -1597,36 +1601,12 @@ class Forecast_supplier extends CI_Controller
                         ' . $media2 . '
                         <div class="print">';
 
-        //Config Page
-        $rows = 15;
-        $page = ceil($totalRows / $rows);
-        //Loop Page
+        // Loop data dan buat halaman baru tiap 15 baris
+        $rowsPerPage = 15;
+        $pageCount = ceil($totalRows / $rowsPerPage);
         $no = 1;
-        $hal = 1;
-        for ($i = 0; $i < $page; $i++) {
-            $this->db->select('a.*,
-            f.item_supplier,
-            e.class,
-            g.name as uom,
-            h.name as plant_name');
-            $this->db->from('forecast_supplier a');
-            $this->db->join('supplier_items c', 'a.part_no = c.item_id', 'left');
-            $this->db->join('generate_mrp_abcclass e', 'a.part_no = e.part_no and a.p_month = e.p_month and a.p_year = e.p_year and a.revision = e.revision', 'left');
-            $this->db->join('mst_item_raw f', 'a.part_no = f.item_id', 'left');
-            $this->db->join('uom g', 'g.number = f.um_id', 'left');
-            $this->db->join('plants h', 'c.plant = h.number', 'left');
-            $this->db->where('a.p_month', $filter_month);
-            $this->db->where('a.p_year', $filter_year);
-            $this->db->where('a.revision', $filter_revision);
-            $this->db->where('c.share_order >', 0);
-            $this->db->where('a.vendor_id', $filter_supplier);
-            $this->db->like('a.product_family', $filter_product_family);
-            $this->db->like('a.part_no', $item_id);
-            $this->db->group_by('a.id');
-            $this->db->order_by('a.vendor_name', 'asc');
-            $this->db->order_by('a.product_family', 'asc');
-            $this->db->limit(15, ($i * 15));
-            $records = $this->db->get()->result_array();
+        for ($page = 0; $page < $pageCount; $page++) {
+            // ===== HEADER =====
             $html .= '<center>
                     <div style="float: left; font-size: 12px; text-align: left;">
                         <table style="width: 100%;">
@@ -1670,28 +1650,30 @@ class Forecast_supplier extends CI_Controller
                         <th style="text-align:center; background:#6ba7e1; width:70px;">' . $fc_3 . '</th>
                     </tr>';
 
-            foreach ($records as $data) {
-                $html .= ' <tr>
-                                    <td align="center">' . $no . '</td>
-                                    <td style="mso-number-format:\@;">' . $data['part_no'] . '</td>
-                                    <td style="mso-number-format:\@;">' . $data['part_name'] . '</td>
-                                    <td style="mso-number-format:\@;">' . $data['product_family'] . '</td>
-                                    <td style="mso-number-format:\@;">' . $data['item_supplier'] . '</td>
-                                    <td>' . $data['maker_name'] . '</td>
-                                    <td>' . $data['maker_type'] . '</td>
-                                    <td align="center">' . $data['class'] . '</td>
-                                    <td align="right">' . $data['forecast_1'] . '</td>
-                                    <td align="right">' . $data['forecast_2'] . '</td>
-                                    <td align="right">' . $data['forecast_3'] . '</td>
-                                    <td align="center">' . $data['uom'] . '</td>
-                                    <td align="center"></td>
-                                    <td align="center"></td>
-                                </tr>';
-                $no++;
+            // ===== ISI DATA =====
+            $pageData = array_slice($records, $page * $rowsPerPage, $rowsPerPage);
+            foreach ($pageData as $data) {
+                $html .= '<tr>
+                            <td align="center">' . $no++ . '</td>
+                            <td>' . $data['part_no'] . '</td>
+                            <td>' . $data['part_name'] . '</td>
+                            <td>' . $data['product_family'] . '</td>
+                            <td>' . $data['item_supplier'] . '</td>
+                            <td>' . $data['maker_name'] . '</td>
+                            <td>' . $data['maker_type'] . '</td>
+                            <td align="center">' . $data['class'] . '</td>
+                            <td align="right">' . $data['forecast_1'] . '</td>
+                            <td align="right">' . $data['forecast_2'] . '</td>
+                            <td align="right">' . $data['forecast_3'] . '</td>
+                            <td align="center">' . $data['uom'] . '</td>
+                            <td align="center"></td>
+                            <td align="center"></td>
+                        </tr>';
             }
+            $html .= '</tbody></table>';
 
-            $html .= '</table>';
-            if (($i + 1) == $page) {
+            // ===== FOOTER (hanya di halaman terakhir) =====
+            if ($page + 1 == $pageCount) {
                 $html .= '<br><span style="font-size:12px"><b>Note :</b><br>
                             1. Angka pada kolom forecast merupakan estimasi quantity open PO oleh BEI pada bulan tersebut <i>(The number in the forecast column is the estimated quantity of open PO by BEI in that month).</i><br>
                             2. Data Forecast berdasarkan hasil dari Generate MRP bulan berjalan <i>(Forecast data is based on the results of the current month\'s MRP Generate).</i><br>
@@ -1720,12 +1702,11 @@ class Forecast_supplier extends CI_Controller
                 </table></center>';
             }
 
-            if (($i + 1) != $page) {
+            // ===== PAGE BREAK (jika bukan halaman terakhir) =====
+            if ($page + 1 < $pageCount) {
                 $html .= '<div style="page-break-after:always;"></div>';
             }
-            $hal++;
         }
-
         $html .= '</div></body></html>';
         if ($export == "") {
             $html .= '<script>window.print()</script>';
@@ -1750,6 +1731,7 @@ class Forecast_supplier extends CI_Controller
         }
     }
 
+
     public function print2($option = "")
     {
         if ($option == "excel") {
@@ -1772,9 +1754,9 @@ class Forecast_supplier extends CI_Controller
 
         $period_header = strtoupper(date("F", strtotime($filter_year . "-" . $filter_month . "-01")));
         $periode = date("Y-m-d", strtotime($filter_year . "-" . $filter_month . "-01"));
-        $wo_1 = $this->readMonths(date('m', strtotime('-3 month', strtotime($periode)))) . '-' . date('y', strtotime('-3 month', strtotime($periode)));
-        $wo_2 = $this->readMonths(date('m', strtotime('-2 month', strtotime($periode)))) . '-' . date('y', strtotime('-2 month', strtotime($periode)));
-        $wo_3 = $this->readMonths(date('m', strtotime('-1 month', strtotime($periode)))) . '-' . date('y', strtotime('-1 month', strtotime($periode)));
+        // $wo_1 = $this->readMonths(date('m', strtotime('-3 month', strtotime($periode)))) . '-' . date('y', strtotime('-3 month', strtotime($periode)));
+        // $wo_2 = $this->readMonths(date('m', strtotime('-2 month', strtotime($periode)))) . '-' . date('y', strtotime('-2 month', strtotime($periode)));
+        // $wo_3 = $this->readMonths(date('m', strtotime('-1 month', strtotime($periode)))) . '-' . date('y', strtotime('-1 month', strtotime($periode)));
         $fc_1 = $this->readMonths(date('m', strtotime('+1 month', strtotime($periode))));
         $fc_2 = $this->readMonths(date('m', strtotime('+2 month', strtotime($periode))));
         $fc_3 = $this->readMonths(date('m', strtotime('+3 month', strtotime($periode))));
@@ -1804,19 +1786,19 @@ class Forecast_supplier extends CI_Controller
         $user_1 = $this->api->read('user', [], ["username" => $approval->user_approval_1]);
         $user_2 = $this->api->read('user', [], ["username" => $approval->user_approval_2]);
 
-        $qr_user_1 = "";
-        $qr_user_2 = "";
+        // $qr_user_1 = "";
+        // $qr_user_2 = "";
 
-        if (@$records[0]['approved_to'] == "") {
-            $qr_user_1 = "<img src='" . base_url('assets/image/qrcode/' . @$user_1->name . '.png') . "' width='80'/>";
-            $qr_user_2 = "<img src='" . base_url('assets/image/qrcode/' . @$user_2->name . '.png') . "' width='80'/>";
-        } else {
-            $qr_user_1 = "";
-            $qr_user_2 = "";
-        }
+        // if (@$records[0]['approved_to'] == "") {
+        //     $qr_user_1 = "<img src='" . base_url('assets/image/qrcode/' . @$user_1->name . '.png') . "' width='80'/>";
+        //     $qr_user_2 = "<img src='" . base_url('assets/image/qrcode/' . @$user_2->name . '.png') . "' width='80'/>";
+        // } else {
+        //     $qr_user_1 = "";
+        //     $qr_user_2 = "";
+        // }
 
-        $this->createQrcode(@$user_1->name, "assets/image/qrcode/");
-        $this->createQrcode(@$user_2->name, "assets/image/qrcode/");
+        // $this->createQrcode(@$user_1->name, "assets/image/qrcode/");
+        // $this->createQrcode(@$user_2->name, "assets/image/qrcode/");
 
         $html = '<html>
                     <head>

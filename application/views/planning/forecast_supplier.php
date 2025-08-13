@@ -20,7 +20,8 @@
                 <th colspan="4" data-options="field:'wo',width:240,halign:'center'">WORKORDER</th>
                 <th rowspan="2" data-options="field:'total_stock',width:100,halign:'center',align:'right',formatter:numberformat">Stock WHS</th>
                 <th rowspan="2" data-options="field:'qty_vendor',width:100,halign:'center',align:'right',formatter:numberformat">OS PO</th>
-                <th colspan="14" data-options="field:'fcst',width:240,halign:'center'">FORECAST</th>
+                <!-- <th colspan="14" data-options="field:'fcst',width:240,halign:'center'">FORECAST</th> -->
+                <th colspan="13" data-options="field:'fcst',width:240,halign:'center'">FORECAST</th>
                 <th colspan="3" data-options="field:'',width:100,halign:'center'"> Approved</th>
                 <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
                 <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
@@ -43,7 +44,7 @@
                 <th data-options="field:'balance_4',width:100,halign:'center',align:'right',formatter:numberformat">Bal 4</th>
                 <th data-options="field:'forecast_4',width:100,halign:'center',align:'right',formatter:numberformat">FC 4</th>
                 <th data-options="field:'avg_need',width:100,halign:'center',align:'right',formatter:numberformat">Xbar</th>
-                <th data-options="field:'btnView',width:80,halign:'center',align:'right',formatter:btnUpdateFc">#</th>
+                <!-- <th data-options="field:'btnView',width:80,halign:'center',align:'right',formatter:btnUpdateFc">#</th> -->
                 <th data-options="field:'approved_to',width:80,align:'center', styler:cellStylerApproval, formatter:cellFormatterApproval">Status</th>
                 <th data-options="field:'approved_by',width:80,align:'center'">By</th>
                 <th data-options="field:'approved_date',width:120,align:'center'">Date</th>
