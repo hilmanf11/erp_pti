@@ -4,8 +4,9 @@
         <tr>
             <th rowspan="2" field="ck" checkbox="true"></th>
             <th rowspan="2" data-options="field:'item_id',width:250,halign:'center'">Product No</th>
-            <th rowspan="2" data-options="field:'item_name',width:300,halign:'center'">Product Name</th>
-            <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
+            <th rowspan="2" data-options="field:'item_name',width:250,halign:'center'">Product Name</th>
+            <th rowspan="2" data-options="field:'customer_name',width:300,halign:'center'">Customer</th>
+            <th colspan="2" data-options="field:'',width:100,halign:'center'"> Syncronize</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
         </tr>
         <tr>
@@ -20,9 +21,9 @@
 <!-- TOOLBAR DATAGRID -->
 <div id="toolbar" style="height: 200px; padding: 10px;">
     <!-- <div style="width: 100%; display: grid; grid-template-columns: auto auto auto; grid-gap: 5px; display: flex;"> -->
-    <div style="width: 100%;">
-        <fieldset style="width: 45%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
-            <legend><b>Form Filter Data</b></legend>
+    <fieldset style="width: 100%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
+        <legend><b>Form Filter Data</b></legend>
+        <div style="float: left; width: 40%;">
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Product No</span>
                 <input style="width:60%;" id="filter_item_fg_id" class="easyui-combogrid">
@@ -35,9 +36,15 @@
                 <span style="width:35%; display:inline-block;"></span>
                 <a href="javascript:;" class="easyui-linkbutton" onclick="filter()"><i class="fa fa-search"></i> Filter Data</a>
             </div>
-        </fieldset>
-        <?= $button ?>
-    </div>
+        </div>
+        <div style="float: left; width: 40%;">
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Customer</span>
+                <input style="width:60%;" id="filter_customer" class="easyui-combobox">
+            </div>
+        </div>
+    </fieldset>
+    <?= $button ?>
 </div>
 
 <div id="toolbar2">
@@ -123,7 +130,7 @@
                                     width: 150
                                 }]
                             ],
-                            onSelect: function (value, rows) {
+                            onSelect: function(value, rows) {
                                 var dg = $('#dg2');
                                 var row = dg.datagrid('getSelected');
                                 var rowIndex = dg.datagrid('getRowIndex', row);
@@ -315,9 +322,11 @@
     function filter() {
         var filter_item_fg_id = $("#filter_item_fg_id").combogrid('getValue');
         var filter_item_rm_id = $("#filter_item_rm_id").combogrid('getValue');
+        var filter_customer = $("#filter_customer").combobox('getValue');
 
         var url = "?filter_item_fg_id=" + window.btoa(filter_item_fg_id) +
-            "&filter_item_rm_id=" + window.btoa(filter_item_rm_id);
+            "&filter_item_rm_id=" + window.btoa(filter_item_rm_id) +
+            "&filter_customer=" + window.btoa(filter_customer);
 
         $('#dg').datagrid({
             url: '<?= base_url('planning/bom/datatables') ?>' + url
@@ -336,9 +345,11 @@
     function excel() {
         var filter_item_fg_id = $("#filter_item_fg_id").combogrid('getValue');
         var filter_item_rm_id = $("#filter_item_rm_id").combogrid('getValue');
+        var filter_customer = $("#filter_customer").combobox('getValue');
 
         var url = "?filter_item_fg_id=" + window.btoa(filter_item_fg_id) +
-            "&filter_item_rm_id=" + window.btoa(filter_item_rm_id);
+            "&filter_item_rm_id=" + window.btoa(filter_item_rm_id) +
+            "&filter_customer=" + window.btoa(filter_customer);
 
         window.location.assign('<?= base_url('planning/bom/print/excel') ?>' + url);
     }
@@ -384,17 +395,38 @@
                             halign: 'center',
                             width: 250
                         }, {
+                            field: 'maker',
+                            title: 'Maker',
+                            width: 120,
+                            halign: 'center',
+                        }, {
+                            field: 'uom',
+                            title: 'Uom',
+                            width: 100,
+                            halign: 'center',
+                            align: 'center',
+                        }, {
                             field: 'qty',
                             title: 'QPA',
                             width: 100,
                             halign: 'center',
                             align: 'right',
-                        },{
-                            field: 'maker',
-                            title: 'Maker',
+                        }, {
+                            field: 'rout_id',
+                            title: 'Rout ID',
+                            width: 80,
+                            halign: 'center',
+                        }, {
+                            field: 'document_no',
+                            title: 'Document No',
                             width: 150,
                             halign: 'center',
-                        },]
+                        }, {
+                            field: 'revision',
+                            title: 'Revision',
+                            width: 80,
+                            halign: 'center',
+                        }, ]
                     ],
                     onResize: function() {
                         $('#dg').datagrid('fixDetailRowHeight', index);
@@ -423,7 +455,7 @@
 
                     for (let i = 0; i < totalrows; i++) {
                         if (rows[i].component_id) {
-                            
+
                             var dataFinal = {
                                 item_id: item_id,
                                 component_id: rows[i].component_id,
@@ -532,6 +564,19 @@
             iconCls: 'icon-clear',
             handler: function(e) {
                 $(e.data.target).combogrid('clear').combogrid('textbox').focus();
+            }
+        }],
+    });
+
+    $('#filter_customer').combobox({
+        url: '<?php echo base_url('planning/mst_customer/reads'); ?>',
+        valueField: 'number',
+        textField: 'name',
+        prompt: 'Choose Customer',
+        icons: [{
+            iconCls: 'icon-clear',
+            handler: function(e) {
+                $(e.data.target).combobox('clear').combobox('textbox').focus();
             }
         }],
     });

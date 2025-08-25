@@ -45,6 +45,7 @@ class Bom extends CI_Controller
             $get = $this->input->get();
             $filter_item_fg_id = @base64_decode($get['filter_item_fg_id']);
             $filter_item_rm_id = @base64_decode($get['filter_item_rm_id']);
+            $filter_customer = @base64_decode($get['filter_customer']);
 
             $page = $this->input->post('page');
             $rows = $this->input->post('rows');
@@ -54,11 +55,13 @@ class Bom extends CI_Controller
             $offset = ($page - 1) * $rows;
             $result = array();
             //Select Query
-            $this->db->select('a.*, b.item_name');
+            $this->db->select('a.*, b.item_name, c.name as customer_name');
             $this->db->from('mst_bom a');
             $this->db->join('mst_item b', 'a.item_id = b.item_id');
+            $this->db->join('mst_customer c', 'b.id_customer = c.number', 'left');
             $this->db->like('a.item_id', $filter_item_fg_id);
             $this->db->like('a.component_id', $filter_item_rm_id);
+            $this->db->like('c.number', $filter_customer);
             $this->db->group_by('a.item_id');
             $this->db->order_by('a.item_id', 'DESC');
             // $this->db->order_by('b.number', 'ASC');
@@ -82,9 +85,10 @@ class Bom extends CI_Controller
             $item_id = base64_decode($this->input->get('item_id'));
             $filter_item_rm_id = base64_decode($this->input->get('filter_item_rm_id'));
 
-            $this->db->select('a.*, b.item_name as component_name');
+            $this->db->select('a.*, b.item_name as component_name, c.name as uom');
             $this->db->from('mst_bom a');
             $this->db->join('mst_item_raw b', 'a.component_id = b.item_id');
+            $this->db->join('uom c', 'b.um_id = c.number');
             $this->db->where('a.item_id', $item_id);
             $this->db->like('a.component_id', $filter_item_rm_id);
             $this->db->order_by('a.component_id', 'ASC');
@@ -193,13 +197,13 @@ class Bom extends CI_Controller
         if ($this->input->post()) {
             $data = $this->input->post('data');
             $item_fg = $this->api->read('mst_item', [], ["item_id" => $data['item_id']]);
-            $item_rm = $this->api->read('mst_item_raw', [], ["item_id" => $data['component_id']]);            
+            $item_rm = $this->api->read('mst_item_raw', [], ["item_id" => $data['component_id']]);
             $mst_bom = $this->api->read('mst_bom', [], ["item_id" => $data['item_id'], "component_id" => $data['component_id']]);
 
             if (empty($item_fg->id)) {
-                echo json_encode(array("title" => "Not Found", "message" => "Product No" . $data['item_id'] ." Not Found", "theme" => "error"));
+                echo json_encode(array("title" => "Not Found", "message" => "Product No" . $data['item_id'] . " Not Found", "theme" => "error"));
             } elseif (empty($item_rm->id)) {
-                echo json_encode(array("title" => "Not Found", "message" => "Part No" . $data['component_id'] ." Not Found", "theme" => "error"));
+                echo json_encode(array("title" => "Not Found", "message" => "Part No" . $data['component_id'] . " Not Found", "theme" => "error"));
             } elseif (!empty($mst_bom->component_id)) {
                 echo json_encode(array("title" => "Duplicated", "message" => "Part No" . $data['component_id'] . " is Duplicate Data in Product No " . $data['item_id'], "theme" => "error"));
             } else {
@@ -221,16 +225,22 @@ class Bom extends CI_Controller
         $get = $this->input->get();
         $filter_item_fg_id = @base64_decode($get['filter_item_fg_id']);
         $filter_item_rm_id = @base64_decode($get['filter_item_rm_id']);
+        $filter_customer = @base64_decode($get['filter_customer']);
 
         //Config
         $this->db->select('*');
         $this->db->from('config');
         $config = $this->db->get()->row();
 
-        $this->db->select('*');
-        $this->db->from('mst_bom');
-        $this->db->like('item_id', $filter_item_fg_id);
-        $this->db->like('component_id', $filter_item_rm_id);
+        $this->db->select('a.*, b.item_name, c.name as customer_name');
+        $this->db->from('mst_bom a');
+        $this->db->join('mst_item b', 'a.item_id = b.item_id');
+        $this->db->join('mst_customer c', 'b.id_customer = c.number', 'left');
+        $this->db->like('a.item_id', $filter_item_fg_id);
+        $this->db->like('a.component_id', $filter_item_rm_id);
+        $this->db->like('c.number', $filter_customer);
+        // $this->db->group_by('a.item_id');
+        $this->db->order_by('a.item_id', 'DESC');
         $records = $this->db->get()->result_array();
 
         $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#mst_bom {border-collapse: collapse;width: 100%;font-size: 12px;}#mst_bom td, #mst_bom th {border: 1px solid #ddd;padding: 2px;}#mst_bom tr:nth-child(even){background-color: #f2f2f2;}#mst_bom tr:hover {background-color: #ddd;}#mst_bom th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
@@ -260,19 +270,33 @@ class Bom extends CI_Controller
         <table id="mst_bom" border="1">
             <tr>
                 <th width="20">No</th>
+                <th>Customer</th>
                 <th>Product No</th>
                 <th>Part No</th>
+                <th>Part Name</th>
                 <th>Qty</th>
+                <th>Rout ID</th>
                 <th>Maker</th>
+                <th>Document No</th>
+                <th>Revision</th>
+                <th>Date</th>
+                <th>User</th>
             </tr>';
         $no = 1;
         foreach ($records as $data) {
             $html .= '<tr>
                     <td>' . $no . '</td>
-                    <td>' . $data['item_id'] . '</td>
-                    <td>' . $data['component_id'] . '</td>
+                    <td>' . $data['customer_name'] . '</td>
+                    <td style="mso-number-format:\@;">' . $data['item_id'] . '</td>
+                    <td style="mso-number-format:\@;">' . $data['component_id'] . '</td>
+                    <td>' . $data['item_name'] . '</td>
                     <td>' . $data['qty'] . '</td>
-                    <td>' . $data['maker'] . '</td>';
+                    <td>' . $data['rout_id'] . '</td>
+                    <td>' . $data['maker'] . '</td>
+                    <td>' . $data['document_no'] . '</td>
+                    <td>' . $data['revision'] . '</td>
+                    <td>' . $data['created_date'] . '</td>
+                    <td>' . $data['created_by'] . '</td>';
             $no++;
         }
         $html .= '</table></body></html>';
