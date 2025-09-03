@@ -11,6 +11,7 @@ class Bom extends CI_Controller
         $this->load->library('form_validation');
         $this->load->library('session');
         $this->load->model('api');
+        $this->pg = $this->load->database('pg', TRUE);
         //VALIDASI FORM
         $this->form_validation->set_rules('item_id', 'Product No.', 'required|min_length[1]|max_length[20]|is_unique[mst_bom.item_id]');
         $this->form_validation->set_rules('component_id', 'Part No.', 'required|min_length[1]|max_length[20]|is_unique[mst_bom.component_id]');
@@ -284,6 +285,8 @@ class Bom extends CI_Controller
             </tr>';
         $no = 1;
         foreach ($records as $data) {
+            $query = $this->pg->query("SELECT bom_user, bom_date FROM mst_bom WHERE bom_par_item = '" . $data['item_id'] . "' and bom_com_item = '" . $data['component_id'] . "' and bom_routid='" . $data['rout_id'] . "'");
+            $mrp = $query->result_array();
             $html .= '<tr>
                     <td>' . $no . '</td>
                     <td>' . $data['customer_name'] . '</td>
@@ -295,8 +298,8 @@ class Bom extends CI_Controller
                     <td>' . $data['maker'] . '</td>
                     <td>' . $data['document_no'] . '</td>
                     <td>' . $data['revision'] . '</td>
-                    <td>' . $data['created_date'] . '</td>
-                    <td>' . $data['created_by'] . '</td>';
+                    <td>' . $mrp[0]['bom_date'] . '</td>
+                    <td>' . $mrp[0]['bom_user'] . '</td>';
             $no++;
         }
         $html .= '</table></body></html>';
