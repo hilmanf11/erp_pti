@@ -87,7 +87,7 @@ class Delivery_schedules extends CI_Controller
             // $this->db->like('a.product_family_name', $filter_product_family);
             // $this->db->like('a.item_id', $filter_product_no);
             // $this->db->where('b.purchase_request >', 0);
-            // $this->db->where('c.type', 'IMPORT');
+            $this->db->where('c.type', 'IMPORT');
             $this->db->group_by('a.item_id');
             $this->db->group_by('a.supplier_id');
             $this->db->order_by('a.item_id', 'asc');
@@ -101,124 +101,126 @@ class Delivery_schedules extends CI_Controller
                 $filter_year = $generate['p_year'];
                 $filter_revision = $generate['revision'];
 
-                $mrp = $this->db->query("SELECT balance_1, balance_2, balance_3, balance_4, balance_5, balance_6 
-                    FROM generate_mrp_finals 
-                    WHERE p_month = '$filter_month' 
-                    AND p_year = '$filter_year'
-                    AND revision = '$filter_revision'
-                    AND part_no = '$item_id'");
-                $data = $mrp->row();
-                
-                if(@$data->balance_1 > 0){
-                    $roundup_1 = 0;
-                    $eta_1 = NULL;
-                    $etd_1 = NULL;
-                }else{
-                    $eta_1 = date("Y-m-d", strtotime("+17 days", strtotime($filter_year."-".$filter_month."-01")));
-                    $etd_1 = date("Y-m-d", strtotime("+3 days", strtotime($filter_year."-".$filter_month."-01")));
-                    $roundup_1 = (ceil(abs(@$data->balance_1) / $generate['mpq']) * $generate['mpq']);
-                    if($roundup_1 > $generate['qty']){
-                        $roundup_1 = $generate['qty'];
+                // if($generate['mpq'] > 0){
+                    $mrp = $this->db->query("SELECT balance_1, balance_2, balance_3, balance_4, balance_5, balance_6 
+                        FROM generate_mrp_finals 
+                        WHERE p_month = '$filter_month' 
+                        AND p_year = '$filter_year'
+                        AND revision = '$filter_revision'
+                        AND part_no = '$item_id'");
+                    $data = $mrp->row();
+                    
+                    if(@$data->balance_1 > 0){
+                        $roundup_1 = 0;
+                        $eta_1 = NULL;
+                        $etd_1 = NULL;
+                    }else{
+                        $eta_1 = date("Y-m-d", strtotime("+17 days", strtotime($filter_year."-".$filter_month."-01")));
+                        $etd_1 = date("Y-m-d", strtotime("+3 days", strtotime($filter_year."-".$filter_month."-01")));
+                        $roundup_1 = (ceil(abs(@$data->balance_1) / $generate['mpq']) * $generate['mpq']);
+                        if($roundup_1 > $generate['qty']){
+                            $roundup_1 = $generate['qty'];
+                        }
                     }
-                }
 
-                if(@$data->balance_2 > 0 || $roundup_1 >= $generate['qty']){
-                    $roundup_2 = 0;
-                    $eta_2 = NULL;
-                    $etd_2 = NULL;
-                }else{
-                    $eta_2 = date("Y-m-01",  strtotime("1 month", strtotime($filter_year."-".$filter_month."-01")));
-                    $etd_2 = date("Y-m-d", strtotime("-14 days", strtotime($eta_2)));
-                    $roundup_2 = (ceil(abs(@$data->balance_2) / $generate['mpq']) * $generate['mpq']);
-                    if(($roundup_1 + $roundup_2) > $generate['qty']){
-                        $roundup_2 = abs($roundup_1 - $generate['qty']);
+                    if(@$data->balance_2 > 0 || $roundup_1 >= $generate['qty']){
+                        $roundup_2 = 0;
+                        $eta_2 = NULL;
+                        $etd_2 = NULL;
+                    }else{
+                        $eta_2 = date("Y-m-01",  strtotime("1 month", strtotime($filter_year."-".$filter_month."-01")));
+                        $etd_2 = date("Y-m-d", strtotime("-21 days", strtotime($eta_2)));
+                        $roundup_2 = (ceil(abs(@$data->balance_2) / $generate['mpq']) * $generate['mpq']);
+                        if(($roundup_1 + $roundup_2) > $generate['qty']){
+                            $roundup_2 = abs($roundup_1 - $generate['qty']);
+                        }
                     }
-                }
 
-                if(@$data->balance_3 > 0 || ($roundup_1 + $roundup_2) >= $generate['qty']){
-                    $roundup_3 = 0;
-                    $eta_3 = NULL;
-                    $etd_3 = NULL;
-                }else{
-                    $eta_3 = date("Y-m-01", strtotime("2 month", strtotime($filter_year."-".$filter_month."-01")));
-                    $etd_3 = date("Y-m-d", strtotime("-14 day", strtotime($eta_3)));
-                    $roundup_3 = (ceil(abs(@$data->balance_3) / $generate['mpq']) * $generate['mpq']);
-                    if(($roundup_1 + $roundup_2 + $roundup_3) > $generate['qty']){
-                        $roundup_3 = abs($roundup_1 + $roundup_2 - $generate['qty']);
+                    if(@$data->balance_3 > 0 || ($roundup_1 + $roundup_2) >= $generate['qty']){
+                        $roundup_3 = 0;
+                        $eta_3 = NULL;
+                        $etd_3 = NULL;
+                    }else{
+                        $eta_3 = date("Y-m-01", strtotime("2 month", strtotime($filter_year."-".$filter_month."-01")));
+                        $etd_3 = date("Y-m-d", strtotime("-21 day", strtotime($eta_3)));
+                        $roundup_3 = (ceil(abs(@$data->balance_3) / $generate['mpq']) * $generate['mpq']);
+                        if(($roundup_1 + $roundup_2 + $roundup_3) > $generate['qty']){
+                            $roundup_3 = abs($roundup_1 + $roundup_2 - $generate['qty']);
+                        }
                     }
-                }
 
-                if(@$data->balance_4 > 0 || ($roundup_1 + $roundup_2 + $roundup_3) >= $generate['qty']){
-                    $roundup_4 = 0;
-                    $eta_4 = NULL;
-                    $etd_4 = NULL;
-                }else{
-                    $eta_4 = date("Y-m-01",  strtotime("3 month", strtotime($filter_year."-".$filter_month."-01")));
-                    $etd_4 = date("Y-m-d", strtotime("-14 days", strtotime($eta_4)));
-                    $roundup_4 = (ceil(abs(@$data->balance_4) / $generate['mpq']) * $generate['mpq']);
-                    if(($roundup_1 + $roundup_2 + $roundup_3 + $roundup_4) > $generate['qty']){
-                        $roundup_4 = abs($roundup_1 + $roundup_2 + $roundup_3 - $generate['qty']);
+                    if(@$data->balance_4 > 0 || ($roundup_1 + $roundup_2 + $roundup_3) >= $generate['qty']){
+                        $roundup_4 = 0;
+                        $eta_4 = NULL;
+                        $etd_4 = NULL;
+                    }else{
+                        $eta_4 = date("Y-m-01",  strtotime("3 month", strtotime($filter_year."-".$filter_month."-01")));
+                        $etd_4 = date("Y-m-d", strtotime("-21 days", strtotime($eta_4)));
+                        $roundup_4 = (ceil(abs(@$data->balance_4) / $generate['mpq']) * $generate['mpq']);
+                        if(($roundup_1 + $roundup_2 + $roundup_3 + $roundup_4) > $generate['qty']){
+                            $roundup_4 = abs($roundup_1 + $roundup_2 + $roundup_3 - $generate['qty']);
+                        }
                     }
-                }
 
-                if(@$data->balance_5 > 0 || ($roundup_1 + $roundup_2 + $roundup_3 + $roundup_4) >= $generate['qty']){
-                    $roundup_5 = 0;
-                    $eta_5 = NULL;
-                    $etd_5 = NULL;
-                }else{
-                    $eta_5 = date("Y-m-01",  strtotime("4 month", strtotime($filter_year."-".$filter_month."-01")));
-                    $etd_5 = date("Y-m-d", strtotime("-14 days", strtotime($eta_5)));
-                    $roundup_5 = (ceil(abs(@$data->balance_5) / $generate['mpq']) * $generate['mpq']);
-                    if(($roundup_1 + $roundup_2 + $roundup_3 + $roundup_4 + $roundup_5) > $generate['qty']){
-                        $roundup_5 = abs($roundup_1 + $roundup_2 + $roundup_3 + $roundup_4 - $generate['qty']);
+                    if(@$data->balance_5 > 0 || ($roundup_1 + $roundup_2 + $roundup_3 + $roundup_4) >= $generate['qty']){
+                        $roundup_5 = 0;
+                        $eta_5 = NULL;
+                        $etd_5 = NULL;
+                    }else{
+                        $eta_5 = date("Y-m-01",  strtotime("4 month", strtotime($filter_year."-".$filter_month."-01")));
+                        $etd_5 = date("Y-m-d", strtotime("-21 days", strtotime($eta_5)));
+                        $roundup_5 = (ceil(abs(@$data->balance_5) / $generate['mpq']) * $generate['mpq']);
+                        if(($roundup_1 + $roundup_2 + $roundup_3 + $roundup_4 + $roundup_5) > $generate['qty']){
+                            $roundup_5 = abs($roundup_1 + $roundup_2 + $roundup_3 + $roundup_4 - $generate['qty']);
+                        }
                     }
-                }
 
-                if(@$data->balance_6 > 0 || ($roundup_1 + $roundup_2 + $roundup_3 + $roundup_4 + $roundup_5) >= $generate['qty']){
-                    $roundup_6 = 0;
-                    $eta_6 = NULL;
-                    $etd_6 = NULL;
-                }else{
-                    $eta_6 = date("Y-m-01",  strtotime("5 month", strtotime($filter_year."-".$filter_month."-01")));
-                    $etd_6 = date("Y-m-d", strtotime("-14 days", strtotime($eta_6)));
-                    $roundup_6 = (ceil(abs(@$data->balance_6) / $generate['mpq']) * $generate['mpq']);
-                    if(($roundup_1 + $roundup_2 + $roundup_3 + $roundup_4 + $roundup_5 + $roundup_6) > $generate['qty']){
-                        $roundup_6 = abs($roundup_1 + $roundup_2 + $roundup_3 + $roundup_4 + $roundup_5 - $generate['qty']);
+                    if(@$data->balance_6 > 0 || ($roundup_1 + $roundup_2 + $roundup_3 + $roundup_4 + $roundup_5) >= $generate['qty']){
+                        $roundup_6 = 0;
+                        $eta_6 = NULL;
+                        $etd_6 = NULL;
+                    }else{
+                        $eta_6 = date("Y-m-01",  strtotime("5 month", strtotime($filter_year."-".$filter_month."-01")));
+                        $etd_6 = date("Y-m-d", strtotime("-21 days", strtotime($eta_6)));
+                        $roundup_6 = (ceil(abs(@$data->balance_6) / $generate['mpq']) * $generate['mpq']);
+                        if(($roundup_1 + $roundup_2 + $roundup_3 + $roundup_4 + $roundup_5 + $roundup_6) > $generate['qty']){
+                            $roundup_6 = abs($roundup_1 + $roundup_2 + $roundup_3 + $roundup_4 + $roundup_5 - $generate['qty']);
+                        }
                     }
-                }
 
-                $arr[] = array(
-                    "p_month" => $filter_month,
-                    "p_year" => $filter_year,
-                    "revision" => $filter_revision,
-                    "po_no" => $generate['purchase_order_no'],
-                    "supplier_id" => $generate['supplier_id'],
-                    "part_no" => $generate['item_id'],
-                    "part_name" => $generate['item_name'],
-                    "product_family" => $generate['product_family_name'],
-                    "mpq" => $generate['mpq'],
-                    "moq" => $generate['moq'],
-                    "leadtime" => $generate['leadtime'],
-                    "qty" => $generate['qty'],
-                    "delivey_qty_1" => @$roundup_1,
-                    "delivey_qty_2" => @$roundup_2,
-                    "delivey_qty_3" => @$roundup_3,
-                    "delivey_qty_4" => @$roundup_4,
-                    "delivey_qty_5" => @$roundup_5,
-                    "delivey_qty_6" => @$roundup_6,
-                    "delivey_date_1" => @$eta_1,
-                    "delivey_date_2" => @$eta_2,
-                    "delivey_date_3" => @$eta_3,
-                    "delivey_date_4" => @$eta_4,
-                    "delivey_date_5" => @$eta_5,
-                    "delivey_date_6" => @$eta_6,
-                    "etd_1" => @$etd_1,
-                    "etd_2" => @$etd_2,
-                    "etd_3" => @$etd_3,
-                    "etd_4" => @$etd_4,
-                    "etd_5" => @$etd_5,
-                    "etd_6" => @$etd_6,
-                );
+                    $arr[] = array(
+                        "p_month" => $filter_month,
+                        "p_year" => $filter_year,
+                        "revision" => $filter_revision,
+                        "po_no" => $generate['purchase_order_no'],
+                        "supplier_id" => $generate['supplier_id'],
+                        "part_no" => $generate['item_id'],
+                        "part_name" => $generate['item_name'],
+                        "product_family" => $generate['product_family_name'],
+                        "mpq" => $generate['mpq'],
+                        "moq" => $generate['moq'],
+                        "leadtime" => $generate['leadtime'],
+                        "qty" => $generate['qty'],
+                        "delivey_qty_1" => @$roundup_1,
+                        "delivey_qty_2" => @$roundup_2,
+                        "delivey_qty_3" => @$roundup_3,
+                        "delivey_qty_4" => @$roundup_4,
+                        "delivey_qty_5" => @$roundup_5,
+                        "delivey_qty_6" => @$roundup_6,
+                        "delivey_date_1" => @$eta_1,
+                        "delivey_date_2" => @$eta_2,
+                        "delivey_date_3" => @$eta_3,
+                        "delivey_date_4" => @$eta_4,
+                        "delivey_date_5" => @$eta_5,
+                        "delivey_date_6" => @$eta_6,
+                        "etd_1" => @$etd_1,
+                        "etd_2" => @$etd_2,
+                        "etd_3" => @$etd_3,
+                        "etd_4" => @$etd_4,
+                        "etd_5" => @$etd_5,
+                        "etd_6" => @$etd_6,
+                    );
+                // }
             }
 
             $arr['total'] = @count($arr);

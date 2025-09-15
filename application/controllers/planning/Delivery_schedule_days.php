@@ -81,6 +81,7 @@ class Delivery_schedule_days extends CI_Controller
         $bulan = $this->input->post('month');
         $tahun = $this->input->post('year');
         $id = $this->input->post('id');
+        $mpq = $this->input->post('mpq');
 
         if ($bulan == "" or $tahun == "") {
             $bulan = date('m');
@@ -158,8 +159,8 @@ class Delivery_schedule_days extends CI_Controller
             // $checkbox = "<input hidden checked class='checked' type='checkbox' value='" . $d . "' name='days[]' style='float: left; width: 20px;'/>";
             $note = "<table style='100%'>
                         <tr>
-                            <td style='background:#bcd8ff;'><small>Plan</small><br><input class='plan' onchange='planTotal(this.value, $d)' type='number' style='width:80px;' id='plan_".$d."' name='plan_".$d."' value='" . @$data[0]['plan_'.$d] . "'/></td>
-                            <td style='background:#c4ffbc;'><small>Actual</small><br><input class='del' onchange='delTotal(this.value, $d)' type='number' style='width:80px;' id='del_".$d."' name='del_".$d."' value='" . @$data[0]['del_'.$d] . "'/></td>
+                            <td style='background:#bcd8ff;'><small>Plan</small><br><input class='plan' step='".$mpq."' onchange='planTotal(this.value, $d)' type='number' style='width:80px;' id='plan_".$d."' name='plan_".$d."' value='" . @$data[0]['plan_'.$d] . "'/></td>
+                            <td style='background:#c4ffbc;'><small>Actual</small><br><input class='del' step='".$mpq."' onchange='delTotal(this.value, $d)' type='number' style='width:80px;' id='del_".$d."' name='del_".$d."' value='" . @$data[0]['del_'.$d] . "'/></td>
                         </tr> 
                     </table>";
 
@@ -223,8 +224,8 @@ class Delivery_schedule_days extends CI_Controller
 
             $dataFinal = array();
             foreach ($records as $record) {
-                $firstDate = date('01 M', strtotime($filter_year . "-" . $filter_month . "-01"));
-                $endDate = date('t M', strtotime($filter_year . "-" . $filter_month . "-01"));
+                $firstDate = date('01 M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
+                $endDate = date('t M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
 
                 $item_id = $record['part_no'];
                 $balance = $record['qty_bf'];
@@ -241,13 +242,15 @@ class Delivery_schedule_days extends CI_Controller
                         "os_".$day => $balance,
                     ]);
 
-                    $firstDate = date("d M", strtotime("+1 day", strtotime($firstDate)));
+                    $firstDate = date("d M Y", strtotime("+1 day", strtotime($firstDate)));
                     $day++;
                 }
 
                 $dataFinal[] = array_merge($arr, [
                     "id" => $record['id'],
                     "part_no" => $item_id,
+                    "p_month" => $record['p_month'],
+                    "p_year" => $record['p_year'],
                     "part_name" => $record['part_name'],
                     "po_no" => $record['po_no'],
                     "product_family_name" => $record['product_family_name'],
@@ -278,6 +281,9 @@ class Delivery_schedule_days extends CI_Controller
         $filter_month = base64_decode($this->input->get('filter_month'));
         $filter_year = base64_decode($this->input->get('filter_year'));
         $filter_revision = base64_decode($this->input->get('filter_revision'));
+        $filter_supplier = base64_decode($this->input->get('filter_supplier'));
+        $filter_item_family = base64_decode($this->input->get('filter_item_family'));
+        $filter_item_id = base64_decode($this->input->get('filter_item_id'));
 
         $period_start = date("Y-m-01", strtotime($filter_year."-".$filter_month."-10"));
         $period_end = date("Y-m-t", strtotime($filter_year."-".$filter_month."-10"));
@@ -298,11 +304,21 @@ class Delivery_schedule_days extends CI_Controller
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
         $this->db->where('a.revision', $filter_revision);
+        if($filter_supplier != ""){
+            $this->db->where('a.supplier_id', $filter_supplier);
+        }
+        if($filter_item_family != ""){
+            $this->db->where('a.product_family', $filter_item_family);
+        }
+        if($filter_item_id != ""){
+            $this->db->where('a.item_id', $filter_item_id);
+        }
         $this->db->where('a.qty >', 0);
         $this->db->where('b.share_order >', 0);
         $this->db->where('c.type', 'LOCAL');
         $this->db->group_by('a.item_id');
         $this->db->group_by('a.supplier_id');
+        $this->db->group_by('a.purchase_order_no');
         // $this->db->limit(10);
         $records = $this->db->get()->result_array();
 
@@ -337,48 +353,97 @@ class Delivery_schedule_days extends CI_Controller
     }
 
     public function create(){
+        $this->dummy = $this->load->database('dummy', TRUE);
+
         if ($this->input->post()) {
             $post = $this->input->post('data');
 
             $item_id = $post['part_no'];
+            $po_no = $post['po_no'];
             $filter_month = $post['p_month'];
             $filter_year = $post['p_year'];
             $filter_revision = $post['revision'];
 
-            $query_mpp = $this->db->query("SELECT b.component_id, a.*, b.qty, SUM(a.date_1 * b.qty) as plan_1, SUM(a.date_2 * b.qty) as plan_2, SUM(a.date_3 * b.qty) as plan_3, SUM(a.date_4 * b.qty) as plan_4,
-                SUM(a.date_5 * b.qty) as plan_5, SUM(a.date_6 * b.qty) as plan_6, SUM(a.date_7 * b.qty) as plan_7, SUM(a.date_8 * b.qty) as plan_8, SUM(a.date_9 * b.qty) as plan_9, SUM(a.date_10 * b.qty) as plan_10, 
-                SUM(a.date_11 * b.qty) as plan_11, SUM(a.date_12 * b.qty) as plan_12, SUM(a.date_13 * b.qty) as plan_13, SUM(a.date_14 * b.qty) as plan_14, SUM(a.date_15 * b.qty) as plan_15, SUM(a.date_16 * b.qty) as plan_16,
-                SUM(a.date_17 * b.qty) as plan_17, SUM(a.date_18 * b.qty) as plan_18, SUM(a.date_19 * b.qty) as plan_19, SUM(a.date_20 * b.qty) as plan_20, SUM(a.date_21 * b.qty) as plan_21, SUM(a.date_22 * b.qty) as plan_22,
-                SUM(a.date_23 * b.qty) as plan_23, SUM(a.date_24 * b.qty) as plan_24, SUM(a.date_25 * b.qty) as plan_25, SUM(a.date_26 * b.qty) as plan_26, SUM(a.date_27 * b.qty) as plan_27, SUM(a.date_28 * b.qty) as plan_28,
-                SUM(a.date_29 * b.qty) as plan_29, SUM(a.date_30 * b.qty) as plan_30, SUM(a.date_31 * b.qty) as plan_31 FROM generate_mpp a
-                JOIN mst_bom b ON a.product_no = b.item_id
-                WHERE b.component_id = '$item_id' and a.p_month = '$filter_month' and a.p_year = '$filter_year' and a.revision = '$filter_revision'
-                GROUP BY b.component_id");
+            // $query_mpp = $this->db->query("SELECT b.component_id, a.*, b.qty, SUM(a.date_1 * b.qty) as plan_1, SUM(a.date_2 * b.qty) as plan_2, SUM(a.date_3 * b.qty) as plan_3, SUM(a.date_4 * b.qty) as plan_4,
+            //     SUM(a.date_5 * b.qty) as plan_5, SUM(a.date_6 * b.qty) as plan_6, SUM(a.date_7 * b.qty) as plan_7, SUM(a.date_8 * b.qty) as plan_8, SUM(a.date_9 * b.qty) as plan_9, SUM(a.date_10 * b.qty) as plan_10, 
+            //     SUM(a.date_11 * b.qty) as plan_11, SUM(a.date_12 * b.qty) as plan_12, SUM(a.date_13 * b.qty) as plan_13, SUM(a.date_14 * b.qty) as plan_14, SUM(a.date_15 * b.qty) as plan_15, SUM(a.date_16 * b.qty) as plan_16,
+            //     SUM(a.date_17 * b.qty) as plan_17, SUM(a.date_18 * b.qty) as plan_18, SUM(a.date_19 * b.qty) as plan_19, SUM(a.date_20 * b.qty) as plan_20, SUM(a.date_21 * b.qty) as plan_21, SUM(a.date_22 * b.qty) as plan_22,
+            //     SUM(a.date_23 * b.qty) as plan_23, SUM(a.date_24 * b.qty) as plan_24, SUM(a.date_25 * b.qty) as plan_25, SUM(a.date_26 * b.qty) as plan_26, SUM(a.date_27 * b.qty) as plan_27, SUM(a.date_28 * b.qty) as plan_28,
+            //     SUM(a.date_29 * b.qty) as plan_29, SUM(a.date_30 * b.qty) as plan_30, SUM(a.date_31 * b.qty) as plan_31 FROM generate_mpp a
+            //     JOIN mst_bom b ON a.product_no = b.item_id
+            //     WHERE b.component_id = '$item_id' and a.p_month = '$filter_month' and a.p_year = '$filter_year' and a.revision = '$filter_revision'
+            //     GROUP BY b.component_id");
+            // $mpp = $query_mpp->result_array();
+
+            $query_mpp = $this->db->query("SELECT * FROM generate_item_calculation WHERE product_no = '$item_id' and p_month = '$filter_month' and p_year = '$filter_year' and revision = '$filter_revision'");
             $mpp = $query_mpp->result_array();
+
+            $supp = $this->api->read("supplier_items", [], ["item_id" => $post['part_no'], "supplier_id" => $post['supplier_id']]);
+
+            $today = date("Y-m-d");
+            $ith = $this->dummy->query("SELECT sum(ith_qty) as qty from ith where ith_item_id = '$item_id' and ith_date <= '$today'");
+            $ithRow = $ith->row();
 
             $day = 1;
             $arrDay = array();
-            $firstDate = date('01 M', strtotime($filter_year . "-" . $filter_month . "-01"));
-            $endDate = date('t M', strtotime($filter_year . "-" . $filter_month . "-01"));
+            $firstDate = date('01 M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
+            $endDate = date('t M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
             
+            $plan_qty = ((@$post['qty'] >= 0) ? round(@$post['qty']) : 0);
+            $balance = (@$ithRow->qty - @$mpp[0]['os_supply'] - @$mpp[0]['os_wo']);
             while (strtotime($firstDate) <= strtotime($endDate)) {
-                $plan_qty = ((@$mpp[0]['plan_'.$day] >= 0) ? round(@$mpp[0]['plan_'.$day]) : 0);
-                // if($plan_qty > 0){
-                //     $plan_qty_round = (ceil($plan_qty / $record['mpq']) * $record['mpq']);
-                // }else{
-                //     $plan_qty_round = 0;
-                // }
+                $plan_qtys = ((@$mpp[0]['date_'.$day] >= 0) ? round(@$mpp[0]['date_'.$day]) : 0);
+                
+                if($plan_qty > @$supp->mpq){
+                    if($plan_qtys > @$supp->mpq){
+                        // $plan_qty_round = (ceil($plan_qtys / @$supp->mpq) * @$supp->mpq);
+                        $plan_qty_round = $plan_qtys;
+                    }else{
+                        $plan_qty_round = @$supp->mpq;
+                    }
+                }else{
+                    $plan_qty_round = $plan_qtys;
+                }
 
-                $arrDay["plan_".$day] = $plan_qty;
+                $working_date = date("Y-m-d", strtotime($firstDate));
 
-                $firstDate = date("d M", strtotime("+1 day", strtotime($firstDate)));
+                //ETA
+                $delivery_schedule = $this->dummy->query("SELECT SUM(por_receiveqty) as total from por where item_id = '$item_id' and por_docno not like '%PEMUTIHAN%' and por_date = '$working_date'");
+                $totalRow = $delivery_schedule->row();
+                $etaqty = empty(@$totalRow->total) ? 0 : @$totalRow->total;
+
+                $this->db->select('remarks');
+                $this->db->from('working_calendar');
+                $this->db->where('working_date', $working_date);
+                $holiday = $this->db->get()->row();
+
+                $balance += round($etaqty - $plan_qty_round);
+
+                if($balance <= 0){
+                    if (date('w', strtotime($firstDate)) !== '0') {
+                        if (@$holiday->remarks != null or @$holiday->remarks != "") {
+                            $arrDay["plan_".$day] = 0;
+                            $plan_qty -= 0;
+                        }else{
+                            $arrDay["plan_".$day] = $plan_qty_round;
+                            $plan_qty -= $plan_qty_round;
+                        }
+                    }else{
+                        $arrDay["plan_".$day] = 0;
+                        $plan_qty -= 0;
+                    }
+                }
+
+                $firstDate = date("d M Y", strtotime("+1 day", strtotime($firstDate)));
                 $day++;
             }
 
-            $delivery_schedule_days = $this->api->read("delivery_schedule_days", [], ["p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision, "part_no" => $item_id]);
+            $delivery_schedule_days = $this->api->read("delivery_schedule_days", [], ["p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision, "part_no" => $item_id, 'po_no' => $po_no]);
 
             if(!empty($delivery_schedule_days)){
-                echo json_encode(array("title" => "Error", "message" => $post['part_no'] . " | Duplicate", "theme" => "error"));
+                $this->db->update('delivery_schedule_days', array_merge($post, $arrDay), ["p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision, "part_no" => $item_id, 'po_no' => $po_no]);
+                echo json_encode(array("title" => "Good Job", "message" => $post['part_no'] . " | Data Update Successfully", "theme" => "success"));
+                // echo json_encode(array("title" => "Error", "message" => $post['part_no'] . " | Duplicate", "theme" => "error"));
             }else{
                 if ($this->api->create('delivery_schedule_days', array_merge($post, $arrDay), "JUTA", "JUTA")) {
                     echo json_encode(array("title" => "Good Job", "message" => $post['part_no'] . " | Data Saved Successfully", "theme" => "success"));
@@ -535,8 +600,8 @@ class Delivery_schedule_days extends CI_Controller
         $filter_supplier = base64_decode($this->input->get('filter_supplier'));
         $filter_item_id = base64_decode($this->input->get('filter_item_id'));
 
-        $firstDate = date('01 M', strtotime($filter_year . "-" . $filter_month . "-01"));
-        $endDate = date('t M', strtotime($filter_year . "-" . $filter_month . "-01"));
+        $firstDate = date('01 M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
+        $endDate = date('t M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
         $monthBf = date('F', strtotime("-1 month", strtotime($filter_year . "-" . $filter_month . "-01")));
 
         $this->db->select("a.*, d.mpq, d.moq, d.leadtime, c.name as supplier_name, b.name as product_family_name");
@@ -546,14 +611,19 @@ class Delivery_schedule_days extends CI_Controller
         $this->db->join('supplier_items d', 'a.supplier_id = d.supplier_id and a.part_no = d.item_id', 'left');
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
-        $this->db->where('a.revision', $filter_revision);
+        if($filter_revision != ""){
+            $this->db->where('a.revision', $filter_revision);
+        }
         if($filter_item_family != ""){
             $this->db->where('a.product_family', $filter_item_family);
         }
         if($filter_supplier != ""){
             $this->db->where('a.supplier_id', $filter_supplier);
         }
-        $this->db->like('a.part_no', $filter_item_id);
+        if($filter_item_id != ""){
+            $this->db->where('a.part_no', $filter_item_id);
+        }
+        $this->db->order_by('b.name', 'asc');
         $this->db->order_by('c.name', 'asc');
         $this->db->order_by('a.part_no', 'asc');
         $records = $this->db->get()->result_array();
@@ -599,7 +669,7 @@ class Delivery_schedule_days extends CI_Controller
                       <th width="50" style="text-align:center; ' . $styles . '">OS</th>';
 
             $colspan++;
-            $firstDate = date("d M", strtotime("+1 day", strtotime($firstDate)));
+            $firstDate = date("d M Y", strtotime("+1 day", strtotime($firstDate)));
         }
 
         //Setting Header
@@ -608,12 +678,14 @@ class Delivery_schedule_days extends CI_Controller
 
         foreach ($records as $record) {
             $day = 1;
-            $firstDate2 = date('01 M', strtotime($filter_year . "-" . $filter_month . "-01"));
-            $endDate2 = date('t M', strtotime($filter_year . "-" . $filter_month . "-01"));
+            $firstDate2 = date('01 M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
+            $endDate2 = date('t M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
             $item_id = $record['part_no'];
 
             $content .= "<tr>
                             <td>" . $no . "</td>
+                            <td>" . $record['p_year'] . $record['p_month'] . "</td>
+                            <td>" . $record['revision'] . "</td>
                             <td style='mso-number-format:\@;'>" . $record['part_no'] . "</td>
                             <td>" . $record['part_name'] . "</td>
                             <td>" . $record['po_no'] . "</td>
@@ -657,7 +729,7 @@ class Delivery_schedule_days extends CI_Controller
                             <td style='text-align:right; ".$styles2."'>".round(@$actual_qty)."</td>
                             <td style='text-align:right; ".$styles2."'>".round($balance, 2)."</td>";
 
-                $firstDate2 = date("d M", strtotime("+1 day", strtotime($firstDate2)));
+                $firstDate2 = date("d M Y", strtotime("+1 day", strtotime($firstDate2)));
                 $day++;
             }
 
@@ -690,7 +762,9 @@ class Delivery_schedule_days extends CI_Controller
 
         <table id="customers" border="1" style="width:100%;">
             <tr>
-                <th style="text-align:center;" rowspan="3" width="20">NO</th>
+                <th style="text-align:center;" rowspan="3" width="20">No</th>
+                <th style="text-align:center;" rowspan="3" width="50">Period</th>
+                <th style="text-align:center;" rowspan="3" width="20">Revision</th>
                 <th style="text-align:center;" width="150" rowspan="3">Part No</th>
                 <th style="text-align:center;" width="80" rowspan="3">Part Name</th>
                 <th style="text-align:center;" width="80" rowspan="3">PO No</th>

@@ -8,10 +8,12 @@
     </thead>
     <thead>
         <tr>
+            <!-- <th rowspan="2" data-options="field:'p_month',width:80,halign:'center'">Year</th> -->
+            <!-- <th rowspan="2" data-options="field:'p_year',width:80,halign:'center'">Month</th> -->
             <th rowspan="2" data-options="field:'po_no',width:180,halign:'center'">PO No</th>
             <th rowspan="2" data-options="field:'product_family_name',width:120,halign:'center'">Product Family</th>
             <th rowspan="2" data-options="field:'supplier_name',width:200,halign:'center'">Supplier</th>
-            <th rowspan="2"data-options="field:'moq',width:80,halign:'center',align:'right', formatter:numberformat">MPQ</th>
+            <th rowspan="2"data-options="field:'mpq',width:80,halign:'center',align:'right', formatter:numberformat">MPQ</th>
             <th rowspan="2"data-options="field:'moq',width:80,halign:'center',align:'right', formatter:numberformat">MOQ</th>
             <th rowspan="2"data-options="field:'leadtime',width:80,halign:'center',align:'right', formatter:numberformat">Leadtime</th>
             <th rowspan="2"data-options="field:'qty',width:80,halign:'center',align:'right', formatter:numberformat">Qty PO</th>
@@ -259,6 +261,9 @@
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").textbox('getValue');
         var filter_revision = $("#filter_revision").combobox('getValue');
+        var filter_supplier = $("#filter_supplier").combobox('getValue');
+        var filter_item_family = $("#filter_item_family").combobox('getValue');
+        var filter_item_id = $("#filter_item_id").combogrid('getValue');
 
         if (filter_month == "" || filter_year == "" || filter_revision == "") {
             toastr.warning("Please select filter month, year and revision", "Information");
@@ -280,7 +285,10 @@
                         url: "<?= base_url('planning/delivery_schedule_days/getdata') ?>",
                         data: "filter_month=" + window.btoa(filter_month) +
                             "&filter_year=" + window.btoa(filter_year) +
-                            "&filter_revision=" + window.btoa(filter_revision),
+                            "&filter_revision=" + window.btoa(filter_revision) +
+                            "&filter_supplier=" + window.btoa(filter_supplier) +
+                            "&filter_item_family=" + window.btoa(filter_item_family) +
+                            "&filter_item_id=" + window.btoa(filter_item_id),
                         dataType: "json",
                         success: function(rows) {
                             Swal.close();
@@ -368,7 +376,7 @@
             $.ajax({
                 type: "post",
                 url: "<?= base_url('planning/delivery_schedule_days/calendars') ?>",
-                data: "p_month=" + row.p_month + "&p_year=" + row.p_year + "&id=" + row.id,
+                data: "month=" + row.p_month + "&year=" + row.p_year + "&id=" + row.id + "&mpq=" + row.mpq,
                 dataType: "html",
                 success: function(response) {
                     $("#calendar").html(response);
@@ -506,8 +514,8 @@
             "&filter_item_family=" + window.btoa(filter_item_family) +
             "&filter_item_id=" + window.btoa(filter_item_id);
 
-        if (filter_month == "" || filter_year == "" || filter_revision == "" || filter_item_family == "" && filter_supplier == "") {
-            toastr.warning("Please select Period, Revision Supplier or Product Family!", "Information");
+        if (filter_month == "" || filter_year == "") {
+            toastr.warning("Please select Period", "Information");
         } else {
             $.messager.alert('Info','Please Wait to Export to Excel');
             window.location.assign('<?= base_url('planning/delivery_schedule_days/print/excel') ?>' + url);
