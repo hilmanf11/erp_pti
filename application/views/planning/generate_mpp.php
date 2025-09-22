@@ -46,7 +46,7 @@
                     $this->db->where('working_date', $working_date);
                     $holiday = $this->db->get()->row();
 
-                    if (date('w', strtotime($firstDate)) !== '0' && date('w', strtotime($firstDate)) !== '6') {
+                    if (date('w', strtotime($firstDate)) !== '0') { // Sunday
                         if (@$holiday->remarks != null or @$holiday->remarks != "") {
                             if($alfabet == "z"){
                                 $alfabets = "A";
@@ -84,14 +84,14 @@
 
                             $wpp = "WP ".$wp.$alfabets;
                             $alfabet = $alfabets;
-                            $firstDate_check = date("d M", strtotime("+1 day", strtotime($firstDate)));
+                            $firstDate_check = date("d M Y", strtotime("+1 day", strtotime($firstDate)));
                             $working_date_check = date('Y-m-d', strtotime($firstDate_check));
                             $this->db->select('remarks');
                             $this->db->from('working_calendar');
                             $this->db->where('working_date', $working_date_check);
                             $holiday_check = $this->db->get()->row();
 
-                            if (date('w', strtotime($firstDate_check)) !== '0' && date('w', strtotime($firstDate_check)) !== '6') {
+                            if (date('w', strtotime($firstDate_check)) !== '0') {
                                 if (@$holiday_check->remarks == null or @$holiday_check->remarks == "") {
                                     $wp++;
                                 }
@@ -103,14 +103,14 @@
 
                             $wpp = "WP ".$wp;
                             $alfabet = "z";
-                            $firstDate_check = date("d M", strtotime("+1 day", strtotime($firstDate)));
+                            $firstDate_check = date("d M Y", strtotime("+1 day", strtotime($firstDate)));
                             $working_date_check = date('Y-m-d', strtotime($firstDate_check));
                             $this->db->select('remarks');
                             $this->db->from('working_calendar');
                             $this->db->where('working_date', $working_date_check);
                             $holiday_check = $this->db->get()->row();
 
-                            if (date('w', strtotime($firstDate_check)) !== '0' && date('w', strtotime($firstDate_check)) !== '6') {
+                            if (date('w', strtotime($firstDate_check)) !== '0') {
                                 if (@$holiday_check->remarks == null or @$holiday_check->remarks == "") {
                                     $wp++;
                                 }
@@ -153,14 +153,14 @@
 
                         $wpp = "WP ".$wp.$alfabets;
                         $alfabet = $alfabets;
-                        $firstDate_check = date("d M", strtotime("+1 day", strtotime($firstDate)));
+                        $firstDate_check = date("d M Y", strtotime("+1 day", strtotime($firstDate)));
                         $working_date_check = date('Y-m-d', strtotime($firstDate_check));
                         $this->db->select('remarks');
                         $this->db->from('working_calendar');
                         $this->db->where('working_date', $working_date_check);
                         $holiday_check = $this->db->get()->row();
 
-                        if (date('w', strtotime($firstDate_check)) !== '0' && date('w', strtotime($firstDate_check)) !== '6') {
+                        if (date('w', strtotime($firstDate_check)) !== '0') {
                             if (@$holiday_check->remarks == null or @$holiday_check->remarks == "") {
                                 $wp++;
                             }
@@ -358,37 +358,37 @@
                 $('#frm_insert').form('load', row);
                 url_update = '<?= base_url('planning/generate_mpp/update'); ?>?id=' + btoa(row.id);
 
-                if(row.wds_1 == "F"){ $("#date_1").textbox('disable'); }
-                if(row.wds_2 == "F"){ $("#date_2").textbox('disable'); }
-                if(row.wds_3 == "F"){ $("#date_3").textbox('disable'); }
-                if(row.wds_4 == "F"){ $("#date_4").textbox('disable'); }
-                if(row.wds_5 == "F"){ $("#date_5").textbox('disable'); }
-                if(row.wds_6 == "F"){ $("#date_6").textbox('disable'); }
-                if(row.wds_7 == "F"){ $("#date_7").textbox('disable'); }
-                if(row.wds_8 == "F"){ $("#date_8").textbox('disable'); }
-                if(row.wds_9 == "F"){ $("#date_9").textbox('disable'); }
-                if(row.wds_10 == "F"){ $("#date_10").textbox('disable'); }
-                if(row.wds_11 == "F"){ $("#date_11").textbox('disable'); }
-                if(row.wds_12 == "F"){ $("#date_12").textbox('disable'); }
-                if(row.wds_13 == "F"){ $("#date_13").textbox('disable'); }
-                if(row.wds_14 == "F"){ $("#date_14").textbox('disable'); }
-                if(row.wds_15 == "F"){ $("#date_15").textbox('disable'); }
-                if(row.wds_16 == "F"){ $("#date_16").textbox('disable'); }
-                if(row.wds_17 == "F"){ $("#date_17").textbox('disable'); }
-                if(row.wds_18 == "F"){ $("#date_18").textbox('disable'); }
-                if(row.wds_19 == "F"){ $("#date_19").textbox('disable'); }
-                if(row.wds_20 == "F"){ $("#date_20").textbox('disable'); }
-                if(row.wds_21 == "F"){ $("#date_21").textbox('disable'); }
-                if(row.wds_22 == "F"){ $("#date_22").textbox('disable'); }
-                if(row.wds_23 == "F"){ $("#date_23").textbox('disable'); }
-                if(row.wds_24 == "F"){ $("#date_24").textbox('disable'); }
-                if(row.wds_25 == "F"){ $("#date_25").textbox('disable'); }
-                if(row.wds_26 == "F"){ $("#date_26").textbox('disable'); }
-                if(row.wds_27 == "F"){ $("#date_27").textbox('disable'); }
-                if(row.wds_28 == "F"){ $("#date_28").textbox('disable'); }
-                if(row.wds_29 == "F"){ $("#date_29").textbox('disable'); }
-                if(row.wds_30 == "F"){ $("#date_30").textbox('disable'); }
-                if(row.wds_31 == "F"){ $("#date_31").textbox('disable'); }
+                // if(row.wds_1 == "F"){ $("#date_1").textbox('disable'); }
+                // if(row.wds_2 == "F"){ $("#date_2").textbox('disable'); }
+                // if(row.wds_3 == "F"){ $("#date_3").textbox('disable'); }
+                // if(row.wds_4 == "F"){ $("#date_4").textbox('disable'); }
+                // if(row.wds_5 == "F"){ $("#date_5").textbox('disable'); }
+                // if(row.wds_6 == "F"){ $("#date_6").textbox('disable'); }
+                // if(row.wds_7 == "F"){ $("#date_7").textbox('disable'); }
+                // if(row.wds_8 == "F"){ $("#date_8").textbox('disable'); }
+                // if(row.wds_9 == "F"){ $("#date_9").textbox('disable'); }
+                // if(row.wds_10 == "F"){ $("#date_10").textbox('disable'); }
+                // if(row.wds_11 == "F"){ $("#date_11").textbox('disable'); }
+                // if(row.wds_12 == "F"){ $("#date_12").textbox('disable'); }
+                // if(row.wds_13 == "F"){ $("#date_13").textbox('disable'); }
+                // if(row.wds_14 == "F"){ $("#date_14").textbox('disable'); }
+                // if(row.wds_15 == "F"){ $("#date_15").textbox('disable'); }
+                // if(row.wds_16 == "F"){ $("#date_16").textbox('disable'); }
+                // if(row.wds_17 == "F"){ $("#date_17").textbox('disable'); }
+                // if(row.wds_18 == "F"){ $("#date_18").textbox('disable'); }
+                // if(row.wds_19 == "F"){ $("#date_19").textbox('disable'); }
+                // if(row.wds_20 == "F"){ $("#date_20").textbox('disable'); }
+                // if(row.wds_21 == "F"){ $("#date_21").textbox('disable'); }
+                // if(row.wds_22 == "F"){ $("#date_22").textbox('disable'); }
+                // if(row.wds_23 == "F"){ $("#date_23").textbox('disable'); }
+                // if(row.wds_24 == "F"){ $("#date_24").textbox('disable'); }
+                // if(row.wds_25 == "F"){ $("#date_25").textbox('disable'); }
+                // if(row.wds_26 == "F"){ $("#date_26").textbox('disable'); }
+                // if(row.wds_27 == "F"){ $("#date_27").textbox('disable'); }
+                // if(row.wds_28 == "F"){ $("#date_28").textbox('disable'); }
+                // if(row.wds_29 == "F"){ $("#date_29").textbox('disable'); }
+                // if(row.wds_30 == "F"){ $("#date_30").textbox('disable'); }
+                // if(row.wds_31 == "F"){ $("#date_31").textbox('disable'); }
             }else{
                 toastr.warning("Next Product No cannot Found");
             }
@@ -513,7 +513,7 @@
 
         if(filter_revision != ""){
             $.messager.prompt('Generate MPP', 'Please input Password Push Data', function(r){
-                if (r == "PUSHDATAMPP"){
+                if (r == "TESTINGMPP123"){
                     Swal.fire({
                         title: 'Please Wait for Push Data WIP',
                         showConfirmButton: false,
@@ -913,8 +913,8 @@
             "&filter_line_no=" + window.btoa(filter_line_no) +
             "&filter_product_no=" + window.btoa(filter_product_no);
 
-        if (filter_month == "" || filter_year == "" || filter_revision == "") {
-            toastr.warning("Please select Period!", "Information");
+        if (filter_month == "" || filter_year == "" || filter_revision == "" || filter_line_no == "") {
+            toastr.warning("Please select Period and Customer!", "Information");
         } else {
             window.location.assign(url);
         }
@@ -938,7 +938,7 @@
             "&filter_product_no=" + window.btoa(filter_product_no);
 
         if (filter_month == "" || filter_year == "" || filter_revision == "") {
-            toastr.warning("Please select Period!", "Information");
+            toastr.warning("Please select Period and Customer!", "Information");
         } else {
             window.location.assign('<?= base_url('planning/generate_mpp/print/excel') ?>' + url);
         }
@@ -978,17 +978,24 @@
         var date_25 = $("#date_25").textbox('getValue');
         var date_26 = $("#date_26").textbox('getValue');
         var date_27 = $("#date_27").textbox('getValue');
-        var date_28 = $("#date_28").textbox('getValue');
         
-        if(last_date == "29"){
+        if(last_date == "28"){
+            var date_28 = $("#date_28").textbox('getValue');
+            var date_29 = 0;
+            var date_30 = 0;
+            var date_31 = 0;
+        }else if(last_date == "29"){
+            var date_28 = $("#date_28").textbox('getValue');
             var date_29 = $("#date_29").textbox('getValue');
             var date_30 = 0;
             var date_31 = 0;
         }else if(last_date == "30"){
+            var date_28 = $("#date_28").textbox('getValue');
             var date_29 = $("#date_29").textbox('getValue');
             var date_30 = $("#date_30").textbox('getValue');
             var date_31 = 0;
         }else{
+            var date_28 = $("#date_28").textbox('getValue');
             var date_29 = $("#date_29").textbox('getValue');
             var date_30 = $("#date_30").textbox('getValue');
             var date_31 = $("#date_31").textbox('getValue');

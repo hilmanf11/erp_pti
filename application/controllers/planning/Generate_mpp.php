@@ -109,24 +109,25 @@ class Generate_mpp extends CI_Controller{
         $this->db->select('a.*, e.item_alias, e.capacity, e.lot, (a.date_1 + a.date_2 + a.date_3 + a.date_4 + a.date_5 + a.date_6 + a.date_7 + a.date_8 + a.date_9 + a.date_10 + a.date_11 + a.date_12 + a.date_13 + a.date_14 + a.date_15 + a.date_16 + a.date_17 + a.date_18 + a.date_19 + a.date_20 + a.date_21 + a.date_22 + a.date_23 + a.date_24 + a.date_25 + a.date_26 + a.date_27 + a.date_28 + a.date_29 + a.date_30 + a.date_31) as floating,  b.name as customer_name, d.prod_plan as mpsprod, f.circuit_no as cct');
         $this->db->from('generate_mpp a');
         $this->db->join('mst_customer b', 'a.customer_id = b.number');
-        $this->db->join('generate_mps c', "a.p_month = c.p_month and a.p_year = c.p_year and c.revision = '$filter_revision' and a.product_no = c.product_no");
-        $this->db->join("(SELECT * FROM generate_mps_detail ORDER BY ltpp_month2 ASC) d", "d.p_month = '$filter_month' and d.p_year = '$filter_year' and d.revision = '$filter_revision' and a.product_no = d.product_no");
+        $this->db->join('generate_mps c', "a.p_month = c.p_month AND a.p_year = c.p_year AND c.revision = '$filter_revision' AND a.product_no = c.product_no");
+        $this->db->join("(SELECT * FROM generate_mps_detail ORDER BY ltpp_month2 ASC) d", "d.p_month = '$filter_month' AND d.p_year = '$filter_year' AND d.revision = '$filter_revision' AND a.product_no = d.product_no");
         $this->db->join("mst_item e", "a.product_no = e.item_id");
         $this->db->join("wip_mst_wos_cct f", "e.item_id = f.mstwos_assyno", "left");
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
         $this->db->where('a.revision', $revisions->revision);
-        $this->db->like('a.line_no', $filter_line_no);
-        $this->db->like('a.product_no', $filter_product_no);
-        $this->db->group_by('a.product_no', 'ASC');
+        if($filter_line_no != ""){
+            $this->db->where('a.line_no', $filter_line_no);
+        }
+        if($filter_product_no != ""){
+            $this->db->where('a.product_no', $filter_product_no);
+        }
+        $this->db->group_by('a.product_no');
         $this->db->order_by('a.product_no', 'ASC');
-
         //Total Data
         $totalRows = $this->db->count_all_results('', false);
-
         //Limit 1 - 10
         $this->db->limit($rows, $offset);
-
         //Get Data Array
         $records = $this->db->get()->result_array();
 
@@ -303,8 +304,12 @@ class Generate_mpp extends CI_Controller{
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
         //$this->db->where('a.revision', $filter_revision);
-        $this->db->like('a.line_no', $filter_line_no);
-        $this->db->like('a.product_no', $filter_product_no);
+        if($filter_line_no != ""){
+            $this->db->where('a.line_no', $filter_line_no);
+        }
+        if($filter_product_no != ""){
+            $this->db->where('a.product_no', $filter_product_no);
+        }
         $this->db->order_by('a.line_no', 'ASC');
         $this->db->order_by('a.product_no', 'ASC');
         $totalRows = $this->db->count_all_results('', false);
@@ -336,7 +341,7 @@ class Generate_mpp extends CI_Controller{
                 $wp_weekend = 0;
                 $mpp = array();
 
-                $line_no = $record['line_no'];
+                $line_no = trim($record['line_no']);
                 $assy_no = $record['product_no'];
 
                 $array_assy[] = array(
@@ -347,7 +352,7 @@ class Generate_mpp extends CI_Controller{
                 $this->dummy->from("wip_trx_mpp");
                 $this->dummy->where("periode", $periode);
                 // $this->dummy->where("rev", $filter_revision);
-                $this->dummy->where("line", $record['line_no']);
+                $this->dummy->where("line", $line_no);
                 //$this->dummy->where("assy_no", $record['product_no']);
                 //$this->dummy->group_by('assy_no');
                 $wip_trx_mpp = $this->dummy->get()->row();
@@ -355,7 +360,7 @@ class Generate_mpp extends CI_Controller{
                 $this->dummy->select('pos_assy');
                 $this->dummy->from("wip_trx_mpp");
                 $this->dummy->where("periode", $periode);
-                $this->dummy->where("line", $record['line_no']);
+                $this->dummy->where("line", $line_no);
                 $this->dummy->where("assy_no", $record['product_no']);
                 // $this->dummy->order_by("pos_assy", "desc");
                 $wip_trx_mpp_pos_assy = $this->dummy->get()->result_array();
@@ -363,7 +368,7 @@ class Generate_mpp extends CI_Controller{
 
                 if($wip_trx_mpp){
                     if($last_line_no != $line_no){
-                        $serial_no = substr($wip_trx_mpp->serial, 9) + 1;
+                        $serial_no = (int) substr($wip_trx_mpp->serial, 9) + 1;
                     }
                 }else{
                     if($last_line_no != $line_no){
@@ -401,7 +406,13 @@ class Generate_mpp extends CI_Controller{
                     $this->db->where('working_date', $working_date);
                     $holiday = $this->db->get()->row();
 
-                    if (date('w', strtotime($firstDate)) !== '0' && date('w', strtotime($firstDate)) !== '6') {
+                    if(strlen($line_no) == 2){
+                        $serial_mpp = "1".$serial.$line_no.$serial_tgl.sprintf("%05s", $serial_no);
+                    }else{
+                        $serial_mpp = "1".$serial.$line_no.$serial_tgl."2".sprintf("%05s", $serial_no);
+                    }
+
+                    if (date('w', strtotime($firstDate)) !== '0') {
                         if (@$holiday->remarks != null or @$holiday->remarks != "") {
                             if($record["date_".$no] != "W" && $record["date_".$no] != "" && $record["date_".$no] != "0"){
                                 if($alfabet == "z"){
@@ -440,12 +451,12 @@ class Generate_mpp extends CI_Controller{
 
                                 $wpp = sprintf("%02s", $wp);
                                 $rows[] = array(
-                                    "serial_mpp" => "1".$serial.$record['line_no'].$serial_tgl."2".sprintf("%05s", $serial_no),
+                                    "serial_mpp" => $serial_mpp,
                                     "periode" => $filter_year . $filter_month,
                                     "assy_no" => $record['product_no'],
                                     "rev" => $filter_revision2,
                                     "color" => "2",
-                                    "line" => $record['line_no'],
+                                    "line" => $line_no,
                                     "qty1" => "0",
                                     "rev1" => "0",
                                     "qty2" => "0",
@@ -507,7 +518,7 @@ class Generate_mpp extends CI_Controller{
                                 $this->dummy->select('*');
                                 $this->dummy->from("wip_trx_mpp");
                                 $this->dummy->where("periode", $filter_year . $filter_month);
-                                $this->dummy->where("line", $record['line_no']);
+                                $this->dummy->where("line", $line_no);
                                 $this->dummy->where("assy_no", $record['product_no']);
                                 $this->dummy->where("wp", $wpp.$alfabets.$filter_month);
                                 $wip_trx_mpp = $this->dummy->get()->row();
@@ -521,14 +532,14 @@ class Generate_mpp extends CI_Controller{
                                     if($wip_trx_mpp){
                                         $this->dummy->delete('wip_trx_mpp', array(
                                             'periode' => $filter_year . $filter_month,
-                                            'line' => $record['line_no'],
+                                            'line' => $line_no,
                                             'assy_no' => $record['product_no'],
                                             'wp' => $wpp.$alfabets.$filter_month,
                                         ));
 
                                         $this->pg2->delete('wip_trx_mpp', array(
                                             'periode' => $filter_year . $filter_month,
-                                            'line' => $record['line_no'],
+                                            'line' => $line_no,
                                             'assy_no' => $record['product_no'],
                                             'wp' => $wpp.$alfabets.$filter_month,
                                         ));
@@ -542,12 +553,12 @@ class Generate_mpp extends CI_Controller{
                                 $wpp = sprintf("%02s", $wp);
 
                                 $rows[] = array(
-                                    "serial_mpp" => "1".$serial.$record['line_no'].$serial_tgl."2".sprintf("%05s", $serial_no),
+                                    "serial_mpp" => $serial_mpp,
                                     "periode" => $filter_year . $filter_month,
                                     "assy_no" => $record['product_no'],
                                     "rev" => $filter_revision2,
                                     "color" => "2",
-                                    "line" => $record['line_no'],
+                                    "line" => $line_no,
                                     "qty1" => "0",
                                     "rev1" => "0",
                                     "qty2" => "0",
@@ -576,7 +587,7 @@ class Generate_mpp extends CI_Controller{
                                 $this->dummy->select('*');
                                 $this->dummy->from("wip_trx_mpp");
                                 $this->dummy->where("periode", $filter_year . $filter_month);
-                                $this->dummy->where("line", $record['line_no']);
+                                $this->dummy->where("line", $line_no);
                                 $this->dummy->where("assy_no", $record['product_no']);
                                 $this->dummy->where("wp", $wpp."/".$filter_month);
                                 $wip_trx_mpp = $this->dummy->get()->row();
@@ -590,14 +601,14 @@ class Generate_mpp extends CI_Controller{
                                     if($wip_trx_mpp){
                                         $this->dummy->delete('wip_trx_mpp', array(
                                             'periode' => $filter_year . $filter_month,
-                                            'line' => $record['line_no'],
+                                            'line' => $line_no,
                                             'assy_no' => $record['product_no'],
                                             'wp' => $wpp."/".$filter_month,
                                         ));
 
                                         $this->pg2->delete('wip_trx_mpp', array(
                                             'periode' => $filter_year . $filter_month,
-                                            'line' => $record['line_no'],
+                                            'line' => $line_no,
                                             'assy_no' => $record['product_no'],
                                             'wp' => $wpp."/".$filter_month,
                                         ));
@@ -646,12 +657,12 @@ class Generate_mpp extends CI_Controller{
                             }
 
                             $rows[] = array(
-                                "serial_mpp" => "1".$serial.$record['line_no'].$serial_tgl."2".sprintf("%05s", $serial_no),
+                                "serial_mpp" => $serial_mpp,
                                 "periode" => $filter_year . $filter_month,
                                 "assy_no" => $record['product_no'],
                                 "rev" => $filter_revision2,
                                 "color" => "2",
-                                "line" => $record['line_no'],
+                                "line" => $line_no,
                                 "qty1" => "0",
                                 "rev1" => "0",
                                 "qty2" => "0",
@@ -713,7 +724,7 @@ class Generate_mpp extends CI_Controller{
                             $this->dummy->select('*');
                             $this->dummy->from("wip_trx_mpp");
                             $this->dummy->where("periode", $filter_year . $filter_month);
-                            $this->dummy->where("line", $record['line_no']);
+                            $this->dummy->where("line", $line_no);
                             $this->dummy->where("assy_no", $record['product_no']);
                             $this->dummy->where("wp", $wpp.$alfabets.$filter_month);
                             $wip_trx_mpp = $this->dummy->get()->row();
@@ -727,14 +738,14 @@ class Generate_mpp extends CI_Controller{
                                 if($wip_trx_mpp){
                                     $this->dummy->delete('wip_trx_mpp', array(
                                         'periode' => $filter_year . $filter_month,
-                                        'line' => $record['line_no'],
+                                        'line' => $line_no,
                                         'assy_no' => $record['product_no'],
                                         'wp' => $wpp.$alfabets.$filter_month,
                                     ));
 
                                     $this->pg2->delete('wip_trx_mpp', array(
                                         'periode' => $filter_year . $filter_month,
-                                        'line' => $record['line_no'],
+                                        'line' => $line_no,
                                         'assy_no' => $record['product_no'],
                                         'wp' => $wpp.$alfabets.$filter_month,
                                     ));
@@ -788,8 +799,12 @@ class Generate_mpp extends CI_Controller{
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
         $this->db->where('a.revision', $filter_revision);
-        $this->db->like('a.line_no', $filter_line_no);
-        $this->db->like('a.product_no', $filter_product_no);
+        if($filter_line_no != ""){
+            $this->db->where('a.line_no', $filter_line_no);
+        }
+        if($filter_product_no != ""){
+            $this->db->where('a.product_no', $filter_product_no);
+        }
         $this->db->group_by('a.line_no');
         $this->db->order_by('a.line_no', 'ASC');
         $totalRows = $this->db->count_all_results('', false);
@@ -872,8 +887,12 @@ class Generate_mpp extends CI_Controller{
         $this->db->where('p_month', $filter_month);
         $this->db->where('p_year', $filter_year);
         $this->db->where('revision', $filter_revision);
-        $this->db->like('line_no', $filter_line_no);
-        $this->db->like('product_no', $filter_product_no);
+        if($filter_line_no != ""){
+            $this->db->where('line_no', $filter_line_no);
+        }
+        if($filter_product_no != ""){
+            $this->db->where('product_no', $filter_product_no);
+        }
         $this->db->group_by('product_no');
         $this->db->order_by('product_no', 'ASC');
 
@@ -928,8 +947,12 @@ class Generate_mpp extends CI_Controller{
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
         $this->db->where('a.revision', $filter_revision);
-        $this->db->like('a.line_no', $filter_line_no);
-        $this->db->like('a.product_no', $filter_product_no);
+        if($filter_line_no != ""){
+            $this->db->where('a.line_no', $filter_line_no);
+        }
+        if($filter_product_no != ""){
+            $this->db->where('a.product_no', $filter_product_no);
+        }
         $this->db->group_by('a.product_no');
         $this->db->order_by('a.product_no', 'ASC');
         $totalRows = $this->db->count_all_results('', false);
@@ -1021,7 +1044,7 @@ class Generate_mpp extends CI_Controller{
                     $this->dummy->where("line", $post['line']);
                     $this->dummy->where("assy_no", $post['assy_no']);
                     $this->dummy->where("wp", $post['wp']);
-                    if ($this->dummy->update('wip_trx_mpp', ["qty" => $post['qty'], "rev" => $post['rev']])) {
+                    if ($this->dummy->update('wip_trx_mpp', ["qty" => $post['qty'], "wp_date" => $post['wp_date'], "rev" => $post['rev']])) {
                         echo json_encode(array("title" => "Good Job", "message" => $post['assy_no'] . " | Data Update Successfully", "theme" => "success"));
 
                         // $this->pg2->where("periode", $post['periode']);
@@ -1239,8 +1262,12 @@ class Generate_mpp extends CI_Controller{
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
         $this->db->where('a.revision', $filter_revision);
-        $this->db->like('a.line_no', $filter_line_no);
-        $this->db->like('a.product_no', $filter_product_no);
+        if($filter_line_no != ""){
+            $this->db->where('a.line_no', $filter_line_no);
+        }
+        if($filter_product_no != ""){
+            $this->db->where('a.product_no', $filter_product_no);
+        }
         $this->db->group_by('a.line_no');
         $records = $this->db->get()->result_array();
 
@@ -2945,12 +2972,12 @@ class Generate_mpp extends CI_Controller{
 
             $line_no = $record['line_no'];
 
-            $this->db->select("a.*, e.item_alias, e.lot, e.capacity, c.circuit_crimping, c.circuit_joint, c.circuit_semiautocutting as circuit_sac, c.circuit_stripping as circuit_str, c.circuit_hfsealer as circuit_hfs, c.circuit_jointtapping as circuit_jtp, c.circuit_weldingjoint as circuit_wjt, c.circuit_spotwelding as circuit_swl, c.circuit_solder as circuit_sld, c.circuit_jst as circuit_jst, c.circuit_twist as circuit_tws, c.circuit_hotstamp as circuit_hst, d.prod_plan as prodplan");
+            $this->db->select("a.*, e.item_alias, e.lot, e.capacity, c.circuit_no, c.circuit_crimping, c.circuit_joint, c.circuit_semiautocutting as circuit_sac, c.circuit_stripping as circuit_str, c.circuit_hfsealer as circuit_hfs, c.circuit_jointtapping as circuit_jtp, c.circuit_weldingjoint as circuit_wjt, c.circuit_spotwelding as circuit_swl, c.circuit_solder as circuit_sld, c.circuit_jst as circuit_jst, c.circuit_twist as circuit_tws, c.circuit_hotstamp as circuit_hst, d.prod_plan as prodplan");
 
             $this->db->from('generate_mpp a');
 
             $this->db->join('mst_item b', 'a.product_no = b.item_id');
-
+            
             $this->db->join('wip_mst_wos_cct c', 'a.product_no = c.mstwos_assyno', 'left');
 
             $this->db->join("(SELECT * FROM generate_mps_detail ORDER BY ltpp_month2 ASC) d", "d.p_month = '$filter_month' and d.p_year = '$filter_year' and d.revision = '$filter_revision2' and a.product_no = d.product_no");

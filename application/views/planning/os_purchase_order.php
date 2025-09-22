@@ -149,8 +149,9 @@
             "&trans_type=" + window.btoa(trans_type) +
             "&filter_from=" + window.btoa(filter_from) +
             "&filter_to=" + window.btoa(filter_to);
-        if (vendor_id == "" && item_id == "") {
-            toastr.info("Please Select Vendor or Item ID");
+
+        if (vendor_id == "" && item_id == "" && product_family == "") {
+            toastr.info("Please Select Vendor, Product Family or Item ID");
         } else {
             $('#dg').datagrid({
                 url: '<?= base_url('planning/os_purchase_order/datatables') ?>' + url,
@@ -244,6 +245,8 @@
     }
 
     function excel() {
+        var filter_from = $("#filter_from").datebox('getValue');
+        var filter_to = $("#filter_to").datebox('getValue');
         var vendor_id = $("#vendor_id").combobox('getValue');
         var product_family = $("#product_family").combobox('getValue');
         var item_id = $("#item_id").combogrid('getValue');
@@ -255,12 +258,11 @@
             "&item_id=" + window.btoa(item_id) +
             "&po_status=" + window.btoa(po_status) +
             "&po_no=" + window.btoa(po_no) +
-            "&trans_type=" + window.btoa(trans_type);
-        // if(vendor_id == "" && item_id == ""){
-        //     toastr.info("Please Select Vendor or Item ID");
-        // }else{
+            "&trans_type=" + window.btoa(trans_type) +
+            "&filter_from=" + window.btoa(filter_from) +
+            "&filter_to=" + window.btoa(filter_to);
+
         window.location.assign('<?= base_url('planning/os_purchase_order/print/excel') ?>' + url);
-        // }
     }
 
     function csv() {
@@ -344,6 +346,20 @@
                 });
             }
         });
+
+        $('#product_family').combobox({
+            url: '<?php echo base_url('planning/os_purchase_order/readProdfam'); ?>',
+            valueField: 'pfm_id',
+            textField: 'pfm_name',
+            prompt: 'Choose Product Family',
+            icons: [{
+                iconCls: 'icon-clear',
+                handler: function(e) {
+                    $(e.data.target).combobox('clear').combobox('textbox').focus();
+                }
+            }],
+        });
+
         $('#item_id').combogrid({
             url: '<?= base_url('planning/mst_item/reads'); ?>',
             panelWidth: 350,

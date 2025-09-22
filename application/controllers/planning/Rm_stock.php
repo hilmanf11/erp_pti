@@ -83,8 +83,8 @@ class Rm_stock extends CI_Controller
             $itemq = $this->dummy->query("SELECT b.item_id, b.item_name, c.pfm_name, coalesce(round(sum(a.ith_qty)),0) as stock
                 from ith a
                 JOIN mst_item b ON a.ith_item_id = b.item_id and b.stscode_id = '01'
-                JOIN r_prodfam c ON b.pfm_id = c.pfm_id and c.prod_group = 'Raw Material' and c.pfm_id != '05'
-                where a.ith_date <= '$cutoff'
+                JOIN r_prodfam c ON b.pfm_id = c.pfm_id and c.prod_group = 'Raw Material'
+                where a.ith_date <= '$cutoff' and (a.whs_id is null or a.whs_id = 'WHS001')
                 and a.ith_item_id LIKE '%$filter_product_no%'
                 and b.pfm_id LIKE '%$filter_product_family%'
                 group by b.item_id, b.item_name, c.pfm_name
@@ -255,7 +255,8 @@ class Rm_stock extends CI_Controller
 
                     echo json_encode(array("title" => "Good Job", "message" => "Product No " . $post['product_no'] . " Updated Successfully", "theme" => "success"));
                 } else {
-                    echo json_encode(array("title" => "Error", "message" => "Product No " . $post['product_no'] . " Not Generate", "theme" => "error"));
+                    $this->api->create('rm_stock', $postFinal, "RMS", "rm_stock");
+                    echo json_encode(array("title" => "Good Job", "message" => "Product No " . $post['product_no'] . " Created Successfully", "theme" => "success"));
                 }
             }else{
                 echo json_encode(array("title" => "Error", "message" => "Product No " . $post['product_no'] . " Saved Failed", "theme" => "error"));
@@ -319,8 +320,8 @@ class Rm_stock extends CI_Controller
         $itemq = $this->dummy->query("SELECT b.item_id, b.item_name, c.pfm_name, coalesce(round(sum(a.ith_qty)),0) as stock
             from ith a
             JOIN mst_item b ON a.ith_item_id = b.item_id and b.stscode_id = '01'
-            JOIN r_prodfam c ON b.pfm_id = c.pfm_id and c.prod_group = 'Raw Material' and c.pfm_id != '05'
-            where a.ith_date <= '$cutoff'
+            JOIN r_prodfam c ON b.pfm_id = c.pfm_id and c.prod_group = 'Raw Material'
+            where a.ith_date <= '$cutoff' and (a.whs_id is null or a.whs_id = 'WHS001')
             and a.ith_item_id LIKE '%$filter_product_no%'
             and b.pfm_id LIKE '%$filter_product_family%'
             group by b.item_id, b.item_name, c.pfm_name

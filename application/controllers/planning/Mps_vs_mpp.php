@@ -231,7 +231,8 @@ class Mps_vs_mpp extends CI_Controller
                 else 0 END)) * 100)) as persen_dev');
 
             $this->db->from('generate_mps_detail as a');
-            $this->db->join('mst_customer as b', "a.customer_id = b.number", 'left');
+            $this->db->join('mst_item d', 'a.product_no = d.item_id');
+            $this->db->join('mst_customer as b', "d.id_customer = b.number", 'left');
             $this->db->join('generate_mpp as c', "a.product_no = c.product_no and a.p_month = c.p_month and a.p_year = c.p_year", "left");
             $this->db->where('a.p_month', $filter_month);
             $this->db->where('a.p_year', $filter_year);
@@ -459,9 +460,9 @@ class Mps_vs_mpp extends CI_Controller
                 WHEN MAX(a.revision) = 1 THEN SUM(CASE WHEN a.revision = 0 THEN a.prod_plan else 0 END) + (SUM(CASE WHEN a.revision = 1 THEN a.prod_plan else 0 END) - SUM(CASE WHEN a.revision = 0 THEN a.prod_plan else 0 END))
                 WHEN MAX(a.revision) = 2 THEN SUM(CASE WHEN a.revision = 0 THEN a.prod_plan else 0 END) + (SUM(CASE WHEN a.revision = 2 THEN a.prod_plan else 0 END) - SUM(CASE WHEN a.revision = 0 THEN a.prod_plan else 0 END))
                 else 0 END)) * 100)) as persen_dev');
-
         $this->db->from('generate_mps_detail as a');
-        $this->db->join('mst_customer as b', "a.customer_id = b.number", 'left');
+        $this->db->join('mst_item d', 'a.product_no = d.item_id');
+        $this->db->join('mst_customer as b', "d.id_customer = b.number", 'left');
         $this->db->join('generate_mpp as c', "a.product_no = c.product_no and a.p_month = c.p_month and a.p_year = c.p_year", "left");
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
@@ -541,23 +542,46 @@ class Mps_vs_mpp extends CI_Controller
         $no = 1;
 
         foreach ($records as $data) {
+            if(floatval($data['rev_vs_1']) >= 20){
+                $style = "background:red;color:white;";
+            }elseif(floatval($data['rev_vs_1']) < 0){
+                $style = "background:orange;color:white;";
+            }else{
+                $style = "";
+            }
+
+            if(floatval($data['persen_mpp']) >= 20){
+                $style2 = "background:red;color:white;";
+            }elseif(floatval($data['persen_mpp']) < 0){
+                $style2 = "background:orange;color:white;";
+            }else{
+                $style2 = "";
+            }
+
+            if(floatval($data['persen_dev']) >= 20){
+                $style3 = "background:red;color:white;";
+            }elseif(floatval($data['persen_dev']) < 0){
+                $style3 = "background:orange;color:white;";
+            }else{
+                $style3 = "";
+            }
            
             $html .= '  <tr>
                             <td>' . $no . '</td>
                             <td>' . $data['customer'] . '</td>
-                            <td>' . $data['product_no'] . '</td>
-                            <td>' . $data['product_name'] . '</td>
+                            <td style="mso-number-format:\@;">' . $data['product_no'] . '</td>
+                            <td style="mso-number-format:\@;">' . $data['product_name'] . '</td>
                             <td style="text-align:right;">' . $data['revision_0'].'</td>
                             <td style="text-align:right;">' . $data['revision_1'].'</td>
                             <td style="text-align:right;">' . $data['revision_2'].'</td>
-                            <td style="text-align:right;">' . number_format(floatval($data['rev_vs_1']), 2) . "%" . '</td>
-                           <td style="text-align:right;">' . number_format(floatval($data['rev_vs_2']), 2) . "%" . '</td>
+                            <td style="text-align:right; '.$style.'">' . number_format(floatval($data['rev_vs_1']), 2) . "%" . '</td>
+                            <td style="text-align:right;">' . number_format(floatval($data['rev_vs_2']), 2) . "%" . '</td>
                             <td style="text-align:right;">' . $data['bal_prod_plan'] . '</td>
                             <td style="text-align:right;">' . $data['total_mpp'] . '</td>
                             <td style="text-align:right;">' . $data['balance'] . '</td>
                             <td style="text-align:right;">' . $data['balance'] . '</td>
-                            <td style="text-align:right;">' . numberDecimalFormat($data['persen_mpp']) . '</td>
-                            <td style="text-align:right;">' . numberDecimalFormat($data['persen_dev']) . '</td>
+                            <td style="text-align:right; '.$style2.'">' . numberDecimalFormat($data['persen_mpp']) . '</td>
+                            <td style="text-align:right; '.$style3.'">' . numberDecimalFormat($data['persen_dev']) . '</td>
                         </tr>';
             $no++;
         }

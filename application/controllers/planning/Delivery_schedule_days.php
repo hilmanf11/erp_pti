@@ -29,6 +29,14 @@ class Delivery_schedule_days extends CI_Controller
         } else {
             redirect('error_access');
         }
+
+        // if ($this->session->username == "admin") {
+        //     $data['button'] = $this->getbutton($this->id_menu());
+        //     $this->load->view('template/header', $data);
+        //     $this->load->view('planning/delivery_schedule_days');
+        // } else {
+        //     redirect('maintenance');
+        // }
     }
 
     public function readItemFamily(){
@@ -82,6 +90,14 @@ class Delivery_schedule_days extends CI_Controller
         $tahun = $this->input->post('year');
         $id = $this->input->post('id');
         $mpq = $this->input->post('mpq');
+        $leadtime = $this->input->post('leadtime');
+
+        $periode = $tahun."-".$bulan."-01";
+        $periode_min = date("Y-m-d", strtotime("+1 month", strtotime($periode)));
+        $bulan2 = date("m", strtotime($periode_min));
+        $tahun2 = date("Y", strtotime($periode_min));
+        $monthName = date("F Y", strtotime($periode));
+        $monthName2 = date("F Y", strtotime($periode_min));
 
         if ($bulan == "" or $tahun == "") {
             $bulan = date('m');
@@ -90,6 +106,7 @@ class Delivery_schedule_days extends CI_Controller
 
         $hari = "01";
         $jumlahhari = date("t", mktime(0, 0, 0, $bulan, $hari, $tahun));
+        $jumlahhari2 = date("t", mktime(0, 0, 0, $bulan2, $hari, $tahun2));
 
         $html = '<style>
                     body {
@@ -125,6 +142,9 @@ class Delivery_schedule_days extends CI_Controller
                     }
                 </style>
                 <table id="customers" style="width: 100%;">
+                    <tr>
+                        <th colspan="7" style="text-align:center; font-size:25px !important;">'.$monthName.'</th>
+                    </tr>
                     <tr>
                         <td align=center width="100">
                             <font color="#FF0000">Sunday</font>
@@ -176,7 +196,98 @@ class Delivery_schedule_days extends CI_Controller
         }
         $html .= '</table>';
 
-        echo $html;
+        $html2 = "";
+        if($leadtime > 30){
+            $html2 = '<style>
+                    body {
+                        font-family: Arial, Helvetica, sans-serif;
+                    }
+
+                    #customers {
+                        border-collapse: collapse;
+                        width: 100%;
+                        font-size: 10px;
+                    }
+
+                    #customers td,
+                    #customers th {
+                        border: 1px solid #ddd;
+                        padding: 2px;
+                        height:50px;
+                    }
+
+                    #customers tr:nth-child(even) {
+                        background-color: #f2f2f2;
+                    }
+
+                    #customers tr:hover {
+                        background-color: #ddd;
+                    }
+
+                    #customers th {
+                        padding-top: 2px;
+                        padding-bottom: 2px;
+                        text-align: left;
+                        color: black;
+                    }
+                </style>
+                <table id="customers" style="width: 100%; margin-top:10px;">
+                    <tr>
+                        <th colspan="7" style="text-align:center; font-size:25px !important;">'.$monthName2.'</th>
+                    </tr>
+                    <tr>
+                        <td align=center width="100">
+                            <font color="#FF0000">Sunday</font>
+                        </td>
+                        <td align=center width="100">Monday</td>
+                        <td align=center width="100">Tuesday</td>
+                        <td align=center width="100">Wednesday</td>
+                        <td align=center width="100">Thursday</td>
+                        <td align=center width="100">Friday</td>
+                        <td align=center width="100">Saturday</td>
+                    </tr>';
+
+            $s = date("w", mktime(0, 0, 0, $bulan2, 1, $tahun2));
+
+            for ($ds = 1; $ds <= $s; $ds++) {
+                $html2 .= "<td></td>";
+            }
+
+            for ($d = 1; $d <= $jumlahhari2; $d++) {
+                if (date("w", mktime(0, 0, 0, $bulan2, $d, $tahun2)) == 0) {
+                    $html2 .= "<tr>";
+                }
+
+                $tanggal = $tahun2 . "-" . $bulan2 . "-" . $d;
+                $this->db->select('*');
+                $this->db->from('delivery_schedule_days');
+                $this->db->where('id', $id);
+                $data = $this->db->get()->result_array();
+
+                //Jika Hari Minggu
+                $style2 = "background:white !important;";
+                // $checkbox = "<input hidden checked class='checked' type='checkbox' value='" . $d . "' name='days[]' style='float: left; width: 20px;'/>";
+                $note2 = "<table style='100%'>
+                            <tr>
+                                <td style='background:#bcd8ff;'><small>Plan</small><br><input class='plan' step='".$mpq."' onchange='planTotal(this.value, $d, $leadtime)' type='number' style='width:80px;' id='plan_1_".$d."' name='plan_1_".$d."' value='" . @$data[0]['plan_1_'.$d] . "'/></td>
+                                <td style='background:#c4ffbc;'><small>Actual</small><br><input class='del' step='".$mpq."' onchange='delTotal(this.value, $d, $leadtime)' type='number' style='width:80px;' id='del_1_".$d."' name='del_1_".$d."' value='" . @$data[0]['del_1_'.$d] . "'/></td>
+                            </tr> 
+                        </table>";
+
+                $html2 .= "  <td align=center style='" . $style2 . "' valign=middle>
+                                <b style='font-size: 20px;'>$d</b><br>
+                                $note2
+                            </td>";
+
+                //Jika Sudah seminggu
+                if (date("w", mktime(0, 0, 0, $bulan2, $d, $tahun2)) == 6) {
+                    $html2 .= "</tr>";
+                }
+            }
+            $html2 .= '</table>';
+        }
+
+        echo $html . $html2;
     }
 
     public function datatables()
@@ -229,12 +340,17 @@ class Delivery_schedule_days extends CI_Controller
 
                 $item_id = $record['part_no'];
                 $balance = $record['qty_bf'];
+
                 $day = 1;
+                $m_plus_del = 0;
+                $m_plus_plan = 0;
                 $arr = array();
                 while (strtotime($firstDate) <= strtotime($endDate)) {
                     $actual_qty = $record["del_".$day];
                     $plan_qty = $record["plan_".$day];
                     $balance = (($balance + @$plan_qty) - round(@$actual_qty));
+                    $m_plus_del += $record["del_1_".$day];
+                    $m_plus_plan += $record["plan_1_".$day];
 
                     $arr = array_merge($arr, [
                         "del_".$day => $actual_qty,
@@ -245,6 +361,8 @@ class Delivery_schedule_days extends CI_Controller
                     $firstDate = date("d M Y", strtotime("+1 day", strtotime($firstDate)));
                     $day++;
                 }
+
+                $m_plus_os = (($balance + @$m_plus_plan) - round(@$m_plus_del));
 
                 $dataFinal[] = array_merge($arr, [
                     "id" => $record['id'],
@@ -260,6 +378,9 @@ class Delivery_schedule_days extends CI_Controller
                     "leadtime" => $record['leadtime'],
                     "qty" => $record['qty'],
                     "qty_bf" => $record['qty_bf'],
+                    "m_plus_del" => $m_plus_del,
+                    "m_plus_plan" => $m_plus_plan,
+                    "m_plus_os" => $m_plus_os,
                     "created_by" => $record['created_by'],
                     "created_date" => $record['created_date'],
                     "updated_by" => $record['updated_by'],
@@ -332,6 +453,10 @@ class Delivery_schedule_days extends CI_Controller
 
             $poBf = $this->api->query("SELECT SUM(qty) as total FROM purchase_orders WHERE item_id = '$item_id' and purchase_order_date between '$period_bf_start' and '$period_bf_end'");
 
+            // $next_month = date("Y-m-01", strtotime("+1 month", strtotime($filter_year."-".$filter_month."-01")));
+            // $mrp = $this->api->read("generate_mrp", [], ["p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision, "product_no" => $item_id, "period" => $next_month]);
+            // $m_plus_1 = @$mrp->qty;
+
             $arr[] = array(
                 "p_month" => $filter_month,
                 "p_year" => $filter_year,
@@ -342,6 +467,7 @@ class Delivery_schedule_days extends CI_Controller
                 "part_name" => $record['item_name'],
                 "product_family" => $record['product_family'],
                 "qty" => $qty,
+                // "m_plus_1" => $m_plus_1,
                 "qty_bf" => (@$rowIth->total - @$poBf[0]->total),
             );
         }
@@ -483,49 +609,82 @@ class Delivery_schedule_days extends CI_Controller
         $data = new Spreadsheet_Excel_Reader($file, false);
         $total_row = $data->rowcount($sheet_index = 0);
 
-        for ($i = 5; $i <= $total_row; $i++) {
-            $datas[] = array(
-                'p_month' => $data->val(2, 3),
-                'p_year' => $data->val(2, 4),
-                'revision' => $data->val(3, 3),
-                'part_no' => $data->val($i, 2),
-                'part_name' => $data->val($i, 3),
-                'del_1' => $data->val($i, 4),
-                'del_2' => $data->val($i, 5),
-                'del_3' => $data->val($i, 6),
-                'del_4' => $data->val($i, 7),
-                'del_5' => $data->val($i, 8),
-                'del_6' => $data->val($i, 9),
-                'del_7' => $data->val($i, 10),
-                'del_8' => $data->val($i, 11),
-                'del_9' => $data->val($i, 12),
-                'del_10' => $data->val($i, 13),
-                'del_11' => $data->val($i, 14),
-                'del_12' => $data->val($i, 15),
-                'del_13' => $data->val($i, 16),
-                'del_14' => $data->val($i, 17),
-                'del_15' => $data->val($i, 18),
-                'del_16' => $data->val($i, 19),
-                'del_17' => $data->val($i, 20),
-                'del_18' => $data->val($i, 21),
-                'del_19' => $data->val($i, 22),
-                'del_20' => $data->val($i, 23),
-                'del_21' => $data->val($i, 24),
-                'del_22' => $data->val($i, 25),
-                'del_23' => $data->val($i, 26),
-                'del_24' => $data->val($i, 27),
-                'del_25' => $data->val($i, 28),
-                'del_26' => $data->val($i, 29),
-                'del_27' => $data->val($i, 30),
-                'del_28' => $data->val($i, 31),
-                'del_29' => $data->val($i, 32),
-                'del_30' => $data->val($i, 33),
-                'del_31' => $data->val($i, 34)
+        $finalDatas = array();
+        for ($i = 4; $i <= $total_row; $i++) {
+            $p_year = substr(strtotime($data->val($i, 2)), 0, 4);
+            $p_month = substr(strtotime($data->val($i, 2)), 4);
+            $period_start = date("Y-m-01", strtotime($p_year."-".$p_month."-01"));
+            $period_end = date("Y-m-t", strtotime($p_year."-".$p_month."-01"));
+            $period_next_start = date("Y-m-01", strtotime("+1 month", strtotime($p_year."-".$p_month."-01")));
+            $period_next_end = date("Y-m-t", strtotime("+1 month", strtotime($p_year."-".$p_month."-01")));
+            $arrStart = array();
+            $day = 1;
+            $column_plan = 14;
+            $column_del = 15;
+            $qty_plan = 0;
+            $qty_del = 0;
+            while (strtotime($period_start) <= strtotime($period_end)) {
+                $qty_plan += $data->val($i, $column_plan);
+                $qty_del += $data->val($i, $column_del);
+
+                $arrStart[] = [
+                    "plan_".$day => $data->val($i, $column_plan),
+                    "del_".$day => $data->val($i, $column_del),
+                ];
+                $day++;
+                $column_plan = ($column_plan + 3);
+                $column_del = ($column_del + 3);
+                $period_start = date("Y-m-d", strtotime("+1 day", strtotime($period_start)));
+            }
+
+            $arrStart2 = array();
+            $day2 = 1;
+            $column_plan2 = ($column_plan + 3);
+            $column_del2 = ($column_del + 3);
+            $qty_plan2 = 0;
+            $qty_del2 = 0;
+            while (strtotime($period_next_start) <= strtotime($period_next_end)) {
+                $qty_plan2 += $data->val($i, $column_plan2);
+                $qty_del2 += $data->val($i, $column_del2);
+
+                $arrStart2[] = [
+                    "plan_1_".$day2 => $data->val($i, $column_plan2),
+                    "del_1_".$day2 => $data->val($i, $column_del2),
+                ];
+
+                $day2++;
+                $column_plan2 = ($column_plan2 + 3);
+                $column_del2 = ($column_del2 + 3);
+                $period_next_start = date("Y-m-d", strtotime("+1 day", strtotime($period_next_start)));
+            }
+
+            $datas = array(
+                'part_no' => $data->val($i, 4),
+                'po_no' => $data->val($i, 6),
+                'qty' => $data->val($i, 12),
+                'qty_plan' => ($qty_plan + $qty_plan2),
+                'qty_actual' => ($qty_actual + $qty_actual2),
             );
+
+            $output = [];
+            foreach ($arrStart as $row) {
+                foreach ($row as $key => $value) {
+                    $output[$key] = strtolower($value);
+                }
+            }
+
+            $output2 = [];
+            foreach ($arrStart2 as $row2) {
+                foreach ($row2 as $key2 => $value2) {
+                    $output2[$key2] = strtolower($value2);
+                }
+            }
+
+            $finalDatas[] = array_merge($datas, $output, $output2);
         }
 
-        $datas['total'] = count($datas);
-        echo json_encode($datas);
+        $finalDatas['total'] = count($finalDatas);
+        echo json_encode($finalDatas);
 
         unlink($_FILES['file_upload']['name']);
     }
@@ -536,13 +695,19 @@ class Delivery_schedule_days extends CI_Controller
             $data = $this->input->post('data');
 
             //Cek Data
-            $delivery_schedule_days = $this->api->read('delivery_schedule_days', [], ["part_no" => $data['part_no'], "p_month" => $data['p_month'], "p_year" => $data['p_year'], "revision" => $data['revision']]);
+            $delivery_schedule_days = $this->api->read('delivery_schedule_days', [], ["part_no" => $data['part_no'], "po_no" => $data['po_no']]);
 
             if (empty($delivery_schedule_days->part_no)) {
-                echo json_encode(array("title" => "Not Found", "message" => "Part No " . $data['part_no'] . " Not Found", "theme" => "error"));
+                echo json_encode(array("title" => "Not Found", "message" => "Part No " . $data['part_no'] . " in PO No " . $data['po_no'] . " Not Found", "theme" => "error"));
+            }elseif(($data['qty'] < $data['qty_plan'])){
+                echo json_encode(array("title" => "Not Found", "message" => "Part No " . $data['part_no'] . " in PO No " . $data['po_no'] . " Qty Plan Cannot > Qty PO", "theme" => "error"));
+            }elseif(($data['qty'] < $data['qty_actual'])){
+                echo json_encode(array("title" => "Not Found", "message" => "Part No " . $data['part_no'] . " in PO No " . $data['po_no'] . " Qty Actual Cannot > Qty PO", "theme" => "error"));
             } else {
-                $send = $this->api->update('delivery_schedule_days', ["part_no" => $data['part_no'], "p_month" => $data['p_month'], "p_year" => $data['p_year'], "revision" => $data['revision']], $data);
-                echo json_encode(array("title" => "Good Job", "message" => "Part No" . $data['part_no'] . " Saved Successfully", "theme" => "success"));
+                unset($data['qty_plan']);
+                unset($data['qty_actual']);
+                $this->api->update('delivery_schedule_days', ["part_no" => $data['part_no'], "po_no" => $data['po_no']], $data);
+                echo json_encode(array("title" => "Good Job", "message" => "Part No" . $data['part_no'] . " Updated Successfully", "theme" => "success"));
             }
         }
     }
@@ -601,7 +766,7 @@ class Delivery_schedule_days extends CI_Controller
         $filter_item_id = base64_decode($this->input->get('filter_item_id'));
 
         $firstDate = date('01 M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
-        $endDate = date('t M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
+        $endDate = date('t M Y', strtotime("+1 month", strtotime($filter_year . "-" . $filter_month . "-01")));
         $monthBf = date('F', strtotime("-1 month", strtotime($filter_year . "-" . $filter_month . "-01")));
 
         $this->db->select("a.*, d.mpq, d.moq, d.leadtime, c.name as supplier_name, b.name as product_family_name");
@@ -678,8 +843,9 @@ class Delivery_schedule_days extends CI_Controller
 
         foreach ($records as $record) {
             $day = 1;
+            $day2 = 1;
             $firstDate2 = date('01 M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
-            $endDate2 = date('t M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
+            $endDate2 = date('t M Y', strtotime("+1 month", strtotime($filter_year . "-" . $filter_month . "-01")));
             $item_id = $record['part_no'];
 
             $content .= "<tr>
@@ -701,8 +867,16 @@ class Delivery_schedule_days extends CI_Controller
             $balance = @$record['qty_bf'];
             while (strtotime($firstDate2) <= strtotime($endDate2)) {
                 $working_date2 = date("Y-m-d", strtotime($firstDate2));
-                $actual_qty = $record["del_".$day];
-                $plan_qty = $record["plan_".$day];
+
+                if($day > 31){
+                    $actual_qty = $record["del_1_".$day2];
+                    $plan_qty = $record["plan_1_".$day2];
+                    $day2++;
+                }else{
+                    $actual_qty = $record["del_".$day];
+                    $plan_qty = $record["plan_".$day];
+                    $day++;
+                }
 
                 $balance = (($balance + @$plan_qty) - round(@$actual_qty));
 
@@ -730,7 +904,6 @@ class Delivery_schedule_days extends CI_Controller
                             <td style='text-align:right; ".$styles2."'>".round($balance, 2)."</td>";
 
                 $firstDate2 = date("d M Y", strtotime("+1 day", strtotime($firstDate2)));
-                $day++;
             }
 
             $content .= "   
@@ -739,32 +912,11 @@ class Delivery_schedule_days extends CI_Controller
         }
 
         $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;font-size: 10px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;} .str{ mso-number-format:\@; } </style><body>
-        <center>
-            <div style="float: left; font-size: 12px; text-align: left;">
-                <table style="width: 100%;">
-                    <tr>
-                        <td width="50" style="font-size: 12px; vertical-align: top; text-align: center; vertical-align:jus margin-right:10px;">
-                            <img src="' . base_url('assets/image/config/' . $config->logo) . '" width="30">
-                        </td>
-                        <td style="font-size: 14px; text-align: left; margin:2px;">
-                            <b>' . $config->name . '</b><br>
-                            <small>MATERIAL CALCULATION</small>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-            <div style="float: right; font-size: 12px; text-align: right;">
-                Print Date ' . date("d M Y H:m:s") . ' <br>
-                Print By ' . $this->session->username . '  
-            </div>
-        </center>
-        <br><br><br>
-
-        <table id="customers" border="1" style="width:100%;">
+        <table id="customers" border="1" style="width:150%;">
             <tr>
-                <th style="text-align:center;" rowspan="3" width="20">No</th>
-                <th style="text-align:center;" rowspan="3" width="50">Period</th>
-                <th style="text-align:center;" rowspan="3" width="20">Revision</th>
+                <th style="text-align:center;" rowspan="3" width="50">No</th>
+                <th style="text-align:center;" rowspan="3" width="80">Period</th>
+                <th style="text-align:center;" rowspan="3" width="50">Rev</th>
                 <th style="text-align:center;" width="150" rowspan="3">Part No</th>
                 <th style="text-align:center;" width="80" rowspan="3">Part Name</th>
                 <th style="text-align:center;" width="80" rowspan="3">PO No</th>
@@ -776,7 +928,7 @@ class Delivery_schedule_days extends CI_Controller
                 <th style="text-align:center;" width="50" rowspan="3">Qty PO</th>
                 <th style="text-align:center;" width="50" rowspan="3">OS Delivery<br>('.$monthBf.')</th>
                 <th style="text-align:center;" width="50" colspan="'.($colspan * 3).'">Quantitiy Order From Purchase Order</th>
-            </tr>' . $cut . $date . $content;
+            </tr>' . $cut . $date . $content . "</table>";
         echo $html;
     }
 }

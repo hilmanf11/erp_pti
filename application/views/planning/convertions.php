@@ -191,7 +191,7 @@
         });
 
         $('#item_id').combogrid({
-            url: '<?= base_url('planning/mst_data/readProducts') ?>',
+            url: '<?= base_url('planning/mst_item/reads') ?>',
             panelWidth: 400,
             idField: 'item_id',
             textField: 'item_id',

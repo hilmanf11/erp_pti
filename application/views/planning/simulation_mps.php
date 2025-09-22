@@ -12,10 +12,12 @@
             <th rowspan="2" data-options="field:'os_supply2',width:100,halign:'center', align:'right', formatter: numberformat">Supply<br><span class="sep"></span></th>
             <th rowspan="2" data-options="field:'need_1',width:100,halign:'center', align:'right', formatter: numberformat">Need<br><span class="sep"></span></th>
             <th rowspan="2" data-options="field:'total_need',width:100,halign:'center', align:'right', formatter: numberformat">Total Need<br><span class="sep"></span></th>
+            <th rowspan="2" data-options="field:'balance2',width:100,halign:'center', align:'right', formatter: numberformat">Balance</th>
             <th rowspan="2" data-options="field:'qtyperassy',width:100,halign:'center', align:'right', formatter: numberformat">Need<br>(Breakdown)</th>
             <th rowspan="2" data-options="field:'freestock',width:100,halign:'center', align:'right', formatter: numberformat">Free Stock<br><span class="sep"></span></th>
             <th rowspan="2" data-options="field:'need_2',width:100,halign:'center', align:'right', formatter: numberformat">Need<br><span class="okt"></span></th>
-            <th rowspan="2" data-options="field:'balance',width:100,halign:'center', align:'right', formatter: numberformat">Free Stock<br><span class="okt"></span></th>
+            <!-- <th rowspan="2" data-options="field:'balance',width:100,halign:'center', align:'right', formatter: numberformat">Free Stock<br><span class="okt"></span></th> -->
+            <th rowspan="2" data-options="field:'sugest_order',width:100,halign:'center', align:'right', formatter: numberformat">Suggest Order</th>
             <th rowspan="2" data-options="field:'otw',width:80,halign:'center', align:'right', formatter: numberformat">OTW</th>
             <th rowspan="2" data-options="field:'eta',width:100,halign:'center', align:'center'">ETA</th>
             <th colspan="3" data-options="field:'',width:100,halign:'center'"> Approved</th>

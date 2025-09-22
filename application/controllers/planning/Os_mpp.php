@@ -79,24 +79,49 @@ class Os_mpp extends CI_Controller
 
             $filter_start = date("Y-m-d", strtotime($filter_cutoff . "+1 days"));
             $filter_end = date("Y-m-t", strtotime($filter_cutoff));
+            $periode = $filter_year.$filter_month;
 
             // $qmpp = $this->pg->query("SELECT * FROM wip_trx_mpp WHERE wp_date BETWEEN '$filter_start' and '$filter_end'");
             // $dmpp = $qmpp->result_array();
 
-            $itemq = $this->dummy->query("SELECT b.bom_com_item, c.item_name, d.pfm_name, SUM(a.total * b.bom_qty_perassy) as total from
-                (select assy_no, SUM(qty) as total from wip_trx_mpp WHERE wp_date between '$filter_start' and '$filter_end' GROUP BY assy_no ORDER BY SUM(qty) asc) a
-                join mst_bom b on a.assy_no = b.bom_par_item
-                join mst_item c on b.bom_com_item = c.item_id
-                join r_prodfam d on c.pfm_id = d.pfm_id
-                where d.pfm_id like '%$filter_product_family%' and b.bom_com_item like '%$filter_product_no%'
-                group by b.bom_com_item, c.item_name, d.pfm_name
-                order by d.pfm_name asc, SUM(a.total * b.bom_qty_perassy) desc
+            // $itemq = $this->dummy->query("SELECT b.bom_com_item, c.item_name, d.pfm_name, SUM(a.total * b.bom_qty_perassy) as total from
+            //     (select assy_no, SUM(qty) as total from wip_trx_mpp WHERE wp_date between '$filter_start' and '$filter_end' GROUP BY assy_no ORDER BY SUM(qty) asc) a
+            //     join mst_bom b on a.assy_no = b.bom_par_item
+            //     join mst_item c on b.bom_com_item = c.item_id
+            //     join r_prodfam d on c.pfm_id = d.pfm_id
+            //     where d.pfm_id like '%$filter_product_family%' and b.bom_com_item like '%$filter_product_no%'
+            //     group by b.bom_com_item, c.item_name, d.pfm_name
+            //     order by d.pfm_name asc, SUM(a.total * b.bom_qty_perassy) desc
+            // ");
+            // $items = $itemq->result_array();
+
+            $itemq = $this->dummy->query("SELECT trim(x.bom_com_item) as bom_com_item, c.item_name, d.pfm_name, SUM(x.os_wo) as total 
+            FROM (
+                    select a.assy_no, b.bom_com_item, a.prod_plan_1, coalesce(c.total, 0) as generate, (a.prod_plan_1 - coalesce(c.total, 0)) as ungenerate, b.bom_qty_perassy, ((a.prod_plan_1 - coalesce(c.total, 0)) * b.bom_qty_perassy) as os_wo
+                    from ltpp_generate a
+                    join mst_bom b on a.assy_no = b.bom_par_item
+                    left join (select z.assy_no, SUM(z.total) as total 
+                        from (
+                            select a.serial_mpp, a.assy_no, SUM(a.qty) as total
+                            from wip_trx_mpp a
+                            join (SELECT serial_mpp, SUM(wds_qty) as qty FROM wip_trx_wds WHERE precut_sts = '1' GROUP BY serial_mpp) b ON a.serial_mpp = b.serial_mpp
+                            where a.periode = '$periode' and a.wp_date between '$filter_start' and '$filter_end'
+                            GROUP BY a.serial_mpp, a.assy_no
+                            order by a.serial_mpp asc
+                            ) z GROUP BY z.assy_no
+                        ) c ON a.assy_no = c.assy_no
+                    where a.period = '$periode' and a.prod_plan_1 > 0 and rev = (select max(rev) from ltpp_generate WHERE period = '$periode')
+                ) x
+            JOIN mst_item c on x.bom_com_item = c.item_id
+            JOIN r_prodfam d on c.pfm_id = d.pfm_id
+            GROUP BY x.bom_com_item, c.item_name, d.pfm_name
+            HAVING SUM(x.os_wo) > 0
             ");
             $items = $itemq->result_array();
             $arr = array();
 
             foreach ($items as $item) {
-                $item_id = $item['bom_com_item'];
+                $item_id = trim($item['bom_com_item']);
                 $item_name = $item['item_name'];
                 $pfm_name = $item['pfm_name'];
                 $qty = abs($item['total']);
@@ -124,7 +149,7 @@ class Os_mpp extends CI_Controller
                         "product_name" => $item_name,
                         "product_family" => $pfm_name,
                         "qty" => round($qty),
-                        "actual" => round($os_mpp->qty),
+                        "actual" => round($os_mpp->actual),
                         "status" => $status,
                         "created_by" => $os_mpp->created_by,
                         "created_date" => $os_mpp->created_date,
@@ -261,7 +286,8 @@ class Os_mpp extends CI_Controller
 
                     echo json_encode(array("title" => "Good Job", "message" => "Product No " . $post['product_no'] . " Updated Successfully", "theme" => "success"));
                 } else {
-                    echo json_encode(array("title" => "Error", "message" => "Product No " . $post['product_no'] . " Not Generate", "theme" => "error"));
+                    $this->api->create('os_mpp', $postFinal, "RMS", "os_mpp");
+                    echo json_encode(array("title" => "Good Job", "message" => "Product No " . $post['product_no'] . " Created Successfully", "theme" => "success"));
                 }
             }else{
                 echo json_encode(array("title" => "Error", "message" => "Product No " . $post['product_no'] . " Saved Failed", "theme" => "error"));
@@ -321,21 +347,35 @@ class Os_mpp extends CI_Controller
 
         $filter_start = date("Y-m-d", strtotime($filter_cutoff . "+1 days"));
         $filter_end = date("Y-m-t", strtotime($filter_cutoff));
+        $periode = $filter_year.$filter_month;
 
-        $itemq = $this->dummy->query("SELECT b.bom_com_item, c.item_name, d.pfm_name, SUM(a.total * b.bom_qty_perassy) as total from
-                (select assy_no, SUM(qty) as total from wip_trx_mpp WHERE wp_date between '$filter_start' and '$filter_end' GROUP BY assy_no ORDER BY SUM(qty) asc) a
-                join mst_bom b on a.assy_no = b.bom_par_item
-                join mst_item c on b.bom_com_item = c.item_id
-                join r_prodfam d on c.pfm_id = d.pfm_id
-                where d.pfm_id like '%$filter_product_family%' and b.bom_com_item like '%$filter_product_no%'
-                group by b.bom_com_item, c.item_name, d.pfm_name
-                order by d.pfm_name asc, SUM(a.total * b.bom_qty_perassy) desc
+        $itemq = $this->dummy->query("SELECT trim(x.bom_com_item) as bom_com_item, c.item_name, d.pfm_name, SUM(x.os_wo) as total 
+            FROM (
+                    select a.assy_no, b.bom_com_item, a.prod_plan_1, coalesce(c.total, 0) as generate, (a.prod_plan_1 - coalesce(c.total, 0)) as ungenerate, b.bom_qty_perassy, ((a.prod_plan_1 - coalesce(c.total, 0)) * b.bom_qty_perassy) as os_wo
+                    from ltpp_generate a
+                    join mst_bom b on a.assy_no = b.bom_par_item
+                    left join (select z.assy_no, SUM(z.total) as total 
+                        from (
+                            select a.serial_mpp, a.assy_no, SUM(a.qty) as total
+                            from wip_trx_mpp a
+                            join (SELECT serial_mpp, SUM(wds_qty) as qty FROM wip_trx_wds WHERE precut_sts = '1' GROUP BY serial_mpp) b ON a.serial_mpp = b.serial_mpp
+                            where a.periode = '$periode' and a.wp_date between '$filter_start' and '$filter_end'
+                            GROUP BY a.serial_mpp, a.assy_no
+                            order by a.serial_mpp asc
+                            ) z GROUP BY z.assy_no
+                        ) c ON a.assy_no = c.assy_no
+                    where a.period = '$periode' and a.prod_plan_1 > 0 and rev = (select max(rev) from ltpp_generate WHERE period = '$periode')
+                ) x
+            JOIN mst_item c on x.bom_com_item = c.item_id
+            JOIN r_prodfam d on c.pfm_id = d.pfm_id
+            GROUP BY x.bom_com_item, c.item_name, d.pfm_name
+            HAVING SUM(x.os_wo) > 0
         ");
         $items = $itemq->result_array();
         $records = array();
 
         foreach ($items as $item) {
-            $item_id = $item['bom_com_item'];
+            $item_id = trim($item['bom_com_item']);
             $item_name = $item['item_name'];
             $pfm_name = $item['pfm_name'];
             $qty = abs($item['total']);
@@ -363,7 +403,7 @@ class Os_mpp extends CI_Controller
                     "product_name" => $item_name,
                     "product_family" => $pfm_name,
                     "qty" => $qty,
-                    "actual" => @$os_mpp->qty,
+                    "actual" => @$os_mpp->actual,
                     "status" => $status,
                 );
             } else {

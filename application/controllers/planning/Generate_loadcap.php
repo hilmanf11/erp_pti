@@ -260,7 +260,9 @@ class Generate_loadcap extends CI_Controller
                 $this->db->where('a.p_year', $filter_year);
             }
             $this->db->like('a.revision', $filter_revision);
-            $this->db->like('a.line_no', $filter_line_no);
+            if($filter_line_no != ""){
+                $this->db->where('a.line_no', $filter_line_no);
+            }
             $this->db->where('a.deleted_is', 0);
             $this->db->order_by('a.line_no', 'desc');
             $records = $this->db->get()->result_array();

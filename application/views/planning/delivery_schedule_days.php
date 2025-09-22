@@ -51,6 +51,7 @@
                     $firstDate = date("Y-m-d", strtotime("+1 day", strtotime($firstDate)));
                 }
             ?>
+            <th colspan="3" data-options="field:'',width:80,halign:'center'">Next Month</th>
             <th colspan="2" data-options="field:'',width:100,align:'center'">Created</th>
             <th colspan="2" data-options="field:'',width:100,align:'center'">Updated</th>
         </tr>
@@ -76,6 +77,9 @@
                     $firstDate = date("Y-m-d", strtotime("+1 day", strtotime($firstDate)));
                 }
             ?>
+            <th data-options="field:'m_plus_plan',width:80,halign:'center',align:'right'">Plan</th>
+            <th data-options="field:'m_plus_del',width:80,halign:'center',align:'right'">Actual</th>
+            <th data-options="field:'m_plus_os',width:80,halign:'center',align:'right', styler:cellStyler">OS</th>
             <th data-options="field:'created_by',width:100,halign:'center'">By</th>
             <th data-options="field:'created_date',width:150,halign:'center'">Date</th>
             <th data-options="field:'updated_by',width:100,halign:'center'">By</th>
@@ -123,11 +127,6 @@
             <legend><b>Result Generate</b></legend>
             <div id="p_upload" class="easyui-progressbar" style="width:100%; margin-top: 10px;"></div>
             <center><b id="p_start">0</b> Of <b id="p_finish">0</b></center>
-            <div id="p_remarks" class="easyui-panel" style="width:100%; height:80px; padding:10px; margin-top: 10px; overflow: auto;" hidden>
-                <ul id="remarks">
-
-                </ul>
-            </div>
             <a href="javascript:;" style="float: left; color:green;" class="easyui-linkbutton" plain="true"><i class="fa fa-check"></i> SUCCESS : <b id="p_success">0</b></a>
             <a href="javascript:;" style="float: right; color:red;" class="easyui-linkbutton" plain="true" onclick="downloadFailed()"><i class="fa fa-times"></i> FAILED : <b id="p_failed">0</b></a>
         </fieldset>
@@ -136,7 +135,7 @@
 </div>
 
 <!-- Insert & Update -->
-<div id="dlg_insert" class="easyui-dialog" title="Add New" data-options="closed: true,modal:true" style="width: 99%; height: 500px; padding:10px; top: 20px; left:10px;">
+<div id="dlg_insert" class="easyui-dialog" title="Add New" data-options="closed: true,modal:true,fit:true" style="width: 99%; padding: 10px; top: 0; left:0;">
     <form id="frm_insert" method="post" novalidate>
         <div style="float: left; width: 55%;">
             <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
@@ -169,6 +168,10 @@
                         <input style="width:30%;" name="mpq" id="mpq" disabled class="easyui-textbox">
                         <input style="width:30%;" name="moq" id="moq" disabled class="easyui-textbox">
                     </div>
+                    <div class="fitem">
+                        <span style="width:30%; display:inline-block;">M+1</span>
+                        <input style="width:60%;" name="m_plus_1" id="m_plus_1" class="easyui-numberbox">
+                    </div>
                 </div>
             </fieldset>
         </div>
@@ -197,7 +200,7 @@
 </div>
 
 <!-- Upload -->
-<div id="dlg_upload" class="easyui-dialog" title="Upload Data" data-options="closed: true,modal:true" style="width: 500px; padding:10px; top: 20px;">
+<div id="dlg_upload" class="easyui-dialog" title="Upload Data" data-options="closed: true,modal:true" style="width: 700px; padding:10px; top: 20px;">
     <form id="frm_upload" method="post" enctype="multipart/form-data" novalidate>
         <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
             <legend><b>Form Data</b></legend>
@@ -206,13 +209,20 @@
                 <input name="file_upload" style="width: 60%;" required="" accept=".xls" id="file_excel" class="easyui-filebox">
             </div>
         </fieldset>
+        <div id="p_upload2" class="easyui-progressbar" style="width:100%; margin-top: 10px;"></div>
+        <center><b id="p_start2">0</b> Of <b id="p_finish2">0</b></center>
+        <div id="p_remarks" class="easyui-panel" style="width:100%; height:300px; padding:10px; margin-top: 10px; overflow: auto;">
+            <ul id="remarks">
+
+            </ul>
+        </div>
     </form>
 </div>
 
-<iframe id="printout" src="" style="width: 100%; height:90%; border: 0;" hidden></iframe>
+<!-- <iframe id="printout" src="" style="width: 100%; height:90%; border: 0;" hidden></iframe> -->
 
 <script>
-    function planTotal(val, id){
+    function planTotal(val, id, leadtime = 0){
         if(val != ""){
             var mpq = $("#mpq").numberbox('getValue');
             if(parseInt(val) > 0){
@@ -221,7 +231,11 @@
                 var roundMpq = 0;
             }
 
-            $("#plan_" + id).val(roundMpq);
+            if(leadtime > 30){
+                $("#plan_1_" + id).val(roundMpq);
+            }else{
+                $("#plan_" + id).val(roundMpq);
+            }
 
             var total = 0;
             $('.plan').each(function() {
@@ -234,7 +248,7 @@
         }
     }
 
-    function delTotal(val, id){
+    function delTotal(val, id, leadtime){
         if(val != ""){
             var mpq = $("#mpq").numberbox('getValue');
             if(parseInt(val) > 0){
@@ -243,7 +257,11 @@
                 var roundMpq = 0;
             }
 
-            $("#del_" + id).val(roundMpq);
+            if(leadtime > 30){
+                $("#del_1_" + id).val(roundMpq);
+            }else{
+                $("#del_" + id).val(roundMpq);
+            }
 
             var total = 0;
             $('.del').each(function() {
@@ -376,7 +394,7 @@
             $.ajax({
                 type: "post",
                 url: "<?= base_url('planning/delivery_schedule_days/calendars') ?>",
-                data: "month=" + row.p_month + "&year=" + row.p_year + "&id=" + row.id + "&mpq=" + row.mpq,
+                data: "month=" + row.p_month + "&year=" + row.p_year + "&id=" + row.id + "&mpq=" + row.mpq + "&leadtime=" + row.leadtime,
                 dataType: "html",
                 success: function(response) {
                     $("#calendar").html(response);
@@ -409,6 +427,19 @@
     function saveData() {
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").textbox('getValue');
+        var qtyPo = $("#qtyPo").html();
+        var totalPlan = $("#totalPlan").html();
+        var totalActual = $("#totalActual").html();
+
+        if(parseInt(qtyPo) < parseInt(totalPlan)){
+            toastr.error("Qty PO cannot < Qty Plan");
+            return false;
+        }
+
+        if(parseInt(qtyPo) < parseInt(totalActual)){
+            toastr.error("Qty PO cannot < Qty Actual");
+            return false;
+        }
 
         $('#frm_insert').form('submit', {
             url: url_save,
@@ -528,7 +559,8 @@
     }
 
     function download_excel() {
-        window.location.assign('<?= base_url('template/tmp_delivery_schedule_days.xls') ?>');
+        toastr.info("upload format is the same as export to excel");
+        // window.location.assign('<?= base_url('template/tmp_delivery_schedule_days.xls') ?>');
     }
 
     function reload() {
@@ -565,8 +597,8 @@
                 pageSize: 20,
             });
 
-            $("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
-            $("#printout").attr('src', '<?= base_url('planning/delivery_schedule_days/print') ?>' + url);
+            // $("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
+            // $("#printout").attr('src', '<?= base_url('planning/delivery_schedule_days/print') ?>' + url);
         }
 
         //Upload Data
@@ -594,21 +626,26 @@
                         },
                         success: function(result) {
                             $.messager.progress('close');
-                            $('#dlg_upload').dialog('close');
+                            // $('#dlg_upload').dialog('close');
                             //Clear File
                             $.ajax({
                                 url: "<?= base_url('planning/delivery_schedule_days/uploadclearFailed') ?>"
                             });
 
-                            var json = eval('(' + result + ')');
-                            requestData(json.total, json);
+                            var json = JSON.parse(result);
+                            if(json.total){
+                                requestData(json.total, json);
+                            }else{
+                                toastr.error("Your file is not readable, please save as you file first");
+                                return false;
+                            }
 
                             function requestData(total, json, number = 1, value = 0, success = 1, failed = 1) {
                                 if (value < 100) {
                                     value = Math.floor((number / total) * 100);
-                                    $('#p_upload').progressbar('setValue', value);
-                                    $('#p_start').html(number);
-                                    $('#p_finish').html(total);
+                                    $('#p_upload2').progressbar('setValue', value);
+                                    $('#p_start2').html(number);
+                                    $('#p_finish2').html(total);
 
                                     $.ajax({
                                         type: "POST",
@@ -622,11 +659,9 @@
                                         success: function(result) {
                                             if (result.theme == "success") {
                                                 Swal.close();
-                                                $('#p_success').html(success);
                                                 var title = "<b style='color: green;'>" + result.title + "</b> | " + result.message;
                                                 requestData(total, json, number + 1, value, success + 1, failed + 0);
                                             } else {
-                                                $('#p_failed').html(failed);
                                                 var title = "<b style='color: red;'>" + result.title + "</b> | " + result.message;
 
                                                 //Json Failed
@@ -652,23 +687,15 @@
                                         },
                                         error: function(jqXHR, textStatus) {
                                             if (textStatus == "error") {
-                                                Swal.fire({
-                                                    title: 'Connection Time Out, Check Your Connection',
-                                                    showConfirmButton: false,
-                                                    allowOutsideClick: false,
-                                                    allowEscapeKey: false,
-                                                    didOpen: () => {
-                                                        Swal.showLoading();
-                                                    },
-                                                });
-
-                                                requestData(total, json, number, value, success + 0, failed + 0);
+                                                toastr.error("Something Error in this file Upload!!");
+                                                return false;
+                                                // requestData(total, json, number, value, success + 0, failed + 0);
                                             }
                                         }
                                     });
                                 }
                             }
-                        }
+                        },
                     });
                 }
             }]

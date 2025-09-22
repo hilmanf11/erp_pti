@@ -98,7 +98,7 @@ class Sync extends CI_Controller
     public function getLines()
     {
         $this->pg = $this->load->database('pg', TRUE);
-        $this->pg->select("cd_line as line_no, mpp_line as remarks, nm_line as line_description, nick_line as line_nick, nick_line as customer_nick");
+        $this->pg->select("TRIM(cd_line) as line_no, mpp_line as remarks, nm_line as line_description, nick_line as line_nick, nick_line as customer_nick");
         $this->pg->from("wip_mst_line");
         $totalRows = $this->pg->count_all_results('', false);
         $records = $this->pg->get()->result_array();
@@ -113,12 +113,12 @@ class Sync extends CI_Controller
     public function createLines()
     {
         $data = $this->input->post('data');
-        $read = $this->api->read("mst_line", [], ["line_no" => $data['line_no']]);
+        $read = $this->api->read("mst_line", [], ["line_no" => trim($data['line_no'])]);
         if (empty($read)) {
             $create = $this->api->create('mst_line', $data, "LINE", "LINE");
             echo json_encode($create);
         } else {
-            $update = $this->api->update('mst_line', ["line_no" => $data['line_no']], $data);
+            $update = $this->api->update('mst_line', ["line_no" => trim($data['line_no'])], $data);
             echo json_encode($update);
         }
     }

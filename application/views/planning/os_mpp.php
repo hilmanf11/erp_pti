@@ -230,8 +230,8 @@
         if (filter_month == "" || filter_year == "" || filter_revision == "" || filter_cutoff == "") {
             toastr.warning("Please select Period, Revision and Cutoff!");
         } else {
-            $("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
-            $("#printout").attr('src', '<?= base_url('planning/os_mpp/print') ?>' + url);
+            //$("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
+            //$("#printout").attr('src', '<?= base_url('planning/os_mpp/print') ?>' + url);
 
             $('#dg').datagrid({
                 rownumbers: true,

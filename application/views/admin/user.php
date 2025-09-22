@@ -8,6 +8,7 @@
             <th data-options="field:'email',width:200">Email</th>
             <th data-options="field:'phone',width:150">Phone</th>
             <th data-options="field:'position',width:200">Position</th>
+            <th data-options="field:'role',width:100">Role</th>
             <th data-options="field:'avatar',width:200">File Foto</th>
             <th data-options="field:'actived_is',width:150, styler:cellStyler, formatter:cellFormatter">Status</th>
         </tr>
@@ -41,6 +42,16 @@
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Position</span>
                 <input style="width:60%;" name="position" id="position" required="true" data-options="prompt:'Staff Production'" class="easyui-textbox">
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Role</span>
+                <select style="width:60%;" name="role" id="role" class="easyui-combobox">
+                    <option value="ADMIN">ADMIN</option>
+                    <option value="PROCUREMENT">PROCUREMENT</option>
+                    <option value="MARKETING">MARKETING</option>
+                    <option value="ENGINEERING">ENGINEERING</option>
+                    <option value="PURCHASING">PURCHASING</option>
+                </select>
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Email</span>

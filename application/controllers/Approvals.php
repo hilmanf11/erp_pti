@@ -14,46 +14,84 @@ class Approvals extends CI_Controller
         $this->load->model('api');
     }
 
+    // public function approveall()
+    // {
+    //     $approved_to = $this->input->post('approved_to');
+    //     $created_by = $this->input->post('created_by');
+    //     $table_name = $this->input->post('table_name');
+
+    //     $datas = $this->api->reads($table_name, [], ["approved_to" => $approved_to, "created_by" => $created_by]);
+
+    //     foreach ($datas as $data) {
+    //         $id = $data->id;
+    //         $user = $this->api->read('user', [], ["username" => $data->created_by]);
+    //         $approval = $this->api->read('approval', [], ["table_name" => $table_name]);
+
+    //         if ($data->approved == 1) {
+    //             $users_id = @$approval->user_approval_2;
+    //             $approved = 2;
+    //         } elseif ($data->approved == 2) {
+    //             $users_id = @$approval->user_approval_3;
+    //             $approved = 3;
+    //         } elseif ($data->approved == 3) {
+    //             $users_id = @$approval->user_approval_4;
+    //             $approved = 4;
+    //         } elseif ($data->approved == 4) {
+    //             $users_id = @$approval->user_approval_5;
+    //             $approved = 5;
+    //         } else {
+    //             $users_id = "";
+    //             $approved = 0;
+    //         }
+
+    //         $values = array(
+    //             "approved_by" => $this->session->username,
+    //             "approved_date" => date('Y-m-d H:i:s'),
+    //             "approved_to" => $users_id,
+    //             "approved" => $approved,
+    //         );
+
+    //         $send = $this->db->update($table_name, $values, ["id" => $id]);
+    //     }
+
+    //     echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
+    // }
+
     public function approveall()
     {
         $approved_to = $this->input->post('approved_to');
+        $approved_by = $this->input->post('approved_by');
         $created_by = $this->input->post('created_by');
         $table_name = $this->input->post('table_name');
 
-        $datas = $this->api->reads($table_name, [], ["approved_to" => $approved_to, "created_by" => $created_by]);
+        $data = $this->api->read($table_name, [], ["approved_to" => $approved_to, "approved_by" => $approved_by]);
+        $approval = $this->api->read('approval', [], ["table_name" => $table_name]);
 
-        foreach ($datas as $data) {
-            $id = $data->id;
-            $user = $this->api->read('user', [], ["username" => $data->created_by]);
-            $approval = $this->api->read('approval', [], ["table_name" => $table_name]);
-
-            if ($data->approved == 1) {
-                $users_id = @$approval->user_approval_2;
-                $approved = 2;
-            } elseif ($data->approved == 2) {
-                $users_id = @$approval->user_approval_3;
-                $approved = 3;
-            } elseif ($data->approved == 3) {
-                $users_id = @$approval->user_approval_4;
-                $approved = 4;
-            } elseif ($data->approved == 4) {
-                $users_id = @$approval->user_approval_5;
-                $approved = 5;
-            } else {
-                $users_id = "";
-                $approved = 0;
-            }
-
-            $values = array(
-                "approved_by" => $this->session->username,
-                "approved_date" => date('Y-m-d H:i:s'),
-                "approved_to" => $users_id,
-                "approved" => $approved,
-            );
-
-            $send = $this->db->update($table_name, $values, ["id" => $id]);
+        if ($data->approved == 1) {
+            $users_id = @$approval->user_approval_2;
+            $approved = 2;
+        } elseif ($data->approved == 2) {
+            $users_id = @$approval->user_approval_3;
+            $approved = 3;
+        } elseif ($data->approved == 3) {
+            $users_id = @$approval->user_approval_4;
+            $approved = 4;
+        } elseif ($data->approved == 4) {
+            $users_id = @$approval->user_approval_5;
+            $approved = 5;
+        } else {
+            $users_id = "";
+            $approved = 0;
         }
 
+        $values = array(
+            "approved_by" => $this->session->username,
+            "approved_date" => date('Y-m-d H:i:s'),
+            "approved_to" => $users_id,
+            "approved" => $approved,
+        );
+
+        $this->db->update($table_name, $values, ["approved_to" => $approved_to, "approved_by" => $approved_by]);
         echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
     }
 
@@ -160,18 +198,20 @@ class Approvals extends CI_Controller
         $rm_stock = $this->api->reads('rm_stock', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $os_vendor = $this->api->reads('os_vendor', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $os_mpp = $this->api->reads('os_mpp', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
+        $os_supply = $this->api->reads('os_supply', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $balance_wip = $this->api->reads('balance_wip', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $upload_gp = $this->api->reads('upload_gp', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $generate_mrp_finals = $this->api->reads('generate_mrp_finals', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $purchase_orders = $this->api->reads('purchase_orders', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
-        $purchase_order_npd = $this->api->reads('purchase_order_npd', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $purchase_requests = $this->api->reads('purchase_requests', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $supplier_items = $this->api->reads('supplier_items', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $supplier_item_prices = $this->api->reads('supplier_item_prices', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $simulation_mps = $this->api->reads('simulation_mps', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $forecast_supplier = $this->api->reads('forecast_supplier', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
+        $request_npd = $this->api->reads('request_npd', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
 
-        $totalRows = (count($users) + count($generate_mrp_finals) + count($upload_gp) + count($balance_wip) + count($os_mpp) + count($os_vendor) + count($rm_stock) + count($mst_umh_havcp) + count($mst_umh) + count($mpp_os) + count($mst_wip) + count($mst_forecast) + count($fg_stock) + count($sales_order_os) + count($sales_order) + count($purchase_orders) + count($purchase_order_npd) + count($purchase_requests) + count($supplier_items) + count($supplier_item_prices) + count($simulation_mps) + count($forecast_supplier)); //+ count($forecasts) + count($stock_fg) + count($stock_wip) + count($os_so) + count($os_mpp) 
+
+        $totalRows = (count($users) + count($generate_mrp_finals) + count($upload_gp) + count($balance_wip) + count($os_supply) + count($os_mpp) + count($os_vendor) + count($rm_stock) + count($mst_umh_havcp) + count($mst_umh) + count($mpp_os) + count($mst_wip) + count($mst_forecast) + count($fg_stock) + count($sales_order_os) + count($sales_order) + count($purchase_orders) + count($purchase_requests) + count($supplier_items) + count($supplier_item_prices) + count($simulation_mps) + count($forecast_supplier) + count($request_npd)); //+ count($forecasts) + count($stock_fg) + count($stock_wip) + count($os_so) + count($os_mpp) 
         if ($totalRows > 0) {
             echo '<span class="badge">' . $totalRows . '</span>';
         } else {
@@ -193,17 +233,18 @@ class Approvals extends CI_Controller
         $mst_umh_havcp = $this->api->reads('mst_umh_havcp', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $rm_stock = $this->api->reads('rm_stock', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $os_vendor = $this->api->reads('os_vendor', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
+        $os_supply = $this->api->reads('os_supply', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $os_mpp = $this->api->reads('os_mpp', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $balance_wip = $this->api->reads('balance_wip', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $upload_gp = $this->api->reads('upload_gp', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $generate_mrp_finals = $this->api->reads('generate_mrp_finals', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $purchase_orders = $this->api->reads('purchase_orders', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
-        $purchase_order_npd = $this->api->reads('purchase_order_npd', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $purchase_requests = $this->api->reads('purchase_requests', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $supplier_items = $this->api->reads('supplier_items', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $supplier_item_prices = $this->api->reads('supplier_item_prices', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $simulation_mps = $this->api->reads('simulation_mps', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $forecast_supplier = $this->api->reads('forecast_supplier', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
+        $request_npd = $this->api->reads('request_npd', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
 
         foreach ($users as $user) {
             $this->approvalMessage($user->approved_by, $user->approved_to, $user->created_by, "user");
@@ -213,9 +254,6 @@ class Approvals extends CI_Controller
         }
         foreach ($purchase_orders as $po) {
             $this->approvalMessage($po->approved_by, $po->approved_to, $po->created_by, "purchase_orders");
-        }
-        foreach ($purchase_order_npd as $npd) {
-            $this->approvalMessage($npd->approved_by, $npd->approved_to, $npd->created_by, "purchase_order_npd");
         }
         foreach ($purchase_requests as $pr) {
             $this->approvalMessage($pr->approved_by, $pr->approved_to, $pr->created_by, "purchase_requests");
@@ -250,6 +288,9 @@ class Approvals extends CI_Controller
         foreach ($os_vendor as $osv) {
             $this->approvalMessage($osv->approved_by, $osv->approved_to, $osv->created_by, "os_vendor");
         }
+        foreach ($os_supply as $supply) {
+            $this->approvalMessage($supply->approved_by, $supply->approved_to, $supply->created_by, "os_supply");
+        }
         foreach ($os_mpp as $osmpp) {
             $this->approvalMessage($osmpp->approved_by, $osmpp->approved_to, $osmpp->created_by, "os_mpp");
         }
@@ -270,6 +311,9 @@ class Approvals extends CI_Controller
         }
         foreach ($forecast_supplier as $fs) {
             $this->approvalMessage($fs->approved_by, $fs->approved_to, $fs->created_by, "forecast_supplier");
+        }
+        foreach ($request_npd as $npd) {
+            $this->approvalMessage($npd->approved_by, $npd->approved_to, $npd->created_by, "request_npd");
         }
     }
 
@@ -458,6 +502,20 @@ class Approvals extends CI_Controller
         }
     }
 
+    public function os_supply($approved_to, $created_by, $approved_by)
+    {
+        if (empty($this->session->username)) {
+            redirect('error_session');
+        } else {
+            $data['approved_to'] = base64_decode($approved_to);
+            $data['created_by'] = base64_decode($created_by);
+            $data['approved_by'] = base64_decode($approved_by);
+            $data['table'] = "os_supply";
+            $this->load->view('template/header', $data);
+            $this->load->view('approval/os_supply');
+        }
+    }
+
     public function os_mpp($approved_to, $created_by, $approved_by)
     {
         if (empty($this->session->username)) {
@@ -528,20 +586,6 @@ class Approvals extends CI_Controller
         }
     }
 
-    public function purchase_order_npd($approved_to, $created_by, $approved_by)
-    {
-        if (empty($this->session->username)) {
-            redirect('error_session');
-        } else {
-            $data['approved_to'] = base64_decode($approved_to);
-            $data['created_by'] = base64_decode($created_by);
-            $data['approved_by'] = base64_decode($approved_by);
-            $data['table'] = "purchase_order_npd";
-            $this->load->view('template/header', $data);
-            $this->load->view('approval/purchase_order_npd');
-        }
-    }
-
     public function purchase_requests($approved_to, $created_by, $approved_by)
     {
         if (empty($this->session->username)) {
@@ -609,6 +653,20 @@ class Approvals extends CI_Controller
             $data['table'] = "forecast_supplier";
             $this->load->view('template/header', $data);
             $this->load->view('approval/forecast_supplier');
+        }
+    }
+
+    public function request_npd($approved_to, $created_by, $approved_by)
+    {
+        if (empty($this->session->username)) {
+            redirect('error_session');
+        } else {
+            $data['approved_to'] = base64_decode($approved_to);
+            $data['created_by'] = base64_decode($created_by);
+            $data['approved_by'] = base64_decode($approved_by);
+            $data['table'] = "request_npd";
+            $this->load->view('template/header', $data);
+            $this->load->view('approval/request_npd');
         }
     }
 
@@ -791,6 +849,46 @@ class Approvals extends CI_Controller
         //Select Query
         $this->db->select('*');
         $this->db->from('mst_forecast');
+        $this->db->where('approved_to', $approved_to);
+        // $this->db->where('created_by', $created_by);
+        $this->db->where('approved_by', $approved_by);
+        if (@count($filters) > 0) {
+            foreach ($filters as $filter) {
+                $this->db->like($filter->field, $filter->value);
+            }
+        }
+        $this->db->order_by('created_date', 'desc');
+        //Total Data
+        $totalRows = $this->db->count_all_results('', false);
+        //Limit 1 - 10
+        //$this->db->limit($rows, $offset);
+        //Get Data Array
+        $records = $this->db->get()->result_array();
+        //Mapping Data
+        $result['total'] = $totalRows;
+        $result = array_merge($result, ['rows' => $records]);
+        echo json_encode($result);
+    }
+    
+    public function approvalRequestNpd($approved_to, $created_by, $approved_by)
+    {
+        $approved_to = base64_decode($approved_to);
+        $created_by = base64_decode($created_by);
+        $approved_by = base64_decode($approved_by);
+
+        $filters = json_decode($this->input->post('filterRules'));
+        $page = $this->input->post('page');
+        $rows = $this->input->post('rows');
+
+        //Pagination 1-10
+        $page   = isset($page) ? intval($page) : 1;
+        $rows   = isset($rows) ? intval($rows) : 10;
+        $offset = ($page - 1) * $rows;
+        $result = array();
+
+        //Select Query
+        $this->db->select('*');
+        $this->db->from('request_npd');
         $this->db->where('approved_to', $approved_to);
         // $this->db->where('created_by', $created_by);
         $this->db->where('approved_by', $approved_by);
@@ -1075,6 +1173,46 @@ class Approvals extends CI_Controller
         echo json_encode($result);
     }
 
+    public function approvalOsSupply($approved_to, $created_by, $approved_by)
+    {
+        $approved_to = base64_decode($approved_to);
+        $created_by = base64_decode($created_by);
+        $approved_by = base64_decode($approved_by);
+
+        $filters = json_decode($this->input->post('filterRules'));
+        $page = $this->input->post('page');
+        $rows = $this->input->post('rows');
+
+        //Pagination 1-10
+        $page   = isset($page) ? intval($page) : 1;
+        $rows   = isset($rows) ? intval($rows) : 10;
+        $offset = ($page - 1) * $rows;
+        $result = array();
+
+        //Select Query
+        $this->db->select('*');
+        $this->db->from('os_supply');
+        $this->db->where('approved_to', $approved_to);
+        // $this->db->where('created_by', $created_by);
+        $this->db->where('approved_by', $approved_by);
+        if (@count($filters) > 0) {
+            foreach ($filters as $filter) {
+                $this->db->like($filter->field, $filter->value);
+            }
+        }
+        $this->db->order_by('created_date', 'desc');
+        //Total Data
+        $totalRows = $this->db->count_all_results('', false);
+        //Limit 1 - 10
+        //$this->db->limit($rows, $offset);
+        //Get Data Array
+        $records = $this->db->get()->result_array();
+        //Mapping Data
+        $result['total'] = $totalRows;
+        $result = array_merge($result, ['rows' => $records]);
+        echo json_encode($result);
+    }
+
     public function approvalOsMpp($approved_to, $created_by, $approved_by)
     {
         $approved_to = base64_decode($approved_to);
@@ -1289,46 +1427,6 @@ class Approvals extends CI_Controller
         $this->db->group_by('a.id');
         $this->db->order_by('a.purchase_order_no', 'asc');
         $this->db->order_by('a.item_id', 'asc');
-        //Total Data
-        $totalRows = $this->db->count_all_results('', false);
-        //Limit 1 - 10
-        //$this->db->limit($rows, $offset);
-        //Get Data Array
-        $records = $this->db->get()->result_array();
-        //Mapping Data
-        $result['total'] = $totalRows;
-        $result = array_merge($result, ['rows' => $records]);
-        echo json_encode($result);
-    }
-
-    public function approvalPurchaseOrderNpd($approved_to, $created_by, $approved_by)
-    {
-        $approved_to = base64_decode($approved_to);
-        $created_by = base64_decode($created_by);
-        $approved_by = base64_decode($approved_by);
-
-        $filters = json_decode($this->input->post('filterRules'));
-        $page = $this->input->post('page');
-        $rows = $this->input->post('rows');
-
-        //Pagination 1-10
-        $page   = isset($page) ? intval($page) : 1;
-        $rows   = isset($rows) ? intval($rows) : 10;
-        $offset = ($page - 1) * $rows;
-        $result = array();
-
-        //Select Query
-        $this->db->select('a.*');
-        $this->db->from('purchase_order_npd a');
-        $this->db->where('a.approved_to', $approved_to);
-        $this->db->where('a.approved_by', $approved_by);
-        if (@count($filters) > 0) {
-            foreach ($filters as $filter) {
-                $this->db->like("a." . $filter->field, $filter->value);
-            }
-        }
-        $this->db->group_by('a.id');
-        $this->db->order_by('a.created_date', 'desc');
         //Total Data
         $totalRows = $this->db->count_all_results('', false);
         //Limit 1 - 10

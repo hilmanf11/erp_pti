@@ -162,9 +162,9 @@
 		return "<b>" + formatter.format(value) + "</b>";
 	}
 
-    function Itemid(value, row) {
-		return "'" + value;
-	}
+    // function Itemid(value, row) {
+	// 	return "'" + value;
+	// }
 
 	function numberformatPrice(value, row){
         const formatter = new Intl.NumberFormat('id-ID', {
@@ -218,7 +218,7 @@
 					width: 200,
 					halign: 'center',
 					title: "Item No",
-					formatter: Itemid,
+					// formatter: Itemid,
 				}, {
 					field: 'part_name',
 					width: 100,

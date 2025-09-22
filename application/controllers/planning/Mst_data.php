@@ -103,4 +103,11 @@ class Mst_data extends CI_Controller
         $customers = $this->api->reads('mst_customer', ["name" => "PT", "name" => $post], [], "", "name", "asc");
         echo json_encode($customers);
     }
+    
+    public function readProductFamily(){
+        $query = $this->db->query("SELECT number as pfm_id, name as pfm_name FROM mst_item_family WHERE number != '06' ORDER BY number ASC");
+        $records = $query->result_array();
+
+        echo json_encode($records);
+    }
 }

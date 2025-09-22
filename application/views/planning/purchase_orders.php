@@ -25,6 +25,7 @@
     </thead>
     <thead>
         <tr>
+            <th rowspan="2" data-options="field:'supplier_type',width:120,halign:'center'">Supplier Type</th>
             <th rowspan="2" data-options="field:'product_family_name',width:120,halign:'center'">Product Family</th>
             <th rowspan="2" data-options="field:'purchase_request_no',width:180,halign:'center'">PR No</th>
             <th rowspan="2" data-options="field:'purchase_order_no',width:180,halign:'center'">PO No</th>
@@ -132,6 +133,8 @@
     </div>
     <?= $button ?>
     <a href="javascript:;" class="easyui-linkbutton" plain="true" onclick="csv()"><i class="fa fa-file"></i> Export to CSV</a>
+    <a href="javascript:;" class="easyui-linkbutton" plain="true" onclick="priceSyncAll()"><i class="fa fa-money"></i> Sync Prices</a>
+    <!-- <a href="javascript:;" class="easyui-linkbutton" plain="true" onclick="toastr.info('Still Development')"><i class="fa fa-money"></i> Sync Prices</a> -->
 </div>
 
 <div id="toolbar2" style="height: auto; padding:10px;">
@@ -182,7 +185,7 @@
     <a href="javascript:;" class="easyui-linkbutton" plain="false" onclick="export_excel3()"><i class="fa fa-file"></i> &nbsp; Export Excel</a>
 </div>
 
-<div id="dlg_purchase_order" class="easyui-dialog" title="Detail Purchase Order" data-options="closed: true,modal:true" style="width: 90%; height: 550px; top: 0px; left: 0px;">
+<div id="dlg_purchase_order" class="easyui-dialog" title="Detail Purchase Order" data-options="closed: true,modal:true" style="width: 98%; height: 550px; top: 0px; left: 0px;">
     <table id="dg_purchase_order" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar2" showFooter="true">
         <thead>
             <tr>
@@ -193,6 +196,8 @@
                 <th data-options="field:'mpq',width:80,halign:'center'">MPQ</th>
                 <th data-options="field:'moq',width:80,halign:'center'">MOQ</th>
                 <th data-options="field:'leadtime',width:80,halign:'center'">Leadtime</th>
+                <th data-options="field:'eta',width:100,align:'center'">ETA</th>
+                <th data-options="field:'etd',width:100,align:'center'">ETD</th>
                 <th data-options="field:'qty',width:100,halign:'center',align:'right',formatter:numberformat">Qty</th>
                 <th data-options="field:'price',width:100,halign:'center',align:'right',formatter:numberformatPrice">Price</th>
                 <th data-options="field:'total',width:150,halign:'center',align:'right',formatter:numberformatPrice">Total</th>
@@ -206,7 +211,7 @@
     </table>
 </div>
 
-<div id="dlg_confirm" class="easyui-dialog" title="Confrim PO" toolbar="#toolbar3" data-options="closed: true,modal:true" style="width: 100%; height: 600px; top: 0px; left: 0px;">
+<div id="dlg_confirm" class="easyui-dialog" title="Confrim PO" toolbar="#toolbar3" data-options="closed: true,modal:true" style="width: 100%; height: 550px; top: 0px; left: 0px;">
     <table id="dg_confirm" class="easyui-datagrid" style="width:100%;">
         <thead>
             <tr>
@@ -557,36 +562,36 @@
         }
     }
 
-    function checkConfirmPo(){
-        $.ajax({
-            type: "post",
-            url: '<?= base_url('planning/purchase_orders/datatableConfirm') ?>',
-            dataType: "json",
-            success: function (response) {
-                if(response.total > 0){
-                    $("#confirmPo").show();
-                }else{
-                    $("#confirmPo").hide();
-                }
-            }
-        });
-    }
+    // function checkConfirmPo(){
+    //     $.ajax({
+    //         type: "post",
+    //         url: '<?= base_url('planning/purchase_orders/datatableConfirm') ?>',
+    //         dataType: "json",
+    //         success: function (response) {
+    //             if(response.total > 0){
+    //                 $("#confirmPo").show();
+    //             }else{
+    //                 $("#confirmPo").hide();
+    //             }
+    //         }
+    //     });
+    // }
 
-    checkConfirmPo();
-    setInterval(checkConfirmPo, 10000000);
+    // checkConfirmPo();
+    // setInterval(checkConfirmPo, 10000000);
 
-    function confirmPo() {
-        $("#dlg_confirm").dialog('open');
+    // function confirmPo() {
+    //     $("#dlg_confirm").dialog('open');
         
-        $('#dg_confirm').datagrid({
-            url: '<?= base_url('planning/purchase_orders/datatableConfirm') ?>',
-            clientPaging: false,
-            remoteFilter: true,
-            rownumbers: true,
-            singleSelect: false,
-            fit:true,
-        });
-    }
+    //     $('#dg_confirm').datagrid({
+    //         url: '<?= base_url('planning/purchase_orders/datatableConfirm') ?>',
+    //         clientPaging: false,
+    //         remoteFilter: true,
+    //         rownumbers: true,
+    //         singleSelect: false,
+    //         fit:true,
+    //     });
+    // }
 
     function confirm(purchase_request_no) {
         $.ajax({
@@ -641,14 +646,16 @@
 
         var revision = $("#filter_revision").combobox('getValue');
         var filter_part_no = $("#filter_part_no").combogrid('getValue');
-        
-        $('#dg_purchase_order').datagrid({
+
+        $('#dg_purchase_order').datagrid('loading');
+
+        $.ajax({
             url: '<?= base_url('planning/purchase_orders/datatableDetails/') ?>' + btoa(purchase_order_no) + "/" + revision + "?filter_part_no=" + btoa(filter_part_no),
-            clientPaging: false,
-            remoteFilter: true,
-            rownumbers: true,
-            singleSelect: false,
-            fit:true,
+            type: 'POST',
+            dataType: 'json',
+            success: function(result) {
+                $('#dg_purchase_order').datagrid('loadData', result).datagrid('loaded');
+            }
         });
     }
 
@@ -718,6 +725,66 @@
         });
 
         $('.messager-input').attr('type', 'password');
+    }
+
+    function priceSyncAll() {
+        var rows = $('#dg').datagrid('getSelections');
+        if (rows.length > 0) {
+            $.messager.prompt('Sync Price', 'Please input Password to Sync Price', function(r){
+                if (r == "PROCUREMENTUMI2024"){
+                    Swal.fire({
+                        title: 'Please Wait',
+                        showConfirmButton: false,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        },
+                    });
+
+                    requestDataPrice(rows.length, rows);
+                    function requestDataPrice(total, json, number = 1, value = 0, success = 1, failed = 1) {
+                        if (value < 100) {
+                            value = Math.floor((number / total) * 100);
+                            
+                            var row = json[number - 1];
+                            $.ajax({
+                                method: 'post',
+                                url: '<?= base_url('planning/purchase_orders/syncPriceAll') ?>',
+                                data: {
+                                    purchase_order_no: row.purchase_order_no
+                                },
+                                dataType: 'json',
+                                success: function(result) {
+                                    if (result.theme == "success") {
+                                        requestDataPrice(total, json, number + 1, value, success + 1, failed + 0);
+                                        toastr.success(result.message);
+                                    } else {
+                                        toastr.error(result.message);
+                                        requestDataPrice(total, json, number + 1, value, success + 1, failed + 0);
+                                    }
+
+                                    if (value == 100) {
+                                        Swal.close();
+                                        Swal.fire('Good job!', 'Process Sync Price Data Completed!', 'success');
+                                        $("#dg").datagrid('reload');
+                                    }
+                                },
+                                error: function(jqXHR, textStatus, errorThrown) {
+                                    toastr.error(jqXHR.statusText);
+                                    $.messager.alert("Error", jqXHR.statusText, 'error');
+                                    Swal.close();
+                                },
+                            });
+                        }
+                    }
+                }
+            });
+
+            $('.messager-input').attr('type', 'password');
+        } else {
+            toastr.warning("Please select one of the data in the table first!", "Information");
+        }
     }
 
     function pushData(){
@@ -824,7 +891,7 @@
                                 }
                             }
                         }else{
-                            toastr.warning("Data Purchase Order Not Found");
+                            toastr.warning("Data in Purchase Order not available Part No type IMPORT");
                         }
                     },
                     error: function(rows) {
@@ -1047,7 +1114,7 @@
             clientPaging: false,
             remoteFilter: true,
             rownumbers: true,
-            singleSelect: true,
+            singleSelect: false,
             fit:true,
             rowStyler: function(index,row){
                 if (row.color == ""){
@@ -1055,6 +1122,13 @@
                 }
             }
         });
+
+        $('#dg_purchase_order').datagrid({
+            clientPaging: false,
+            rownumbers: true,
+            singleSelect: false,
+            fit:true,
+        }).datagrid('enableFilter');
 
         $("#qty").numberbox({
             onChange: function(qty){
@@ -1434,20 +1508,28 @@
     }
 
     function BtnCreateSd(val, row) {
-        if (row.print_sd == 0) {
-            var send = "createSd('"+row.purchase_order_no+"')";
-            return '<a class="btn btn-success w-100" style="pointer-events: visible; opacity:1;" onClick="'+send+'"><i class="fa fa-plus"></i> Create</a>';
-        } else {
-            return '-';
-        }
+        // if(row.supplier_type == "IMPORT"){
+            if (row.print_sd == 0) {
+                var send = "createSd('"+row.purchase_order_no+"')";
+                return '<a class="btn btn-success w-100" style="pointer-events: visible; opacity:1;" onClick="'+send+'"><i class="fa fa-plus"></i> Create</a>';
+            } else {
+                return '-';
+            }
+        // }else{
+        //     return '-';
+        // }
     }
 
     function BtnPrintSd(val, row) {
-        if(val > 0){
-            return '<a class="btn btn-primary w-100" target="_blank" href="<?= base_url('planning/purchase_orders/print_delivery/') ?>'+btoa(row.purchase_order_no)+'" style="pointer-events: visible; opacity:1;"><i class="fa fa-print"></i> Print</a>';
-        } else {
-            return '-';
-        }
+        // if(row.supplier_type == "IMPORT"){
+            if(val > 0){
+                return '<a class="btn btn-primary w-100" target="_blank" href="<?= base_url('planning/purchase_orders/print_delivery/') ?>'+btoa(row.purchase_order_no)+'" style="pointer-events: visible; opacity:1;"><i class="fa fa-print"></i> Print</a>';
+            } else {
+                return '-';
+            }
+        // }else{
+        //     return '-';
+        // }
     }
 
     function BtnPush(val, row) {

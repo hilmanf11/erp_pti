@@ -8,6 +8,7 @@
     </thead>
     <thead>
         <tr>
+            <th rowspan="2" data-options="field:'supplier_name',width:250,halign:'center'">Supplier</th>
             <th rowspan="2" data-options="field:'product_family_name',width:120,halign:'center'">Product Family</th>
             <th rowspan="2" data-options="field:'stock_whs',width:80,halign:'center',align:'right',styler:cellStyler, formatter:numberformat">Stock WHS</th>
             <th rowspan="2" data-options="field:'os_supply',width:80,halign:'center',align:'right',styler:cellStyler, formatter:numberformat">OS Supply</th>
@@ -21,33 +22,55 @@
                     $filter_month = base64_decode($this->input->get('filter_month'));
                     $filter_year = base64_decode($this->input->get('filter_year'));
                     $filter_revision = base64_decode($this->input->get('filter_revision'));
+                    $filter_suppliers = base64_decode($this->input->get('filter_suppliers'));
                     $filter_item_family = base64_decode($this->input->get('filter_item_family'));
                     $filter_item_id = base64_decode($this->input->get('filter_item_id'));
                     $filter_status = $this->input->get('filter_status');
                     $filter_date = base64_decode($this->input->get('filter_date'));
+                    if($filter_date == ""){
+                        $filter_date = date("Y-m-d", strtotime("-1 days", strtotime($filter_year."-".$filter_month."-01")));
+                    }
                 }else{
                     $filter_month = date("m");
                     $filter_year = date("Y");
                     $filter_revision = "0";
+                    $filter_suppliers = "";
                     $filter_item_family = "";
                     $filter_item_id = "";
                     $filter_status = "";
-                    $filter_date = "";
+                    $filter_date = date("Y-m-d", strtotime("-1 days", strtotime($filter_year."-".$filter_month."-01")));
                 }
 
                 $next_month = date("F", strtotime("+1 month", strtotime($filter_year."-".$filter_month."-01")));
                 $firstDate = date("Y-m-01", strtotime(date("$filter_year-$filter_month-01")));
                 $endDate = date("Y-m-t", strtotime(date("$filter_year-$filter_month")));
+                $cut_no = 0;
                 while (strtotime($firstDate) <= strtotime($endDate)) {
                     $working_date = date('d M', strtotime($firstDate));
+                    $working_date2 = date("Y-m-d", strtotime($firstDate));
 
-                    if (date('w', strtotime($firstDate)) !== '0' && date('w', strtotime($firstDate)) !== '6') {
-                        $hstyle = "";
+                    $this->db->select('remarks');
+                    $this->db->from('working_calendar');
+                    $this->db->where('working_date', $working_date2);
+                    $holiday = $this->db->get()->row();
+
+                    if (date('w', strtotime($firstDate)) !== '0') {
+                        if (@$holiday->remarks != null or @$holiday->remarks != ""){
+                            $hstyle = "background-color:#FFB0B0";
+                            $cut_no += 0;
+                            $cut_content = "";
+                        }else{
+                            $hstyle = "";
+                            $cut_no += 1;
+                            $cut_content = " (W/P ". $cut_no.")";
+                        }
                     }else{
                         $hstyle = "background-color:#FFB0B0";
+                        $cut_no += 0;
+                        $cut_content = "";
                     }
             ?>
-            <th colspan="4" data-options="field:'period',width:50,halign:'center',align:'right',hstyler: function(value, row, index) { return '<?= $hstyle ?>'; }"><?= $working_date ?></th>
+            <th colspan="4" data-options="field:'period',width:50,halign:'center',align:'right',hstyler: function(value, row, index) { return '<?= $hstyle ?>'; }"><?= $working_date . $cut_content ?></th>
             <?php
                     $firstDate = date("Y-m-d", strtotime("+1 day", strtotime($firstDate)));
                 }
@@ -64,9 +87,19 @@
                 $tgl = 1;
                 while (strtotime($firstDate) <= strtotime($endDate)) {
                     $working_date = date('d M', strtotime($firstDate));
+                    $working_date2 = date("Y-m-d", strtotime($firstDate));
 
-                    if (date('w', strtotime($firstDate)) !== '0' && date('w', strtotime($firstDate)) !== '6') {
-                        $hstyle = "";
+                    $this->db->select('remarks');
+                    $this->db->from('working_calendar');
+                    $this->db->where('working_date', $working_date2);
+                    $holiday = $this->db->get()->row();
+
+                    if (date('w', strtotime($firstDate)) !== '0') {
+                        if (@$holiday->remarks != null or @$holiday->remarks != ""){
+                            $hstyle = "background-color:#FFB0B0";
+                        }else{
+                            $hstyle = "";
+                        }
                     }else{
                         $hstyle = "background-color:#FFB0B0";
                     }
@@ -119,6 +152,10 @@
                     </div>
                     <div style="width: 50%; float: left;">
                         <div class="fitem">
+                            <span style="width:35%; display:inline-block;">Supplier</span>
+                            <input style="width:60%;" id="filter_suppliers" value="<?= $filter_suppliers ?>" class="easyui-combogrid">
+                        </div>
+                        <div class="fitem">
                             <span style="width:35%; display:inline-block;">Product Family</span>
                             <input style="width:60%;" id="filter_item_family" value="<?= $filter_item_family ?>" class="easyui-combobox">
                         </div>
@@ -148,7 +185,7 @@
                 
             </div>
             <?= $button ?>
-            <!-- <a href="javascript:;" class="easyui-linkbutton" data-options="plain:true" onclick="material()"><i class="fa fa-file"></i> Material Shortage</a> -->
+            <a href="javascript:;" class="easyui-linkbutton" data-options="plain:true" onclick="excel_detail()"><i class="fa fa-file"></i> Export Excel Detail</a>
         <!-- </div>
     </div> -->
 </div>
@@ -182,7 +219,7 @@
     </table>
 </div>
 
-<iframe id="printout" src="" style="width: 100%; height:95%; border: 0;" hidden></iframe>
+<!-- <iframe id="printout" src="" style="width: 100%; height:95%; border: 0;" hidden></iframe> -->
 <script>
      //Add Data
     function add() {
@@ -190,6 +227,8 @@
         var filter_year = $("#filter_year").textbox('getValue');
         var filter_revision = $("#filter_revision").combobox('getValue');
         var filter_date = $("#filter_date").datebox('getValue');
+        var filter_item_family = $("#filter_item_family").combobox('getValue');
+        var filter_item_id = $("#filter_item_id").combogrid('getValue');
 
         if (filter_month == "" || filter_year == "" || filter_revision == "") {
             toastr.warning("Please select filter month, year and revision", "Information");
@@ -210,7 +249,9 @@
                 data: "filter_month=" + window.btoa(filter_month) +
                     "&filter_year=" + window.btoa(filter_year) +
                     "&filter_revision=" + window.btoa(filter_revision) +
-                    "&filter_date=" + window.btoa(filter_date),
+                    "&filter_date=" + window.btoa(filter_date) +
+                    "&filter_item_family=" + window.btoa(filter_item_family) +
+                    "&filter_item_id=" + window.btoa(filter_item_id),
                 dataType: "json",
                 success: function(rows) {
                     Swal.close();
@@ -290,6 +331,7 @@
         var filter_revision = $("#filter_revision").combobox('getValue');
         var filter_item_family = $("#filter_item_family").combobox('getValue');
         var filter_item_id = $("#filter_item_id").combogrid('getValue');
+        var filter_suppliers = $("#filter_suppliers").combogrid('getValue');
         var filter_status = $("#filter_status").combobox('getValue');
         var filter_date = $("#filter_date").datebox('getValue');
 
@@ -298,11 +340,12 @@
             "&filter_revision=" + window.btoa(filter_revision) +
             "&filter_item_family=" + window.btoa(filter_item_family) +
             "&filter_item_id=" + window.btoa(filter_item_id) +
+            "&filter_suppliers=" + window.btoa(filter_suppliers) +
             "&filter_date=" + window.btoa(filter_date) +
             "&filter_status=" + filter_status;
 
-        if (filter_month == "" || filter_year == "" || filter_revision == "" || filter_item_family == "") {
-            toastr.warning("Please select Period, Revision and Product Family!", "Information");
+        if (filter_month == "" || filter_year == "" || filter_revision == "" || filter_item_family == "" && filter_suppliers == "") {
+            toastr.warning("Please select Period, Revision, Product Family or Supplier!", "Information");
         } else {
             window.location.assign(url);
         }
@@ -319,6 +362,7 @@
         var filter_revision = $("#filter_revision").combobox('getValue');
         var filter_item_family = $("#filter_item_family").combobox('getValue');
         var filter_item_id = $("#filter_item_id").combogrid('getValue');
+        var filter_suppliers = $("#filter_suppliers").combogrid('getValue');
         var filter_status = $("#filter_status").combobox('getValue');
         var filter_date = $("#filter_date").datebox('getValue');
 
@@ -327,23 +371,25 @@
             "&filter_revision=" + window.btoa(filter_revision) +
             "&filter_item_family=" + window.btoa(filter_item_family) +
             "&filter_item_id=" + window.btoa(filter_item_id) +
+            "&filter_suppliers=" + window.btoa(filter_suppliers) +
             "&filter_date=" + window.btoa(filter_date) +
             "&filter_status=" + filter_status;
 
-        if (filter_month == "" || filter_year == "" || filter_revision == "" || filter_item_family == "") {
-            toastr.warning("Please select Period, Revision and Product Family!", "Information");
+        if (filter_month == "" || filter_year == "" || filter_revision == "") {
+            toastr.warning("Please select Period, Revision, Product Family or Supplier!", "Information");
         } else {
             $.messager.alert('Info','Please Wait to Export to Excel');
             window.location.assign('<?= base_url('planning/material_calculation_2/print/excel') ?>' + url);
         }
     }
 
-    function material(){
+    function excel_detail() {
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").textbox('getValue');
         var filter_revision = $("#filter_revision").combobox('getValue');
         var filter_item_family = $("#filter_item_family").combobox('getValue');
         var filter_item_id = $("#filter_item_id").combogrid('getValue');
+        var filter_suppliers = $("#filter_suppliers").combogrid('getValue');
         var filter_status = $("#filter_status").combobox('getValue');
         var filter_date = $("#filter_date").datebox('getValue');
 
@@ -352,14 +398,15 @@
             "&filter_revision=" + window.btoa(filter_revision) +
             "&filter_item_family=" + window.btoa(filter_item_family) +
             "&filter_item_id=" + window.btoa(filter_item_id) +
+            "&filter_suppliers=" + window.btoa(filter_suppliers) +
             "&filter_date=" + window.btoa(filter_date) +
-            "&filter_status=" + window.btoa(filter_status);
+            "&filter_status=" + filter_status;
 
-        if (filter_month == "" || filter_year == "" || filter_revision == "" || filter_item_family == "") {
-            toastr.warning("Please select Period, Revision and Product Family!", "Information");
+        if (filter_month == "" || filter_year == "" || filter_revision == "") {
+            toastr.warning("Please select Period, Revision, Product Family or Supplier!", "Information");
         } else {
             $.messager.alert('Info','Please Wait to Export to Excel');
-            window.location.assign('<?= base_url('planning/material_calculation_2/printMaterialShortage/excel') ?>' + url);
+            window.location.assign('<?= base_url('planning/material_calculation_2/print_detail') ?>' + url);
         }
     }
 
@@ -368,15 +415,15 @@
     }
 
     function cutoffDate(month, year){
-        $.ajax({
-            type: "post",
-            url: "<?= base_url('planning/material_calculation_2/cutoffDate') ?>",
-            data: "month=" + month + "&year=" + year,
-            dataType: "html",
-            success: function (response) {
-                $("#filter_date").datebox('setValue', response);
-            }
-        });
+        // $.ajax({
+        //     type: "post",
+        //     url: "<?= base_url('planning/material_calculation_2/cutoffDate') ?>",
+        //     data: "month=" + month + "&year=" + year,
+        //     dataType: "html",
+        //     success: function (response) {
+        //         $("#filter_date").datebox('setValue', response);
+        //     }
+        // });
     }
 
     $(function() {
@@ -386,6 +433,7 @@
         var filter_year = $("#filter_year").textbox('getValue');
         var filter_revision = $("#filter_revision").combobox('getValue');
         var filter_item_family = $("#filter_item_family").combobox('getValue');
+        var filter_suppliers = $("#filter_suppliers").combogrid('getValue');
         var filter_item_id = $("#filter_item_id").combogrid('getValue');
         var filter_status = $("#filter_status").combobox('getValue');
         var filter_date = $("#filter_date").datebox('getValue');
@@ -394,11 +442,12 @@
             "&filter_year=" + window.btoa(filter_year) +
             "&filter_revision=" + window.btoa(filter_revision) +
             "&filter_item_family=" + window.btoa(filter_item_family) +
+            "&filter_suppliers=" + window.btoa(filter_suppliers) +
             "&filter_item_id=" + window.btoa(filter_item_id) +
             "&filter_date=" + window.btoa(filter_date) +
             "&filter_status=" + filter_status;
 
-        if (filter_month != "" && filter_year != "" && filter_revision != "") {
+        if (filter_month != "" && filter_year != "" && filter_revision != "" && (filter_item_family != "" || filter_suppliers != "")) {
             $('#dg').datagrid({
                 url: '<?= base_url('planning/material_calculation_2/datatables') ?>' + url,
                 pagination: false,
@@ -517,6 +566,34 @@
                     ]
                 });
             }
+        });
+
+        //Get Vendor
+        $('#filter_suppliers').combogrid({
+            url: '<?= base_url('planning/suppliers/reads') ?>',
+            panelWidth: 420,
+            idField: 'id',
+            textField: 'name',
+            mode: 'remote',
+            fitColumns: true,
+            prompt: "Select Vendor",
+            icons: [{
+                iconCls: 'icon-clear',
+                handler: function(e) {
+                    $(e.data.target).combogrid('clear').combogrid('textbox').focus();
+                }
+            }],
+            columns: [
+                [{
+                    field: 'number',
+                    title: 'Vendor No',
+                    width: 80
+                }, {
+                    field: 'name',
+                    title: 'Vendor Name',
+                    width: 250
+                }, ]
+            ]
         });
     });
 

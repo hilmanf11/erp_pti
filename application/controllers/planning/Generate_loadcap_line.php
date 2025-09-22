@@ -586,19 +586,31 @@ class Generate_loadcap_line extends CI_Controller
                         $shift = $filter_shift;
                         $mp = 1;
 
-                        $machine_req_1 = floor($record['machine_qty'] + ($record['month_1'] / ($record['machine_qty'] * $shift * 8 * $hkw_1 * ($record['efficiency'] / 100))));
-                        $machine_req_2 = floor($record['machine_qty'] + ($record['month_2'] / ($record['machine_qty'] * $shift * 8 * $hkw_2 * ($record['efficiency'] / 100))));
-                        $machine_req_3 = floor($record['machine_qty'] + ($record['month_3'] / ($record['machine_qty'] * $shift * 8 * $hkw_3 * ($record['efficiency'] / 100))));
-                        $machine_req_4 = floor($record['machine_qty'] + ($record['month_4'] / ($record['machine_qty'] * $shift * 8 * $hkw_4 * ($record['efficiency'] / 100))));
-                        $machine_req_5 = floor($record['machine_qty'] + ($record['month_5'] / ($record['machine_qty'] * $shift * 8 * $hkw_5 * ($record['efficiency'] / 100))));
-                        $machine_req_6 = floor($record['machine_qty'] + ($record['month_6'] / ($record['machine_qty'] * $shift * 8 * $hkw_6 * ($record['efficiency'] / 100))));
+                        // $machine_req_1 = floor($record['machine_qty'] + ($record['month_1'] / ($record['machine_qty'] * $shift * 8 * $hkw_1 * ($record['efficiency'] / 100))));
+                        // $machine_req_2 = floor($record['machine_qty'] + ($record['month_2'] / ($record['machine_qty'] * $shift * 8 * $hkw_2 * ($record['efficiency'] / 100))));
+                        // $machine_req_3 = floor($record['machine_qty'] + ($record['month_3'] / ($record['machine_qty'] * $shift * 8 * $hkw_3 * ($record['efficiency'] / 100))));
+                        // $machine_req_4 = floor($record['machine_qty'] + ($record['month_4'] / ($record['machine_qty'] * $shift * 8 * $hkw_4 * ($record['efficiency'] / 100))));
+                        // $machine_req_5 = floor($record['machine_qty'] + ($record['month_5'] / ($record['machine_qty'] * $shift * 8 * $hkw_5 * ($record['efficiency'] / 100))));
+                        // $machine_req_6 = floor($record['machine_qty'] + ($record['month_6'] / ($record['machine_qty'] * $shift * 8 * $hkw_6 * ($record['efficiency'] / 100))));
+                        $machine_req_1 = round(($record['month_1'] / $hkw_1 / 8 / $shift) * ($record['efficiency'] / 100));
+                        $machine_req_2 = round(($record['month_2'] / $hkw_2 / 8 / $shift) * ($record['efficiency'] / 100));
+                        $machine_req_3 = round(($record['month_3'] / $hkw_3 / 8 / $shift) * ($record['efficiency'] / 100));
+                        $machine_req_4 = round(($record['month_4'] / $hkw_4 / 8 / $shift) * ($record['efficiency'] / 100));
+                        $machine_req_5 = round(($record['month_5'] / $hkw_5 / 8 / $shift) * ($record['efficiency'] / 100));
+                        $machine_req_6 = round(($record['month_6'] / $hkw_6 / 8 / $shift) * ($record['efficiency'] / 100));
 
-                        $mp_req_1 = abs(($record['machine_qty'] - ($record['machine_qty'] + $machine_req_1)) * $shift); 
-                        $mp_req_2 = abs(($record['machine_qty'] - ($record['machine_qty'] + $machine_req_2)) * $shift);
-                        $mp_req_3 = abs(($record['machine_qty'] - ($record['machine_qty'] + $machine_req_3)) * $shift);
-                        $mp_req_4 = abs(($record['machine_qty'] - ($record['machine_qty'] + $machine_req_4)) * $shift);
-                        $mp_req_5 = abs(($record['machine_qty'] - ($record['machine_qty'] + $machine_req_5)) * $shift);
-                        $mp_req_6 = abs(($record['machine_qty'] - ($record['machine_qty'] + $machine_req_6)) * $shift);
+                        // $mp_req_1 = abs(($record['machine_qty'] - ($record['machine_qty'] + $machine_req_1)) * $shift); 
+                        // $mp_req_2 = abs(($record['machine_qty'] - ($record['machine_qty'] + $machine_req_2)) * $shift);
+                        // $mp_req_3 = abs(($record['machine_qty'] - ($record['machine_qty'] + $machine_req_3)) * $shift);
+                        // $mp_req_4 = abs(($record['machine_qty'] - ($record['machine_qty'] + $machine_req_4)) * $shift);
+                        // $mp_req_5 = abs(($record['machine_qty'] - ($record['machine_qty'] + $machine_req_5)) * $shift);
+                        // $mp_req_6 = abs(($record['machine_qty'] - ($record['machine_qty'] + $machine_req_6)) * $shift);
+                        $mp_req_1 = round(($record['month_1'] / $hkw_1 / 8));
+                        $mp_req_2 = round(($record['month_2'] / $hkw_2 / 8));
+                        $mp_req_3 = round(($record['month_3'] / $hkw_3 / 8));
+                        $mp_req_4 = round(($record['month_4'] / $hkw_4 / 8));
+                        $mp_req_5 = round(($record['month_5'] / $hkw_5 / 8));
+                        $mp_req_6 = round(($record['month_6'] / $hkw_6 / 8));
 
                         $machine_bal_1 = ($record['machine_qty'] - $machine_req_1);
                         $machine_bal_2 = ($record['machine_qty'] - $machine_req_2);
@@ -686,64 +698,64 @@ class Generate_loadcap_line extends CI_Controller
                     if ($machine_bal_1 <= 0 && $mp_bal_1 >= 0) {
                         $f_mp_bal_1 = $mp_bal_1;
                     }else{
-                        $f_mp_bal_1 = 0;
+                        $f_mp_bal_1 = $mp_bal_1;
                     }
 
                     if ($machine_bal_2 <= 0 && $mp_bal_2 >= 0) {
                         $f_mp_bal_2 = $mp_bal_2;
                     }else{
-                        $f_mp_bal_2 = 0;
+                        $f_mp_bal_2 = $mp_bal_2;
                     }
 
                     if ($machine_bal_3 <= 0 && $mp_bal_3 >= 0) {
                         $f_mp_bal_3 = $mp_bal_3;
                     }else{
-                        $f_mp_bal_3 = 0;
+                        $f_mp_bal_3 = $mp_bal_3;
                     }
 
                     if ($machine_bal_4 <= 0 && $mp_bal_4 >= 0) {
                         $f_mp_bal_4 = $mp_bal_4;
                     }else{
-                        $f_mp_bal_4 = 0;
+                        $f_mp_bal_4 = $mp_bal_4;
                     }
 
                     if ($machine_bal_5 <= 0 && $mp_bal_5 >= 0) {
                         $f_mp_bal_5 = $mp_bal_5;
                     }else{
-                        $f_mp_bal_5 = 0;
+                        $f_mp_bal_5 = $mp_bal_5;
                     }
 
                     if ($machine_bal_6 <= 0 && $mp_bal_6 >= 0) {
                         $f_mp_bal_6 = $mp_bal_6;
                     }else{
-                        $f_mp_bal_6 = 0;
+                        $f_mp_bal_6 = $mp_bal_6;
                     }
 
                     if((($machine_bal_1 + $machine_bal_2 + $machine_bal_3 + $machine_bal_4 + $machine_bal_5 + $machine_bal_6) / 6) <= 0 && (($mp_bal_1 + $mp_bal_2 + $mp_bal_3 + $mp_bal_4 + $mp_bal_5 + $mp_bal_6) / 6) >= 0){
                         $f_mp_bal_7 = (($mp_bal_1 + $mp_bal_2 + $mp_bal_3 + $mp_bal_4 + $mp_bal_5 + $mp_bal_6) / 6);
                     }else{
-                        $f_mp_bal_7 = 0;
+                        $f_mp_bal_7 = (($mp_bal_1 + $mp_bal_2 + $mp_bal_3 + $mp_bal_4 + $mp_bal_5 + $mp_bal_6) / 6);
                     }
 
-                    if ($f_mp_bal_1 != 0) {
+                    if ($f_mp_bal_1 <= 0) {
                         $color_mp_1 = "color:red;";
                     }
-                    if ($f_mp_bal_2 != 0) {
+                    if ($f_mp_bal_2 <= 0) {
                         $color_mp_2 = "color:red;";
                     }
-                    if ($f_mp_bal_3 != 0) {
+                    if ($f_mp_bal_3 <= 0) {
                         $color_mp_3 = "color:red;";
                     }
-                    if ($f_mp_bal_4 != 0) {
+                    if ($f_mp_bal_4 <= 0) {
                         $color_mp_4 = "color:red;";
                     }
-                    if ($f_mp_bal_5 != 0) {
+                    if ($f_mp_bal_5 <= 0) {
                         $color_mp_5 = "color:red;";
                     }
-                    if ($f_mp_bal_6 != 0) {
+                    if ($f_mp_bal_6 <= 0) {
                         $color_mp_6 = "color:red;";
                     }
-                    if ($f_mp_bal_7 != 0) {
+                    if ($f_mp_bal_7 <= 0) {
                         $color_mp_7 = "color:red;";
                     }
 
@@ -820,7 +832,7 @@ class Generate_loadcap_line extends CI_Controller
                                         ((($record['capacity_6'] - $record['month_6']) / $record['capacity_6']) * 100)) / 6, 1, ',', '.') . ' %</td>
                                 </tr>
                                 <tr>
-                                    <td>MACHINE  REQUIREMENT</td>
+                                    <td>MACHINE REQUIREMENT</td>
                                     <td style="text-align:right;">' . number_format($machine_req_1, 1, ',', '.') . '</td>
                                     <td style="text-align:right;">' . number_format($machine_req_2, 1, ',', '.') . '</td>
                                     <td style="text-align:right;">' . number_format($machine_req_3, 1, ',', '.') . '</td>

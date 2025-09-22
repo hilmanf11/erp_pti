@@ -111,7 +111,7 @@ class Simulation_mps extends CI_Controller
             $month_bf = date("F", strtotime("-1 month", strtotime($period)));
 
             //Select Query
-            $this->db->select('a.*');
+            $this->db->select('a.*, (CASE WHEN a.balance > 0 THEN 0 ELSE a.balance END) as sugest_order, ((a.stock_whs + a.eta_total)-(a.os_wo + a.os_supply + total_need)) as balance2');
             $this->db->from('simulation_mps a');
             $this->db->join('mst_item_raw b', "b.item_id = a.item_no");
             $this->db->join('mst_item_family c', 'b.pfm_id = c.number');
@@ -399,7 +399,7 @@ class Simulation_mps extends CI_Controller
         $filter_item_id = trim(base64_decode($this->input->get('filter_item_id')));
 
         //Select Query
-        $this->db->select('a.*');
+        $this->db->select('a.*, (CASE WHEN a.balance > 0 THEN 0 ELSE a.balance END) as sugest_order, ((a.stock_whs + a.eta_total)-(a.os_wo + a.os_supply + total_need)) as balance2');
         $this->db->from('simulation_mps a');
         $this->db->join('mst_item_raw b', "b.item_id = a.item_no");
         $this->db->join('mst_item_family c', 'b.pfm_id = c.number');
@@ -462,15 +462,22 @@ class Simulation_mps extends CI_Controller
                 <th style="text-align:center;">Supply<br>(M)</th>
                 <th style="text-align:center;">Need<br>(M)</th>
                 <th style="text-align:center;">Total Need<br>(M)</th>
+                <th style="text-align:center;">Balance</th>
                 <th style="text-align:center;">Need<br>Breakdown</th>
                 <th style="text-align:center;">Free Stock<br>(M)</th>
                 <th style="text-align:center;">Need<br>(M+1)</th>
-                <th style="text-align:center;">Free Stock<br>(M+1)</th>
+                <th style="text-align:center;">Suggest Order</th>
                 <th style="text-align:center;">OTW</th>
                 <th style="text-align:center;">ETA</th>
             </tr>';
         $no = 1;
         foreach ($records as $data) {
+            if($data['balance'] > 0){
+                $sugest_order = 0;
+            }else{
+                $sugest_order = $data['balance'];
+            }
+
             $html .= '  <tr>
                             <td>' . $no . '</td>
                             <td style="mso-number-format:\@;">' . $data['item_no'] . '</td>
@@ -483,10 +490,11 @@ class Simulation_mps extends CI_Controller
                             <td>' . $data['os_supply2'] . '</td>
                             <td>' . $data['need_1'] . '</td>
                             <td>' . $data['total_need'] . '</td>
+                            <td>' . $data['balance2'] . '</td>
                             <td>' . $data['qtyperassy'] . '</td>
                             <td>' . $data['freestock'] . '</td>
                             <td>' . $data['need_2'] . '</td>
-                            <td>' . $data['balance'] . '</td>
+                            <td>' . $sugest_order . '</td>
                             <td>' . $data['otw'] . '</td>
                             <td>' . $data['eta'] . '</td>
                         </tr>';

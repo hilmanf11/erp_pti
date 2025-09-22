@@ -121,7 +121,7 @@ class Notification extends CI_Controller
                             <a onclick="' . $link . '">
                                 <table style="width: 100%;">
                                     <tr>
-                                        <td>
+                                        <td width="30">
                                             <div class="icon-container">
                                                 <img src="assets/image/users/default.png" class="user-online" />
                                                 <div class="status-circle"></div>
@@ -158,7 +158,7 @@ class Notification extends CI_Controller
                             <a onclick="' . $link . '">
                                 <table style="width: 100%;">
                                     <tr>
-                                        <td>
+                                        <td width="30">
                                             <div class="icon-container">
                                                 <img src="assets/image/users/default.png" class="user-online" />
                                                 <div class="status-circle"></div>
@@ -191,14 +191,14 @@ class Notification extends CI_Controller
                     <a onclick="' . $link . '">
                         <table style="width: 100%;">
                             <tr>
-                                <td>
+                                <td width="30">
                                     <div class="icon-container">
                                         <img src="assets/image/users/' . $avatar . '" class="user-online" />
                                         <div class="status-circle"></div>
                                     </div>
                                 </td>
                                 <td style="padding-left: 10px;">
-                                    <b>' . $user->name . '</b><br>
+                                    <b>' . @$user->name . '</b><br>
                                     <small>'.$description.'</small>
                                 </td>
                             </tr>

@@ -113,7 +113,7 @@
         var filter_product_no = $("#filter_product_no").combogrid('getValue');
 
         $.messager.prompt('Push Data MPS', 'Please input Password Push Data', function(r){
-            if (r == "PUSHDATAMPS"){
+            if (r == "TESTINGMPS123"){
                 Swal.fire({
                     title: 'Please Wait for Push Data',
                     showConfirmButton: false,

@@ -136,7 +136,7 @@ class Supplier_items extends CI_Controller
         $this->db->join('mst_item_raw c', 'c.item_id = a.item_id');
         $this->db->join('uom d', 'c.um_id = d.number', 'left');
         $this->db->join('mst_item_family e', 'c.pfm_id = e.number', 'left');
-        $this->db->join('mst_maker f', 'a.maker_code = f.number');
+        $this->db->join('mst_maker f', 'a.maker_code = f.number', 'left');
         $this->db->where('a.supplier_item_id', $id);
         $this->db->order_by('b.name', 'ASC');
         $this->db->order_by('a.item_id', 'ASC');
@@ -352,11 +352,13 @@ class Supplier_items extends CI_Controller
                 'maker_code' => $data->val($i, 11),
                 'maker_type' => $data->val($i, 12),
                 'share_order' => $data->val($i, 13),
-                'valid_date' => $data->val($i, 14),
-                'leadtime' => $data->val($i, 15),
-                'landed_cost' => $data->val($i, 16),
-                'import_duty' => $data->val($i, 17),
-                'remarks' => $data->val($i, 18),
+                'start_date' => $data->val($i, 14),
+                'valid_date' => $data->val($i, 15),
+                'leadtime' => $data->val($i, 16),
+                'landed_cost' => $data->val($i, 17),
+                'import_duty' => $data->val($i, 18),
+                'remarks' => $data->val($i, 19),
+                'action' => $data->val($i, 20)
             );
         }
         $datas['total'] = count($datas);
@@ -391,69 +393,145 @@ class Supplier_items extends CI_Controller
     public function uploadcreate()
     {
         if ($this->input->post()) {
-            $data       = $this->input->post('data');
+            $data = $this->input->post('data');
             //Cek Process Number
             $item = $this->api->read('mst_item_raw', [], ["item_id" => $data['item_id']]);
             $plant = $this->api->read('plants', [], ["number" => $data['plant']]);
             $supplier = $this->api->read('suppliers', [], ["number" => $data['supplier_number']]);
             $maker = $this->api->read('mst_maker', [], ["number" => $data['maker_code']]);
             $supplier_items = $this->api->read('supplier_items', [], ["item_id" => @$item->item_id, "supplier_id" => @$supplier->id, "plant" => $data['plant']]);
+            $supplier_item_prices = $this->api->read('supplier_item_prices', [], ["supplier_item_id" => @$supplier_items->id]);
+
+            if($data['action'] == ""){
+                die(json_encode(array("title" => "Action", "message" => "Action Still Empty please fill NEW or UPDATE", "theme" => "error")));
+            }
+
+            if(empty($supplier->id)){
+                die(json_encode(array("title" => "Not Found", "message" => "Vendor " . $data['supplier_number'] . " Not Found", "theme" => "error")));
+            }
 
             if (empty($item->item_id)) {
-                echo json_encode(array("title" => "Not Found", "message" => "Part No " . $data['item_id'] . " Not Found", "theme" => "error"));
-            } elseif (empty($supplier->number)) {
-                echo json_encode(array("title" => "Not Found", "message" => "Vendor " . $data['supplier_number'] . " Not Found", "theme" => "error"));
-            } elseif (empty($plant->number)) {
-                echo json_encode(array("title" => "Not Found", "message" => "Plant " . $data['plant'] . " Not Found", "theme" => "error"));
-            } elseif (empty($maker->number)) {
-                echo json_encode(array("title" => "Not Found", "message" => "Maker " . $data['maker_code'] . " Not Found", "theme" => "error"));
-            } elseif (empty($data['currency'])) {
-                echo json_encode(array("title" => "Not Found", "message" => "Currency Still Empty", "theme" => "error"));
-            } elseif (!empty($supplier_items->item_id)) {
-                $postFinal = array(
-                    "item_id" => $item->item_id,
-                    "supplier_id" => $supplier->id,
-                    "coo_name" => $data['coo_name'],
-                    "plant" => $data['plant'],
-                    "maker_code" => $data['maker_code'],
-                    "maker_type" => $data['maker_code'],
-                    "spq" => $data['spq'],
-                    "mpq" => $data['mpq'],
-                    "moq" => $data['moq'],
-                    "price" => $data['price'],
-                    "currency" => $data['currency'],
-                    "landed_cost" => $data['landed_cost'],
-                    "import_duty" => $data['import_duty'],
-                    "share_order" => $data['share_order'],
-                    "valid_date" => $data['valid_date'],
-                    "leadtime" => $data['leadtime'],
-                    "remarks" => $data['remarks']
-                );
+                die(json_encode(array("title" => "Not Found", "message" => "Part No " . $data['item_id'] . " Not Found", "theme" => "error")));
+            }
 
-                $send = $this->api->update('supplier_items', ["item_id" => @$item->item_id, "supplier_id" => @$supplier->id, "plant" => $data['plant']], $postFinal);
-                echo $send;
-            } else {
-                $postFinal = array(
-                    "item_id" => $item->item_id,
-                    "supplier_id" => $supplier->id,
-                    "coo_name" => $data['coo_name'],
-                    "plant" => $data['plant'],
-                    "maker_code" => $data['maker_code'],
-                    "maker_type" => $data['maker_code'],
-                    "spq" => $data['spq'],
-                    "mpq" => $data['mpq'],
-                    "moq" => $data['moq'],
-                    "price" => $data['price'],
-                    "currency" => $data['currency'],
-                    "landed_cost" => $data['landed_cost'],
-                    "import_duty" => $data['import_duty'],
-                    "share_order" => $data['share_order'],
-                    "valid_date" => $data['valid_date'],
-                    "leadtime" => $data['leadtime'],
-                    "remarks" => $data['remarks']
-                );
-                $send   = $this->api->create('supplier_items', $postFinal, "SPI", "supplier_items");
-                echo $send;
+            if (empty($plant->number)) {
+                die(json_encode(array("title" => "Not Found", "message" => "Plant " . $data['plant'] . " Not Found", "theme" => "error")));
+            }
+
+            if(strtolower($data['action']) == "new"){
+                if (empty($maker->number)) {
+                    echo json_encode(array("title" => "Not Found", "message" => "Maker " . $data['maker_code'] . " Not Found", "theme" => "error"));
+                } elseif (empty($data['currency'])) {
+                    echo json_encode(array("title" => "Not Found", "message" => "Currency Still Empty", "theme" => "error"));
+                } elseif (!empty($supplier_items->item_id)) {
+                    echo json_encode(array("title" => "Duplicate", "message" => "Supplier " . $data['supplier_number'] . " and Part No " . $data['item_id'] . " Has been Created", "theme" => "error"));
+                } else {
+                    $postFinal = array(
+                        "item_id" => $item->item_id,
+                        "supplier_id" => $supplier->id,
+                        "coo_name" => $data['coo_name'],
+                        "plant" => $data['plant'],
+                        "maker_code" => $data['maker_code'],
+                        "maker_type" => $data['maker_code'],
+                        "spq" => $data['spq'],
+                        "mpq" => $data['mpq'],
+                        "moq" => $data['moq'],
+                        "price" => $data['price'],
+                        "currency" => $data['currency'],
+                        "landed_cost" => $data['landed_cost'],
+                        "import_duty" => $data['import_duty'],
+                        "share_order" => $data['share_order'],
+                        "start_date" => $data['start_date'],
+                        "valid_date" => $data['valid_date'],
+                        "leadtime" => $data['leadtime'],
+                        "remarks" => $data['remarks']
+                    );
+                    $send = $this->api->create('supplier_items', $postFinal, "SPI", "supplier_items");
+                    $supplier_item = $this->api->read('supplier_items', [], ["item_id" => @$item->item_id, "supplier_id" => @$supplier->id, "plant" => $data['plant']]);
+                    $prices = array(
+                        "supplier_item_id" => $supplier_item->id,
+                        "price" => $data['price'],
+                        "currency" => $data['currency'],
+                        "start_date" => date("Y-m-d"),
+                        "start_date" => $data['start_date'],
+                        "valid_date" => $data['valid_date'],
+                        "remarks" => $data['remarks']
+                    );
+
+                    $this->api->create('supplier_item_prices', $prices, "SPI", "supplier_item_prices");
+                    echo $send;
+                }
+            }elseif(strtolower($data['action']) == "update"){
+                if (empty($supplier_items->item_id)) {
+                    echo json_encode(array("title" => "Not Found", "message" => "Supplier " . $data['supplier_number'] . " and Part No " . $data['item_id'] . " Data Not Found in Supplier Items", "theme" => "error"));
+                }else{
+                    $maker_code = empty($data['maker_code']) ? @$supplier_items->maker_code : @$data['maker_code'];
+                    $spq = empty($data['spq']) ? @$supplier_items->spq : @$data['spq'];
+                    $mpq = empty($data['mpq']) ? @$supplier_items->mpq : @$data['mpq'];
+                    $moq = empty($data['moq']) ? @$supplier_items->moq : @$data['moq'];
+                    $coo_name = empty($data['coo_name']) ? @$supplier_items->coo_name : @$data['coo_name'];
+                    $landed_cost = empty($data['landed_cost']) ? @$supplier_items->landed_cost : @$data['landed_cost'];
+                    $import_duty = empty($data['import_duty']) ? @$supplier_items->import_duty : @$data['import_duty'];
+                    $share_order = empty($data['share_order']) ? @$supplier_items->share_order : @$data['share_order'];
+                    $leadtime = empty($data['leadtime']) ? @$supplier_items->leadtime : @$data['leadtime'];
+                    $currency = empty($data['currency']) ? @$supplier_items->currency : @$data['currency'];
+                    $price = empty($data['price']) ? @$supplier_items->price : @$data['price'];
+                    $start_date = empty($data['start_date']) ? @$supplier_items->start_date : @$data['start_date'];
+                    $valid_date = empty($data['valid_date']) ? @$supplier_items->valid_date : @$data['valid_date'];
+                    $remarks = empty($data['remarks']) ? @$supplier_items->remarks : @$data['remarks'];
+
+                    $postFinal = array(
+                        "plant" => $data['plant'],
+                        "item_id" => $item->item_id,
+                        "supplier_id" => $supplier->id,
+                        "coo_name" => $coo_name,
+                        "maker_code" => $maker_code,
+                        "maker_type" => $maker_code,
+                        "spq" => $spq,
+                        "mpq" => $mpq,
+                        "moq" => $moq,
+                        "price" => $price,
+                        "currency" => $currency,
+                        "landed_cost" => $landed_cost,
+                        "import_duty" => $import_duty,
+                        "share_order" => $share_order,
+                        "start_date" => $start_date,
+                        "valid_date" => $valid_date,
+                        "leadtime" => $leadtime,
+                        "remarks" => $remarks
+                    );
+
+                    $prices = array(
+                        "supplier_item_id" => $supplier_items->id,
+                        "price" => @$supplier_item_prices->price,
+                        "currency" => @$supplier_item_prices->currency,
+                        "start_date" => @$supplier_item_prices->start_date,
+                        "valid_date" => @$supplier_item_prices->valid_date,
+                        "remarks" => @$supplier_item_prices->remarks,
+                    );
+
+                    $pricesNew = array(
+                        "supplier_item_id" => $supplier_items->id,
+                        "price" => $data['price'],
+                        "currency" => $data['currency'],
+                        "start_date" => $data['start_date'],
+                        "valid_date" => $data['valid_date'],
+                        "remarks" => $data['remarks'],
+                    );
+                    
+                    if(!empty($data['price']) || !empty($data['valid_date'])){
+                        if($data['price'] != @$supplier_items->price || $data['valid_date'] != @$supplier_items->valid_date){
+                            $this->api->update('supplier_item_prices', ["supplier_item_id" => $supplier_items->id], $pricesNew);
+                            $this->api->create("supplier_item_prices_log", $prices, "JUTA", "supplier_item_prices_log");
+                        }
+                    }
+
+                    $send = $this->api->update('supplier_items', ["item_id" => @$item->item_id, "supplier_id" => @$supplier->id, "plant" => $data['plant']], $postFinal);
+                    $this->api->create("supplier_items_log", array_merge($postFinal, ["supplier_item_id" => $supplier_items->id]), "SPL", "supplier_items_log");
+                    echo $send;
+                }
+            }else{
+                die(json_encode(array("title" => "Unknown", "message" => "Action " . $data['action'], "theme" => "error")));
             }
         }
     }
@@ -554,10 +632,12 @@ class Supplier_items extends CI_Controller
                     <th>Price</th>
                     <th>Share Order</th>
                     <th>Currency</th>
+                    <th>Start Date</th>
                     <th>Valid Date</th>
                     <th>Leadtime (Days)</th>
                     <th>Safety Stock (%)</th>
                     <th>Calculate</th>
+                    <th>Provide Customer</th>
                 </tr>';
         $no = 1;
         foreach ($records as $data) {
@@ -582,10 +662,12 @@ class Supplier_items extends CI_Controller
                         <td>' . $data['price'] . '</td>
                         <td>' . $data['share_order'] . '</td>
                         <td>' . $data['currency'] . '</td>
+                        <td>' . $data['start_date'] . '</td>
                         <td>' . $data['valid_date'] . '</td>
                         <td>' . $data['leadtime'] . '</td>
                         <td>' . $data['safety_stock'] . '</td>
                         <td>' . $data['calculate'] . '</td>
+                        <td>' . $data['provide'] . '</td>
                     </tr>';
             $no++;
         }

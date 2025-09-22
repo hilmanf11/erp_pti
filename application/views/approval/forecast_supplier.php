@@ -135,10 +135,10 @@
 		//SETTING DATAGRID EASYUI
 		$('#dg').datagrid({
 			url: '<?= base_url('approvals/approvalForecastSupplier/') ?>' + "<?= base64_encode($approved_to) ?>" + "/" + "<?= base64_encode($created_by) ?>" + "/" + "<?= base64_encode($approved_by) ?>",
-			pagination: false,
+			pagination: true,
 			singleSelect: true,
-			clientPaging: false,
-			remoteFilter: true,
+			clientPaging: true,
+			remoteFilter: false,
 			rownumbers: true,
 			fit: true,
 			columns: [
@@ -162,56 +162,56 @@
 					rowspan: 2
 				}, {
 					field: 'part_no',
-					width: 80,
-					align: 'center',
+					width: 150,
+					halign: 'center',
 					title: "Part No",
 					rowspan: 2
 				}, {
 					field: 'part_name',
-					width: 80,
-					align: 'center',
+					width: 120,
+					halign: 'center',
 					title: "Part Name",
 					rowspan: 2
 				}, {
 					field: 'product_family',
-					width: 80,
-					align: 'center',
+					width: 120,
+					halign: 'center',
 					title: "Product Family",
 					rowspan: 2
 				}, {
 					field: 'vendor_name',
-					width: 200,
+					width: 250,
 					halign: 'center',
 					title: "Vendor Name",
 					rowspan: 2
 				}, {
 					field: 'vendor_type',
-					width: 150,
-					halign: 'center',
+					width: 100,
+					align: 'center',
 					title: "Vendor Type",
 					rowspan: 2
 				}, {
 					field: 'vendor_origin',
-					width: 150,
+					width: 100,
 					halign: 'center',
 					title: "Origin",
 					rowspan: 2
 				}, {
 					field: 'leadtime',
 					width: 80,
-					align: 'center',
+					halign: 'center',
 					title: "Leadtime",
 					rowspan: 2
 				}, {
 					field: 'share_order',
 					width: 80,
-					align: 'center',
+					halign: 'center',
 					title: "Share Order",
 					rowspan: 2
 				}, {
 					field: 'mpq',
 					width: 100,
-					align: 'center',
+					halign: 'center',
 					title: "MPQ",
 					rowspan: 2,
 					formatter: numberformat,
@@ -224,22 +224,21 @@
 					formatter: numberformat,
 				}, {
 					field: 'maker_name',
-					width: 100,
+					width: 150,
 					halign: 'center',
-					align: 'right',
 					title: "Maker Name",
 					rowspan: 2,
 				}, {
 					field: 'maker_type',
 					width: 100,
-					align: 'center',
+					halign: 'center',
 					title: "Maker Type",
 					rowspan: 2
 				}, {
 					field: 'wo',
 					width: 100,
 					halign: 'center',
-					align: 'right',
+					halign: 'right',
 					title: "WORKORDER",
 					colspan: 4,
 				}, {

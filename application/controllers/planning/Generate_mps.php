@@ -247,7 +247,7 @@ class Generate_mps extends CI_Controller
                         if($data['st_sparepart'] == "t"){
                             $safetyStock = 0;
                         }else{
-                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $dataForecast->month_6);
+                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $dataForecast->month_5);
                         }
 
                         $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
@@ -260,7 +260,7 @@ class Generate_mps extends CI_Controller
                         if($data['st_sparepart'] == "t"){
                             $safetyStock = 0;
                         }else{
-                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $dataForecast->month_6);
+                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $dataForecast->month_7);
                         }
 
                         $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
@@ -583,7 +583,7 @@ class Generate_mps extends CI_Controller
                     if($mst_item->st_sparepart == "t"){
                         $safetyStock = 0;
                     }else{
-                        $safetyStock = @round(((@$mst_item->item_manldtm + $config->fg_ss) / $hkw2) * $dataForecast->month_6);
+                        $safetyStock = @round(((@$mst_item->item_manldtm + $config->fg_ss) / $hkw2) * $dataForecast->month_7);
                     }
 
                     $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
@@ -1074,7 +1074,9 @@ class Generate_mps extends CI_Controller
             $this->db->where('p_month', $filter_month);
             $this->db->where('p_year', $filter_year);
         }
-        $this->db->like('line_no', $filter_line_no);
+        if($filter_line_no != ""){
+            $this->db->where('line_no', $filter_line_no);
+        }
         $this->db->like('customer_id', $filter_customer_id);
         $this->db->like('revision', $filter_revision);
         $this->db->like('product_no', $filter_product_no);
@@ -1198,7 +1200,9 @@ class Generate_mps extends CI_Controller
             }
             $this->db->where("(a.pp > 0 or a.plant_1 > 0 or a.plant_2 > 0 or a.plant_3 > 0 or a.plant_4 > 0 or a.plant_5 > 0 or a.plant_6 > 0 or a.plant_7 > 0 or a.plant_8 > 0 or a.plant_9 > 0 or a.plant_10 > 0 or a.rqa > 0 or a.hav > 0 or a.fg > 0 or a.os_mpp > 0 or a.os_sales_order > 0 or a.total_stock > 0 or a.balance > 0 or b.begin_balance > 0 or b.ito > 0 or b.forecast > 0 or b.delivery_rate > 0 or b.safety_stock > 0 or b.prod_plan > 0)");
             $this->db->where('a.deleted_is', 0);
-            $this->db->like('a.line_no', $filter_line_no);
+            if($filter_line_no != ""){
+                $this->db->where('a.line_no', $filter_line_no);
+            }
             $this->db->like('a.customer_id', $filter_customer_id);
             $this->db->like('a.revision', $filter_revision);
             $this->db->like('a.product_no', $filter_product_no);
@@ -1604,7 +1608,9 @@ class Generate_mps extends CI_Controller
             $this->db->where('a.p_month', $filter_month);
             $this->db->where('a.p_year', $filter_year);
         }
-        $this->db->like('a.line_no', $filter_line_no);
+        if($filter_line_no != ""){
+            $this->db->where('a.line_no', $filter_line_no);
+        }
         $this->db->like('a.customer_id', $filter_customer_id);
         $this->db->like('a.revision', $filter_revision);
         $this->db->like('a.product_no', $filter_product_no);
@@ -1620,7 +1626,9 @@ class Generate_mps extends CI_Controller
             $this->db->where('p_month', $filter_month);
             $this->db->where('p_year', $filter_year);
         }
-        $this->db->like('line_no', $filter_line_no);
+        if($filter_line_no != ""){
+            $this->db->where('line_no', $filter_line_no);
+        }
         $this->db->like('customer_id', $filter_customer_id);
         $this->db->like('revision', $filter_revision);
         $this->db->like('product_no', $filter_product_no);
@@ -1667,7 +1675,7 @@ class Generate_mps extends CI_Controller
             }
         }
 
-        $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 10px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
+        $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
         <table style="width: 100%;">
             <td width="50" style="font-size: 12px; vertical-align: top; text-align: center; vertical-align:jus margin-right:10px;">
                 <img src="' . base_url('assets/image/config/' . $config->logo) . '" width="30">
@@ -1692,7 +1700,7 @@ class Generate_mps extends CI_Controller
                 <td width="100">DOC NO</td>
                 <td style="text-align:center;" width="5">:</td>
                 <td>'.date("Ymd").'/LTPP/001</td>
-                <th colspan="2" style="text-align:center;">FRM-PPC-0007-00</th>
+                <th colspan="2" style="text-align:center;"></th>
             </tr>
             <tr>
                 <th rowspan="5" style="height:70px;"></th>
@@ -1722,14 +1730,14 @@ class Generate_mps extends CI_Controller
             <tr>
                 <td>2. PRODUKSI</td>
                 <td></td>
-                <td>6. PLASMA</td>
+                <td>6. MATERIAL CONTROL</td>
                 <th style="text-align:center;">3</th>
                 <th></th>
             </tr>
             <tr>
                 <td>3. QA</td>
                 <td></td>
-                <td>7. MATERIAL CONTROL</td>
+                <td></td>
                 <th style="text-align:center;">4</th>
                 <th></th>
             </tr>
@@ -1738,7 +1746,7 @@ class Generate_mps extends CI_Controller
                 <th style="text-align:center; height:20px;"></th>
                 <th style="text-align:center; height:20px;"></th>
                 <th style="text-align:center; height:20px;">'.$this->session->name.'</th>
-                <td>WAREHOUSE</td>
+                <td>4. WAREHOUSE</td>
                 <td></td>
                 <td></td>
                 <th style="text-align:center;">5</th>
@@ -1769,9 +1777,9 @@ class Generate_mps extends CI_Controller
         $html .= '</tr>
             <tr>
                 <th style="text-align:center;" width="50">PP</th>
-                <th style="text-align:center;" width="50">STOCK<br>TF</th>
+                <th style="text-align:center;" width="50">HAV 2</th>
                 <th style="text-align:center;" width="50">REP. QA</th>
-                <th style="text-align:center;" width="50">HAV</th>
+                <th style="text-align:center;" width="50">HAV 1</th>
             </tr>';
 
         foreach ($lines as $line) {

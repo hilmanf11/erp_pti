@@ -55,7 +55,7 @@ class Purchase_request extends CI_Controller
         $query = $this->db->query("SELECT b.item_id, b.item_name, a.mpq, a.moq, a.share_order, a.leadtime 
             FROM supplier_items a 
             JOIN mst_item_raw b ON a.item_id = b.item_id
-            WHERE a.supplier_id = '$supplier' and b.pfm_id = '$prodfam' and b.item_id like '%$post%'
+            WHERE a.supplier_id = '$supplier' and b.pfm_id = '$prodfam' and b.item_id like '%$post%' and a.share_order > 0
             ORDER BY b.item_id ASC
         ");
         $records = $query->result_array();
@@ -169,7 +169,7 @@ class Purchase_request extends CI_Controller
                 $array_pfm = array();
             }
 
-            $this->api->delete("purchase_requests", array_merge(["p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision], $array_pfm));
+            $this->api->delete("purchase_requests", array_merge(["p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision, "type" => "REGULAR"], $array_pfm));
 
             if(date('Y', strtotime('-1 month', strtotime($filter_year . "-" . $filter_month . "-01"))) == $filter_year){
                 $p_year_min = $filter_month;
@@ -235,16 +235,19 @@ class Purchase_request extends CI_Controller
                 $forecast_min = $this->forecast($item_id, $filter_month, $filter_year, @$forecast_row_min->revision);
                 $forecast_plus = $this->forecast($item_id, $filter_month, $filter_year, @$forecast_row->revision);
                 
-                if(round($generate['total_need'] + $generate['safety_stock']) > 0 && $generate['moq'] > 0){
+                if(round($generate['total_need']) > 0 && $generate['moq'] > 0){
                     $final = ($generate['total_need'] + $generate['safety_stock']);
-                    // if($final > $generate['moq']){
-                    //     $purchase_order = (ceil($final / $generate['mpq']) * $generate['mpq']);
-                    // }else{
-                        $purchase_order = (ceil($final / $generate['moq']) * $generate['moq']);
-                    // }
+                    $purchase_order = (ceil($final / $generate['moq']) * $generate['moq']);
                 }else{
                     $purchase_order = 0;
                 }
+
+                // if((round($generate['total_need'] - $generate['safety_stock'])) > 0 || $generate['moq'] == 0){
+                //     $purchase_order = 0;
+                // }else{
+                //     $final = ($generate['total_need'] - $generate['safety_stock']);
+                //     $purchase_order = abs(ceil($final / $generate['moq']) * $generate['moq']);
+                // }
 
                 $split = ($purchase_order * ($generate['share_order'] / 100));
                 if($split > 0){
@@ -309,9 +312,10 @@ class Purchase_request extends CI_Controller
             $result = array();
             //Select Query
             $this->db->select('a.*, b.name as supplier_name, SUM(a.purchase_request) as total_pr');
-            $this->db->from('purchase_requests a');
+            $this->db->from("(select * from purchase_requests order by approved_to desc) a");
             $this->db->join('suppliers b', 'a.supplier_id = b.id');
-            // $this->db->where("(a.approved_to = '' or a.approved_to is null)");
+            $this->db->join("(SELECT purchase_request_no, MAX(approved_to) AS max_approved FROM purchase_requests GROUP BY purchase_request_no) c", "a.purchase_request_no = c.purchase_request_no AND (a.approved_to = c.max_approved OR (a.approved_to = '' AND c.max_approved = ''))", 'left');
+            $this->db->where("a.type", "REGULAR");
             $this->db->where('a.p_month', $filter_month);
             $this->db->where('a.p_year', $filter_year);
             $this->db->where('a.revision', $filter_revision);
@@ -639,6 +643,7 @@ class Purchase_request extends CI_Controller
             $this->db->select('a.*, b.name as supplier_name');
             $this->db->from('purchase_requests a');
             $this->db->join('suppliers b', 'a.supplier_id = b.id');
+            $this->db->where('a.type', "REGULAR");
             $this->db->where('a.p_month', $filter_month);
             $this->db->where('a.p_year', $filter_year);
             $this->db->where('a.revision', $filter_revision);

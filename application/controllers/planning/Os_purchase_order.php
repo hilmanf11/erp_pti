@@ -34,7 +34,7 @@ class Os_purchase_order extends CI_Controller
         $records = $query->result_object();
         echo json_encode($records);
     }
-    public function readProdfam($ven_id)
+    public function readProdfam($ven_id = "")
     {
         $ven_id = base64_decode($ven_id);
         $this->dummy = $this->load->database('dummy', TRUE);

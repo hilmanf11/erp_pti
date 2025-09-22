@@ -254,7 +254,7 @@ class Os_supply extends CI_Controller
                 "p_year" => $p_year,
                 "revision" => $revision,
                 "product_no" => trim($post['product_no']),
-                "product_name" => $post['item_name'],
+                "product_name" => $post['product_name'],
                 "product_family" => @$os_supply[0]->product_family,
                 "actual" => $post['qty'],
                 "status" => $post['status']
@@ -271,7 +271,8 @@ class Os_supply extends CI_Controller
 
                     echo json_encode(array("title" => "Good Job", "message" => "Product No " . $post['product_no'] . " Updated Successfully", "theme" => "success"));
                 } else {
-                    echo json_encode(array("title" => "Error", "message" => "Product No " . $post['product_no'] . " Not Generate", "theme" => "error"));
+                    $this->api->create('os_supply', $postFinal, "RMS", "os_supply");
+                    echo json_encode(array("title" => "Good Job", "message" => "Product No " . $post['product_no'] . " Created Successfully", "theme" => "success"));
                 }
             }else{
                 echo json_encode(array("title" => "Error", "message" => "Product No " . $post['product_no'] . " Saved Failed", "theme" => "error"));
@@ -332,66 +333,37 @@ class Os_supply extends CI_Controller
         // $cutoff =  date('Y-m-01', strtotime('-1 month', strtotime($filter_cutoff)));
         $cutoff =  date('Y-m-01', strtotime($filter_cutoff));
 
-        $itemq = $this->dummy->query("SELECT z.item_id, z.item_name, z.pfm_name, COALESCE(SUM(z.hasil) + SUM(z.stock), 0) as stock from (
-            select a.temp_woc_id, a.periode, a.wp, d.item_id, d.item_name, e.pfm_name, a.qty, b.bom_qty_perassy, (a.qty * b.bom_qty_perassy) as hasil, COALESCE(SUM(c.qty_need), 0) as qty_need, SUM(c.qty_scan) as qty_scan, COALESCE(SUM(c.qty_need) - SUM(c.qty_scan), 0) as stock
-            from wip_trx_mpp a
-            join mst_bom b ON a.assy_no = b.bom_par_item
-            left join (SELECT item_id, kanbanrm_woc_id, qty_need, SUM(qty_scan) as qty_scan FROM serial_detail_kanbanrm GROUP BY item_id, kanbanrm_woc_id, qty_need) c ON a.temp_woc_id = c.kanbanrm_woc_id and c.item_id = b.bom_com_item
-            join mst_item d on b.bom_com_item = d.item_id and d.stscode_id = '01'
-            join r_prodfam e on d.pfm_id = e.pfm_id and e.prod_group = 'Raw Material' and e.pfm_id != '05'
-            where b.bom_com_item like '%$filter_product_no%' and e.pfm_id LIKE '%$filter_product_family%' and a.wp_date between '$cutoff' and '$filter_cutoff'
-            group by a.temp_woc_id, a.periode, a.wp, a.qty, b.bom_qty_perassy, d.item_id, d.item_name, e.pfm_name) z WHERE z.qty_need <= 0
-            GROUP BY z.item_id, z.item_name, z.pfm_name
-        ");
+        // $itemq = $this->dummy->query("SELECT z.item_id, z.item_name, z.pfm_name, COALESCE(SUM(z.hasil) + SUM(z.stock), 0) as stock from (
+        //     select a.temp_woc_id, a.periode, a.wp, d.item_id, d.item_name, e.pfm_name, a.qty, b.bom_qty_perassy, (a.qty * b.bom_qty_perassy) as hasil, COALESCE(SUM(c.qty_need), 0) as qty_need, SUM(c.qty_scan) as qty_scan, COALESCE(SUM(c.qty_need) - SUM(c.qty_scan), 0) as stock
+        //     from wip_trx_mpp a
+        //     join mst_bom b ON a.assy_no = b.bom_par_item
+        //     left join (SELECT item_id, kanbanrm_woc_id, qty_need, SUM(qty_scan) as qty_scan FROM serial_detail_kanbanrm GROUP BY item_id, kanbanrm_woc_id, qty_need) c ON a.temp_woc_id = c.kanbanrm_woc_id and c.item_id = b.bom_com_item
+        //     join mst_item d on b.bom_com_item = d.item_id and d.stscode_id = '01'
+        //     join r_prodfam e on d.pfm_id = e.pfm_id and e.prod_group = 'Raw Material' and e.pfm_id != '05'
+        //     where b.bom_com_item like '%$filter_product_no%' and e.pfm_id LIKE '%$filter_product_family%' and a.wp_date between '$cutoff' and '$filter_cutoff'
+        //     group by a.temp_woc_id, a.periode, a.wp, a.qty, b.bom_qty_perassy, d.item_id, d.item_name, e.pfm_name) z WHERE z.qty_need <= 0
+        //     GROUP BY z.item_id, z.item_name, z.pfm_name
+        // ");
+        // $items = $itemq->result_array();
+        // $records = array();
+
+        $itemq = $this->db->query("SELECT * FROM os_supply WHERE p_month = '$filter_month' and p_year = '$filter_year' and revision='$filter_revision' and product_no like '%$filter_product_no%'");
         $items = $itemq->result_array();
         $records = array();
 
         foreach ($items as $item) {
-            $item_id = $item['item_id'];
-            $item_name = $item['item_name'];
-            $pfm_name = $item['pfm_name'];
-            $qty = abs($item['stock']);
-
-            $os_supply = $this->api->read('os_supply', [], [
-                "product_no" => $item_id,
+            $records[] = array(
                 "p_month" => $filter_month,
                 "p_year" => $filter_year,
-                "revision" => $filter_revision
-            ]);
-
-            if ($os_supply) {
-                if($os_supply->status == "EMPTY"){
-                    $status = "GENERATE";
-                }else{
-                    $status = $os_supply->status;
-                }
-
-                $records[] = array(
-                    "p_month" => $filter_month,
-                    "p_year" => $filter_year,
-                    "revision" => $filter_revision,
-                    "cutoff" => $filter_cutoff,
-                    "product_no" => $item_id,
-                    "product_name" => $item_name,
-                    "product_family" => $pfm_name,
-                    "qty" => $qty,
-                    "actual" => round($os_supply->actual),
-                    "status" => $status,
-                );
-            } else {
-                $records[] = array(
-                    "p_month" => $filter_month,
-                    "p_year" => $filter_year,
-                    "revision" => $filter_revision,
-                    "cutoff" => $filter_cutoff,
-                    "product_no" => $item_id,
-                    "product_name" => $item_name,
-                    "product_family" => $pfm_name,
-                    "qty" => $qty,
-                    "actual" => $qty,
-                    "status" => "EMPTY",
-                );
-            }
+                "revision" => $filter_revision,
+                "cutoff" => $filter_cutoff,
+                "product_no" => $item['product_no'],
+                "product_name" => $item['product_name'],
+                "product_family" => $item['product_family'],
+                "actual" => $item['actual'],
+                "qty" => $item['qty'],
+                "status" => $item['status'],
+            );
         }
 
         $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>

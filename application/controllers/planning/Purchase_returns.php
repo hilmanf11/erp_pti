@@ -28,6 +28,7 @@ class purchase_returns extends CI_Controller
         } else {
             redirect('error_access');
         }
+        // redirect('maintenance');
     }
 
     public function readItems()

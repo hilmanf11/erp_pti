@@ -43,11 +43,13 @@
                     <option value="rm_stock">Upload Data RM</option>
                     <option value="os_vendor">Upload OS PO (Vendor)</option>
                     <option value="os_mpp">Upload OS MPP (MRP)</option>
+                    <option value="os_supply">Upload OS SUPPLY</option>
                     <option value="balance_wip">Upload Balance WIP</option>
                     <option value="upload_gp">Upload GP</option>
                     <option value="generate_mrp_finals">Generate MRP</option>
                     <option value="supplier_items">Supplier Items</option>
                     <option value="supplier_item_prices">Supplier Item Prices</option>
+                    <option value="request_npd">Request NPD</option>
                     <option value="purchase_requests">Purchase Request</option>
                     <option value="purchase_orders">Purchase Order</option>
                     <option value="purchase_order_npd">Purchase Order NPD</option>

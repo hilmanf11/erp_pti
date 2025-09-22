@@ -108,7 +108,9 @@ class Mst_umh_havcp extends CI_Controller
                 $this->db->select('*, SUM(cycle_time) as total_umh');
                 $this->db->from('mst_umh_havcp');
                 $this->db->where('deleted_is', 0);
-                $this->db->like('line_no', $filter_line_no);
+                if($filter_line_no != ""){
+                    $this->db->where('line_no', $filter_line_no);
+                }
                 $this->db->like('product_no', $filter_product_no);
                 $this->db->group_by('line_no');
                 $this->db->order_by('line_no', 'asc');

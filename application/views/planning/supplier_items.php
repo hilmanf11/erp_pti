@@ -31,6 +31,7 @@
             <th rowspan="2" data-options="field:'share_order',width:80,align:'center'">Share Order<br></th>
             <th rowspan="2" hidden data-options="field:'safety_stock',width:80,halign:'center',align:'right',formatter:numberformatComa">Safety <br>Stock<br>(%)</th>
             <th rowspan="2" hidden data-options="field:'calculate',width:100,formatter:calculateMpq">Calculate<br>MPQ</th>
+            <th rowspan="2" data-options="field:'provide',width:80,halign:'center'">Provide<br>Customer</th>
             <th rowspan="2" data-options="field:'detail',width:80,halign:'center',formatter:BtnDetail">History</th>
             <th rowspan="2" data-options="field:'remarks',width:250,halign:'center'">Remarks</th>
             <th colspan="3" data-options="field:'',width:100,halign:'center'">Approved</th>
@@ -53,7 +54,7 @@
 </table>
 
 <!-- TOOLBAR DATAGRID -->
-<div id="toolbar" style="height: 220px;">
+<div id="toolbar" style="height: 230px;">
     <div style="width: 100%;">
         <fieldset style="width: 100%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
             <legend><b>Form Filter Data</b></legend>
@@ -239,6 +240,13 @@
                     <select style="width:60%;" name="calculate" class="easyui-combobox" panelHeight="auto">
                         <option value="1">YES</option>
                         <option value="0">NO</option>
+                    </select>
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Provide Cust</span>
+                    <select style="width:60%;" name="provide" class="easyui-combobox" panelHeight="auto">
+                        <option value="YES">YES</option>
+                        <option value="NO">NO</option>
                     </select>
                 </div>
                 <div class="fitem">
@@ -888,7 +896,7 @@
             textField: 'name',
             mode: 'remote',
             fitColumns: true,
-            prompt: "Select Vendor",
+            prompt: "Select Supplier",
             icons: [{
                 iconCls: 'icon-clear',
                 handler: function(e) {

@@ -199,7 +199,9 @@ class Generate_loadcap_product extends CI_Controller
                 $this->db->where('p_year', $filter_year);
             }
             $this->db->like('revision', $filter_revision);
-            $this->db->like('line_no', $filter_line_no);
+            if($filter_line_no != ""){
+                $this->db->where('line_no', $filter_line_no);
+            }
             $this->db->where('deleted_is', 0);
             $this->db->order_by('product_no', 'desc');
             $records = $this->db->get()->result_array();

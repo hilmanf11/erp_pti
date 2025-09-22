@@ -84,6 +84,7 @@ class Material_calculation_2 extends CI_Controller
             $filter_year = base64_decode($this->input->get('filter_year'));
             $filter_revision = base64_decode($this->input->get('filter_revision'));
             $filter_item_family = base64_decode($this->input->get('filter_item_family'));
+            $filter_suppliers = base64_decode($this->input->get('filter_suppliers'));
             $filter_item_id = base64_decode($this->input->get('filter_item_id'));
             $filter_status = $this->input->get('filter_status');
             $filter_date = base64_decode($this->input->get('filter_date'));
@@ -91,15 +92,22 @@ class Material_calculation_2 extends CI_Controller
             $period_start = $filter_year."-".$filter_month."-01";
             $period_end = date("Y-m-t", strtotime($filter_year."-".$filter_month."-01"));
 
-            $this->db->select("a.*, c.item_name as product_name, b.name as item_family, d.need_2");
+            $this->db->select("a.*, c.item_name as product_name, b.name as item_family, d.need_2, d.qty_rm, f.name as supplier_name");
             $this->db->from('generate_item_calculation a');
             $this->db->join('mst_item_raw c', 'a.product_no = c.item_id');
             $this->db->join('mst_item_family b', 'c.pfm_id = b.number');
             $this->db->join('generate_mrp_finals d', 'a.product_no = d.part_no and a.p_month = d.p_month and a.p_year = d.p_year and a.revision = d.revision', 'left');
+            $this->db->join('supplier_items e', 'a.product_no = e.item_id and e.share_order > 0', 'left');
+            $this->db->join('suppliers f', 'e.supplier_id = f.id', 'left');
             $this->db->where('a.p_month', $filter_month);
             $this->db->where('a.p_year', $filter_year);
             $this->db->where('a.revision', $filter_revision);
-            $this->db->where('c.pfm_id', $filter_item_family);
+            if($filter_suppliers != ""){
+                $this->db->where('f.id', $filter_suppliers);
+            }
+            if($filter_item_family != ""){
+                $this->db->where('c.pfm_id', $filter_item_family);
+            }
             $this->db->like('a.product_no', $filter_item_id);
             $this->db->order_by('b.number');
             $this->db->group_by('a.product_no');
@@ -112,18 +120,19 @@ class Material_calculation_2 extends CI_Controller
 
             $dataFinal = array();
             foreach ($records as $record) {
-                $firstDate = date('01 M', strtotime($filter_year . "-" . $filter_month . "-01"));
-                $endDate = date('t M', strtotime($filter_year . "-" . $filter_month . "-01"));
+                $firstDate = date('01 M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
+                $endDate = date('t M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
 
                 $item_id = $record['product_no'];
-                $ith = $this->dummy->query("SELECT sum(ith_qty) as qty from ith where ith_item_id = '$item_id' and ith_date <= '$filter_date'");
-                $ithRow = $ith->row();
+                // $ith = $this->dummy->query("SELECT sum(ith_qty) as qty from ith where ith_item_id = '$item_id' and ith_date <= '$filter_date'");
+                // $ithRow = $ith->row();
 
                 $queryEta = $this->dummy->query("SELECT SUM(por_receiveqty) as total from por where item_id = '$item_id' and por_docno not like '%PEMUTIHAN%' and por_date between '$period_start' and '$period_end'");
                 $totalEta = $queryEta->row();
                 $etaTotal = empty(@$totalEta->total) ? 0 : @$totalEta->total;
 
-                $stock_hand = (@$ithRow->qty - $record['os_supply'] - $record['os_wo']);
+                // $stock_hand = (@$ithRow->qty - $record['os_supply'] - $record['os_wo']);
+                $stock_hand = (@$record['qty_rm'] - $record['os_supply'] - $record['os_wo']);
                 $balances = ($stock_hand + $etaTotal - $record['total']);
 
                 $day = 1;
@@ -148,7 +157,7 @@ class Material_calculation_2 extends CI_Controller
                     $arr["supply_".$day] = abs(round(@$ithSupplyRow->supply));
                     $arr["bal_".$day] = round($balance);
     
-                    $firstDate = date("d M", strtotime("+1 day", strtotime($firstDate)));
+                    $firstDate = date("d M Y", strtotime("+1 day", strtotime($firstDate)));
                     $day++;
                 }
 
@@ -173,7 +182,9 @@ class Material_calculation_2 extends CI_Controller
                             "product_no" => $item_id,
                             "product_name" => $record['product_name'],
                             "product_family_name" => $record['item_family'],
-                            "stock_whs" => round(@$ithRow->qty),
+                            "supplier_name" => $record['supplier_name'],
+                            // "stock_whs" => round(@$ithRow->qty),
+                            "stock_whs" => $record['qty_rm'],
                             "os_supply" => $record['os_supply'],
                             "os_wo" => $record['os_wo'],
                             "stock_hand" => $stock_hand,
@@ -200,7 +211,9 @@ class Material_calculation_2 extends CI_Controller
                             "product_no" => $item_id,
                             "product_name" => $record['product_name'],
                             "product_family_name" => $record['item_family'],
-                            "stock_whs" => round(@$ithRow->qty),
+                            "supplier_name" => $record['supplier_name'],
+                            // "stock_whs" => round(@$ithRow->qty),
+                            "stock_whs" => $record['qty_rm'],
                             "os_supply" => $record['os_supply'],
                             "os_wo" => $record['os_wo'],
                             "stock_hand" => $stock_hand,
@@ -226,7 +239,9 @@ class Material_calculation_2 extends CI_Controller
                         "product_no" => $item_id,
                         "product_name" => $record['product_name'],
                         "product_family_name" => $record['item_family'],
-                        "stock_whs" => round(@$ithRow->qty),
+                        "supplier_name" => $record['supplier_name'],
+                        // "stock_whs" => round(@$ithRow->qty),
+                        "stock_whs" => $record['qty_rm'],
                         "os_supply" => $record['os_supply'],
                         "os_wo" => $record['os_wo'],
                         "stock_hand" => $stock_hand,
@@ -260,6 +275,8 @@ class Material_calculation_2 extends CI_Controller
         $filter_month = base64_decode($this->input->get('filter_month'));
         $filter_year = base64_decode($this->input->get('filter_year'));
         $filter_revision = base64_decode($this->input->get('filter_revision'));
+        $filter_item_family = base64_decode($this->input->get('filter_item_family'));
+        $filter_item_id = base64_decode($this->input->get('filter_item_id'));
 
         $query = $this->db->query("SELECT z.p_month, z.p_year, z.revision, z.component_id as product_no, 
             SUM(total_date_1) as date_1,
@@ -328,13 +345,18 @@ class Material_calculation_2 extends CI_Controller
             (a.date_31 * b.qty) as total_date_31
         FROM generate_mpp a
         JOIN mst_bom b ON a.product_no = b.item_id
-        WHERE a.p_month = '$filter_month' and a.p_year = '$filter_year' and a.revision = '$filter_revision'
+        WHERE a.p_month = '$filter_month' and a.p_year = '$filter_year' and a.revision = '$filter_revision' and b.component_id like '%$filter_item_id%'
         GROUP BY a.product_no, b.component_id
         ORDER BY a.product_no, b.component_id asc) z
         GROUP BY z.component_id");
         $records = $query->result_array();
 
-        $this->db->delete('generate_item_calculation', ["p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision]);
+        if($filter_item_id != ""){
+            $this->db->delete('generate_item_calculation', ["p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision, "product_no" => $filter_item_id]);
+        }else{
+            $this->db->delete('generate_item_calculation', ["p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision]);
+        }
+        
         echo json_encode($records);
     }
 
@@ -359,12 +381,12 @@ class Material_calculation_2 extends CI_Controller
                 "os_wo" => empty(@$os_mpp->actual) ? 0 : @$os_mpp->actual,
                 "balance_wip" => empty(@$balance_wip->qty) ? 0 : @$balance_wip->qty,
                 "eta" => empty(@$etaRow->total) ? 0 : @$etaRow->total,
-                "total" => ($post['date_1'] + $post['date_2'] + $post['date_3'] + $post['date_4'] + $post['date_5'] + $post['date_6'] + 
+                "total" => (($post['date_1'] + $post['date_2'] + $post['date_3'] + $post['date_4'] + $post['date_5'] + $post['date_6'] + 
                     $post['date_7'] + $post['date_8'] + $post['date_9'] + $post['date_10'] + $post['date_11'] + $post['date_12'] + 
                     $post['date_13'] + $post['date_14'] + $post['date_15'] + $post['date_16'] + $post['date_17'] + $post['date_18'] + 
                     $post['date_19'] + $post['date_20'] + $post['date_21'] + $post['date_22'] + $post['date_23'] + $post['date_24'] + 
                     $post['date_25'] + $post['date_26'] + $post['date_27'] + $post['date_28'] + $post['date_29'] + $post['date_30'] + 
-                    $post['date_31']),
+                    $post['date_31'])),
                 "balance" => (($post['date_1'] + $post['date_2'] + $post['date_3'] + $post['date_4'] + $post['date_5'] + $post['date_6'] + 
                     $post['date_7'] + $post['date_8'] + $post['date_9'] + $post['date_10'] + $post['date_11'] + $post['date_12'] + 
                     $post['date_13'] + $post['date_14'] + $post['date_15'] + $post['date_16'] + $post['date_17'] + $post['date_18'] + 
@@ -402,27 +424,35 @@ class Material_calculation_2 extends CI_Controller
         $filter_year = base64_decode($this->input->get('filter_year'));
         $filter_revision = base64_decode($this->input->get('filter_revision'));
         $filter_item_family = base64_decode($this->input->get('filter_item_family'));
+        $filter_suppliers = base64_decode($this->input->get('filter_suppliers'));
         $filter_item_id = base64_decode($this->input->get('filter_item_id'));
         $filter_status = $this->input->get('filter_status');
         $filter_date = base64_decode($this->input->get('filter_date'));
 
-        $firstDate = date('01 M', strtotime($filter_year . "-" . $filter_month . "-01"));
-        $endDate = date('t M', strtotime($filter_year . "-" . $filter_month . "-01"));
+        $firstDate = date('01 M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
+        $endDate = date('t M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
 
         $period_start = $filter_year."-".$filter_month."-01";
         $period_end = date("Y-m-t", strtotime($filter_year."-".$filter_month."-01"));
         
         $next_month = date("F", strtotime("+1 month", strtotime($filter_year."-".$filter_month."-01")));
 
-        $this->db->select("a.*, c.item_name as product_name, b.name as item_family, d.need_2");
+        $this->db->select("a.*, c.item_name as product_name, b.name as item_family, d.need_2, f.name as supplier_name");
         $this->db->from('generate_item_calculation a');
         $this->db->join('mst_item_raw c', 'a.product_no = c.item_id');
         $this->db->join('mst_item_family b', 'c.pfm_id = b.number');
         $this->db->join('generate_mrp_finals d', 'a.product_no = d.part_no and a.p_month = d.p_month and a.p_year = d.p_year and a.revision = d.revision', 'left');
+        $this->db->join('supplier_items e', 'a.product_no = e.item_id and e.share_order > 0', 'left');
+        $this->db->join('suppliers f', 'e.supplier_id = f.id', 'left');
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
         $this->db->where('a.revision', $filter_revision);
-        $this->db->where('c.pfm_id', $filter_item_family);
+        if($filter_suppliers != ""){
+            $this->db->where('f.id', $filter_suppliers);
+        }
+        if($filter_item_family != ""){
+            $this->db->where('c.pfm_id', $filter_item_family);
+        }
         $this->db->like('a.product_no', $filter_item_id);
         $this->db->order_by('b.number');
         $this->db->group_by('a.product_no');
@@ -445,7 +475,7 @@ class Material_calculation_2 extends CI_Controller
             $this->db->where('working_date', $working_date);
             $holiday = $this->db->get()->row();
 
-            if (date('w', strtotime($firstDate)) !== '0' && date('w', strtotime($firstDate)) !== '6') {
+            if (date('w', strtotime($firstDate)) !== '0') {
                 if (@$holiday->remarks != null or @$holiday->remarks != "") {
                     $styles = 'background:#FFD974;';
                     $cut_no += 0;
@@ -469,7 +499,7 @@ class Material_calculation_2 extends CI_Controller
                       <th width="50" style="text-align:center; ' . $styles . '">BAL</th>';
 
             $colspan++;
-            $firstDate = date("d M", strtotime("+1 day", strtotime($firstDate)));
+            $firstDate = date("d M Y", strtotime("+1 day", strtotime($firstDate)));
         }
 
         $date .= '  <th width="50" style="text-align:center;">WEEK 1</th>
@@ -490,8 +520,8 @@ class Material_calculation_2 extends CI_Controller
             $content = '';
             $day = 1;
             $i = 0;
-            $firstDate2 = date('01 M', strtotime($filter_year . "-" . $filter_month . "-01"));
-            $endDate2 = date('t M', strtotime($filter_year . "-" . $filter_month . "-01"));
+            $firstDate2 = date('01 M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
+            $endDate2 = date('t M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
 
             $item_id = $record['product_no'];
             $ith = $this->dummy->query("SELECT sum(ith_qty) as qty from ith where ith_item_id = '$item_id' and ith_date <= '$filter_date'");
@@ -516,6 +546,7 @@ class Material_calculation_2 extends CI_Controller
                         <td>" . $no . "</td>
                         <td style='mso-number-format:\@;'>" . $record['product_no'] . "</td>
                         <td>" . $record['product_name'] . "</td>
+                        <td>" . $record['supplier_name'] . "</td>
                         <td>" . $record['item_family'] . "</td>
                         <td style='text-align:right;'>" . round(@$ithRow->qty) . "</td>
                         <td style='text-align:right;'>" . round($record['os_supply']) . "</td>
@@ -551,7 +582,7 @@ class Material_calculation_2 extends CI_Controller
                 $this->db->where('working_date', $working_date2);
                 $holiday = $this->db->get()->row();
 
-                if (date('w', strtotime($firstDate2)) !== '0' && date('w', strtotime($firstDate2)) !== '6') {
+                if (date('w', strtotime($firstDate2)) !== '0') {
                     if (@$holiday->remarks != null or @$holiday->remarks != ""){
                         $styles2 = 'background:#FFD974;';
                     }else{
@@ -570,7 +601,7 @@ class Material_calculation_2 extends CI_Controller
                             <td style='text-align:right; ".$styles2."'>".abs(round(@$ithSupplyRow->supply))."</td>
                             <td style='text-align:right; ".$styles2."'>".round($balance)."</td>";
 
-                $firstDate2 = date("d M", strtotime("+1 day", strtotime($firstDate2)));
+                $firstDate2 = date("d M Y", strtotime("+1 day", strtotime($firstDate2)));
                 $day++;
             }
 
@@ -643,6 +674,7 @@ class Material_calculation_2 extends CI_Controller
                 <th style="text-align:center;" rowspan="3" width="20">NO</th>
                 <th style="text-align:center;" width="150" rowspan="3">PRODUCT NO</th>
                 <th style="text-align:center;" width="80" rowspan="3">PRODUCT NAME</th>
+                <th style="text-align:center;" width="80" rowspan="3">SUPPLIER</th>
                 <th style="text-align:center;" width="80" rowspan="3">PRODUCT FAMILY</th>
                 <th style="text-align:center;" width="50" rowspan="3">STOCK WHS</th>
                 <th style="text-align:center;" width="50" rowspan="3">OS SUPPLY</th>
@@ -657,6 +689,173 @@ class Material_calculation_2 extends CI_Controller
                 <th style="text-align:center;" width="50" rowspan="3">Balance WIP</th>
                 <th style="text-align:center;" width="50" rowspan="3">OS PO</th>
             </tr>' . $cut . $date . $content2;
+        echo $html;
+    }
+
+    public function print_detail(){
+        $format  = date("Ymd");
+        header("Content-type: application/vnd-ms-excel");
+        header("Content-Disposition: attachment; filename=material_calculation_detail_$format.xls");
+
+        //Config
+        $this->db->select('*');
+        $this->db->from('config');
+        $config = $this->db->get()->row();
+
+        //Filter Data
+        $filter_month = base64_decode($this->input->get('filter_month'));
+        $filter_year = base64_decode($this->input->get('filter_year'));
+        $filter_revision = base64_decode($this->input->get('filter_revision'));
+        $filter_item_family = base64_decode($this->input->get('filter_item_family'));
+        $filter_suppliers = base64_decode($this->input->get('filter_suppliers'));
+        $filter_item_id = base64_decode($this->input->get('filter_item_id'));
+        $filter_status = $this->input->get('filter_status');
+        $filter_date = base64_decode($this->input->get('filter_date'));
+
+        $this->db->select("a.*, c.item_name as product_name, b.name as item_family, f.name as supplier_name, d.assy_no, d.customer_name, ROUND(d.total, 2) as need");
+        $this->db->from('generate_item_calculation a');
+        $this->db->join('mst_item_raw c', 'a.product_no = c.item_id');
+        $this->db->join('mst_item_family b', 'c.pfm_id = b.number');
+        $this->db->join('supplier_items e', 'a.product_no = e.item_id and e.share_order > 0', 'left');
+        $this->db->join('suppliers f', 'e.supplier_id = f.id', 'left');
+        $this->db->join("(SELECT z.p_month, z.p_year, z.revision, z.product_no as assy_no, z.component_id, z.customer_name, (
+            SUM(total_date_1) +
+            SUM(total_date_2) +
+            SUM(total_date_3) +
+            SUM(total_date_4) +
+            SUM(total_date_5) +
+            SUM(total_date_6) +
+            SUM(total_date_7) +
+            SUM(total_date_8) +
+            SUM(total_date_9) +
+            SUM(total_date_10) +
+            SUM(total_date_11) +
+            SUM(total_date_12) +
+            SUM(total_date_13) +
+            SUM(total_date_14) +
+            SUM(total_date_15) +
+            SUM(total_date_16) +
+            SUM(total_date_17) +
+            SUM(total_date_18) +
+            SUM(total_date_19) +
+            SUM(total_date_20) +
+            SUM(total_date_21) +
+            SUM(total_date_22) +
+            SUM(total_date_23) +
+            SUM(total_date_24) +
+            SUM(total_date_25) +
+            SUM(total_date_26) +
+            SUM(total_date_27) +
+            SUM(total_date_28) +
+            SUM(total_date_29) +
+            SUM(total_date_30) +
+            SUM(total_date_31)) as total
+        FROM (
+            SELECT a.p_month, a.p_year, a.revision, a.product_no, b.component_id, c.name as customer_name,
+            (a.date_1 * b.qty) as total_date_1,
+            (a.date_2 * b.qty) as total_date_2,
+            (a.date_3 * b.qty) as total_date_3,
+            (a.date_4 * b.qty) as total_date_4,
+            (a.date_5 * b.qty) as total_date_5,
+            (a.date_6 * b.qty) as total_date_6,
+            (a.date_7 * b.qty) as total_date_7,
+            (a.date_8 * b.qty) as total_date_8,
+            (a.date_9 * b.qty) as total_date_9,
+            (a.date_10 * b.qty) as total_date_10,
+            (a.date_11 * b.qty) as total_date_11,
+            (a.date_12 * b.qty) as total_date_12,
+            (a.date_13 * b.qty) as total_date_13,
+            (a.date_14 * b.qty) as total_date_14,
+            (a.date_15 * b.qty) as total_date_15,
+            (a.date_16 * b.qty) as total_date_16,
+            (a.date_17 * b.qty) as total_date_17,
+            (a.date_18 * b.qty) as total_date_18,
+            (a.date_19 * b.qty) as total_date_19,
+            (a.date_20 * b.qty) as total_date_20,
+            (a.date_21 * b.qty) as total_date_21,
+            (a.date_22 * b.qty) as total_date_22,
+            (a.date_23 * b.qty) as total_date_23,
+            (a.date_24 * b.qty) as total_date_24,
+            (a.date_25 * b.qty) as total_date_25,
+            (a.date_26 * b.qty) as total_date_26,
+            (a.date_27 * b.qty) as total_date_27,
+            (a.date_28 * b.qty) as total_date_28,
+            (a.date_29 * b.qty) as total_date_29,
+            (a.date_30 * b.qty) as total_date_30,
+            (a.date_31 * b.qty) as total_date_31
+        FROM generate_mpp a
+        JOIN mst_bom b ON a.product_no = b.item_id
+        LEFT JOIN mst_customer c ON a.customer_id = c.number
+        WHERE a.p_month = '$filter_month' and a.p_year = '$filter_year' and a.revision = '$filter_revision'
+        GROUP BY a.product_no, b.component_id, b.rout_id
+        ORDER BY a.product_no, b.component_id asc) z
+        GROUP BY z.product_no, z.component_id) d", 'd.component_id = a.product_no', 'left');
+        $this->db->where('a.p_month', $filter_month);
+        $this->db->where('a.p_year', $filter_year);
+        $this->db->where('a.revision', $filter_revision);
+        if($filter_suppliers != ""){
+            $this->db->where('f.id', $filter_suppliers);
+        }
+        if($filter_item_family != ""){
+            $this->db->where('c.pfm_id', $filter_item_family);
+        }
+        $this->db->like('a.product_no', $filter_item_id);
+        $this->db->order_by('b.number');
+        $this->db->order_by('a.product_no');
+        $this->db->order_by('d.assy_no');
+        $this->db->group_by('a.product_no');
+        $this->db->group_by('d.assy_no');
+        $records = $this->db->get()->result_array();
+
+        $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;font-size: 10px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;} .str{ mso-number-format:\@; } </style><body>
+        <center>
+            <div style="float: left; font-size: 12px; text-align: left;">
+                <table style="width: 100%;">
+                    <tr>
+                        <td width="50" style="font-size: 12px; vertical-align: top; text-align: center; vertical-align:jus margin-right:10px;">
+                            <img src="' . base_url('assets/image/config/' . $config->logo) . '" width="30">
+                        </td>
+                        <td style="font-size: 14px; text-align: left; margin:2px;">
+                            <b>' . $config->name . '</b><br>
+                            <small>MATERIAL CALCULATION DETAIL</small>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div style="float: right; font-size: 12px; text-align: right;">
+                Print Date ' . date("d M Y H:m:s") . ' <br>
+                Print By ' . $this->session->username . '  
+            </div>
+        </center>
+        <br><br><br>
+
+        <table id="customers" border="1" style="width:100%;">
+            <tr>
+                <th style="text-align:center;" width="20">NO</th>
+                <th style="text-align:center;" width="150">PART NO</th>
+                <th style="text-align:center;" width="80">PART NAME</th>
+                <th style="text-align:center;" width="80">PRODUCT FAMILY</th>
+                <th style="text-align:center;" width="80">SUPPLIER</th>
+                <th style="text-align:center;" width="150">PRODUCT NO</th>
+                <th style="text-align:center;" width="150">CUSTOMER</th>
+                <th style="text-align:center;" width="50">TOTAL NEED</th>
+            </tr>';
+            $no = 1;
+            foreach ($records as $data) {
+                $html .= '  <tr>
+                                <td>' . $no . '</td>
+                                <td style="mso-number-format:\@;">' . $data['product_no'] . '</td>
+                                <td style="mso-number-format:\@;">' . $data['product_name'] . '</td>
+                                <td>' . $data['item_family'] . '</td>
+                                <td>' . $data['supplier_name'] . '</td>
+                                <td style="mso-number-format:\@;">' . $data['assy_no'] . '</td>
+                                <td>' . $data['customer_name'] . '</td>
+                                <td>' . $data['need'] . '</td>
+                            </tr>';
+                $no++;
+            }
+
+        $html .= '</table></body></html>';
         echo $html;
     }
 
@@ -757,7 +956,7 @@ class Material_calculation_2 extends CI_Controller
         JOIN mst_bom b ON a.product_no = b.item_id
         LEFT JOIN mst_customer c ON a.customer_id = c.number
         WHERE a.p_month = '$filter_month' and a.p_year = '$filter_year' and a.revision = '$filter_revision' and b.component_id = '$product_no'
-        GROUP BY a.product_no, b.component_id
+        GROUP BY a.product_no, b.component_id, b.rout_id
         ORDER BY a.product_no, b.component_id asc) z
         GROUP BY z.product_no");
         $records = $ospo->result_array();

@@ -8,6 +8,7 @@
             <th rowspan="2" data-options="field:'item_name',width:150,halign:'center'">Item Name</th>
             <th rowspan="2" data-options="field:'product_family',width:150,halign:'center'">Product Family</th>
             <th rowspan="2" data-options="field:'uom',width:150,halign:'center'">UoM</th>
+            <th rowspan="2" data-options="field:'total_assy',width:80,halign:'center',align:'right'">Total Assy</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
         </tr>
@@ -165,6 +166,11 @@
             fit: true,
             pageList: [20, 50, 100, 500, 1000],
             pageSize: 20,
+            rowStyler: function(index, row) {
+                if (row.total_assy == 0) {
+                    return 'background-color:#FFB8B8;';
+                }
+            }
         }).datagrid('enableFilter');
 
         //Save Data

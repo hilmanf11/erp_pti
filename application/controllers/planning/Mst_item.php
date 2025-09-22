@@ -132,12 +132,14 @@ class Mst_item extends CI_Controller
             $offset = ($page - 1) * $rows;
             $result = array();
             //Select Query
-            $this->db->select('a.*, b.name as created_name, c.name as updated_name, d.name as product_family, e.name as uom');
+            $this->db->select('a.*, b.name as created_name, c.name as updated_name, d.name as product_family, e.name as uom, coalesce(f.total_assy, 0) as total_assy');
             $this->db->from('mst_item_raw a');
             $this->db->join('user b', 'a.created_by = b.username', 'left');
             $this->db->join('user c', 'a.updated_by = c.username', 'left');
             $this->db->join('mst_item_family d', 'a.pfm_id = d.number', 'left');
             $this->db->join('uom e', 'a.um_id = e.number', 'left');
+            $this->db->join("(select component_id, COUNT(id) as total_assy from mst_bom GROUP BY component_id) f", 'f.component_id = a.item_id', 'left');
+            // $this->db->where('d.name !=', null);
             if (@count($filters) > 0) {
                 foreach ($filters as $filter) {
                     if ($filter->field == "created_by") {
@@ -258,12 +260,15 @@ class Mst_item extends CI_Controller
         $this->db->from('config');
         $config = $this->db->get()->row();
 
-        $this->db->select('a.*, b.name as created_name, c.name as updated_name, d.name as product_family, e.name as uom');
+        $this->db->select('a.*, b.name as created_name, c.name as updated_name, d.name as product_family, e.name as uom, coalesce(f.total_assy, 0) as total_assy');
         $this->db->from('mst_item_raw a');
         $this->db->join('user b', 'a.created_by = b.username', 'left');
         $this->db->join('user c', 'a.updated_by = c.username', 'left');
         $this->db->join('mst_item_family d', 'a.pfm_id = d.number', 'left');
         $this->db->join('uom e', 'a.um_id = e.number', 'left');
+        $this->db->join("(select component_id, COUNT(id) as total_assy from mst_bom GROUP BY component_id) f", 'f.component_id = a.item_id', 'left');
+        $this->db->order_by('d.number', 'ASC');
+        $this->db->order_by('a.item_id', 'ASC');
         $records = $this->db->get()->result_array();
 
         $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
@@ -297,6 +302,7 @@ class Mst_item extends CI_Controller
                 <th>Item Name</th>
                 <th>Product Family</th>
                 <th>Unit of Measure</th>
+                <th>Total Assy</th>
             </tr>';
         $no = 1;
         foreach ($records as $data) {
@@ -308,6 +314,7 @@ class Mst_item extends CI_Controller
                             <td>' . $data['item_name'] . '</td>
                             <td>' . $data['product_family'] . '</td>
                             <td>' . $data['uom'] . '</td>
+                            <td>' . $data['total_assy'] . '</td>
                         </tr>';
             $no++;
         }

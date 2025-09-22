@@ -32,7 +32,7 @@ class Mst_customer extends CI_Controller
 
     public function reads()
     {
-        $send = $this->api->reads('mst_customer', [], [], "", "remarks", "asc");
+        $send = $this->api->reads('mst_customer', [], [], "", "name", "asc");
         echo json_encode($send);
     }
 

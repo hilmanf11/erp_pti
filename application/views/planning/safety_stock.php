@@ -38,12 +38,12 @@
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Start/Ending</span>
-                <input style="width:30%;" name="start" required="" class="easyui-numberbox">
-                <input style="width:30%;" name="ending" required="" class="easyui-numberbox">
+                <input style="width:30%;" name="start" required="" class="easyui-numberbox" data-options="precision:2">
+                <input style="width:30%;" name="ending" required="" class="easyui-numberbox" data-options="precision:2">
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Safety Stock %</span>
-                <input style="width:30%;" name="safety" required="" class="easyui-numberbox">
+                <input style="width:30%;" name="safety" required="" class="easyui-numberbox" data-options="precision:2">
             </div>
         </fieldset>
     </form>

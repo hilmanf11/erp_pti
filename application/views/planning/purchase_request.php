@@ -456,7 +456,7 @@
 
                                 $(ed6.target).numberbox({
                                     onChange: function(val){
-                                        var hasil = (Math.ceil(val / rows.moq) * rows.mpq);
+                                        var hasil = (Math.ceil(val / rows.mpq) * rows.mpq);
                                         $(ed6.target).numberbox('setValue', hasil);
                                     }
                                 });
