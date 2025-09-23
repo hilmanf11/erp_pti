@@ -86,7 +86,7 @@ class Purchase_orders extends CI_Controller
     }
 
     function readPono(){
-        $datas = $this->api->query("SELECT distinct a.purchase_order_no, b.number FROM purchase_orders a JOIN suppliers b ON a.supplier_id = b.id ORDER BY a.purchase_order_no ASC");
+        $datas = $this->api->query("SELECT distinct a.purchase_order_no, b.number FROM purchase_orders a JOIN suppliers b ON a.supplier_id = b.id ORDER BY a.purchase_order_no DESC LIMIT 100");
         echo json_encode($datas);
     }
 

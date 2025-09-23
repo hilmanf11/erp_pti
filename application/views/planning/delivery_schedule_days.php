@@ -25,6 +25,7 @@
                     $filter_revision = base64_decode($this->input->get('filter_revision'));
                     $filter_item_family = base64_decode($this->input->get('filter_item_family'));
                     $filter_supplier = base64_decode($this->input->get('filter_supplier'));
+                    $filter_po = base64_decode($this->input->get('filter_po'));
                     $filter_item_id = base64_decode($this->input->get('filter_item_id'));
                 }else{
                     $filter_month = date("m");
@@ -32,6 +33,7 @@
                     $filter_revision = "0";
                     $filter_item_family = "";
                     $filter_supplier = "";
+                    $filter_po = "";
                     $filter_item_id = "";
                 }
 
@@ -88,7 +90,7 @@
     </thead>
 </table>
 
-<div id="toolbar" style="height: 200px; padding: 10px;">
+<div id="toolbar" style="height: 230px; padding: 10px;">
     <div style="width: 100%; display: grid; grid-template-columns: auto auto auto; grid-gap: 5px; display: flex;">
         <fieldset style="width: 60%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
             <legend><b>Form Filter Data</b></legend>
@@ -103,14 +105,18 @@
                     <input style="width:60%;" name="filter_revision" id="filter_revision" value="<?= $filter_revision ?>" class="easyui-combobox" data-options="prompt:'Revision'" panelHeight="auto">
                 </div>
                 <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Supplier</span>
+                    <input style="width:60%;" id="filter_supplier" value="<?= $filter_supplier ?>" class="easyui-combobox">
+                </div>
+                <div class="fitem">
                     <span style="width:35%; display:inline-block;"></span>
                     <a href="javascript:;" class="easyui-linkbutton" onclick="filter()"><i class="fa fa-search"></i> Filter Data</a>
                 </div>
             </div>
             <div style="width: 50%; float: left;">
                 <div class="fitem">
-                    <span style="width:35%; display:inline-block;">Supplier</span>
-                    <input style="width:60%;" id="filter_supplier" value="<?= $filter_supplier ?>" class="easyui-combobox">
+                    <span style="width:35%; display:inline-block;">PO No</span>
+                    <input style="width:60%;" id="filter_po" value="<?= $filter_po ?>" class="easyui-combobox">
                 </div>
                 <div class="fitem">
                     <span style="width:35%; display:inline-block;">Product Family</span>
@@ -280,6 +286,7 @@
         var filter_year = $("#filter_year").textbox('getValue');
         var filter_revision = $("#filter_revision").combobox('getValue');
         var filter_supplier = $("#filter_supplier").combobox('getValue');
+        var filter_po = $("#filter_po").combobox('getValue');
         var filter_item_family = $("#filter_item_family").combobox('getValue');
         var filter_item_id = $("#filter_item_id").combogrid('getValue');
 
@@ -305,6 +312,7 @@
                             "&filter_year=" + window.btoa(filter_year) +
                             "&filter_revision=" + window.btoa(filter_revision) +
                             "&filter_supplier=" + window.btoa(filter_supplier) +
+                            "&filter_po=" + window.btoa(filter_po) +
                             "&filter_item_family=" + window.btoa(filter_item_family) +
                             "&filter_item_id=" + window.btoa(filter_item_id),
                         dataType: "json",
@@ -502,6 +510,7 @@
         var filter_year = $("#filter_year").textbox('getValue');
         var filter_revision = $("#filter_revision").combobox('getValue');
         var filter_supplier = $("#filter_supplier").combobox('getValue');
+        var filter_po = $("#filter_po").combobox('getValue');
         var filter_item_family = $("#filter_item_family").combobox('getValue');
         var filter_item_id = $("#filter_item_id").combogrid('getValue');
 
@@ -509,11 +518,12 @@
             "&filter_year=" + window.btoa(filter_year) +
             "&filter_revision=" + window.btoa(filter_revision) +
             "&filter_supplier=" + window.btoa(filter_supplier) +
+            "&filter_po=" + window.btoa(filter_po) +
             "&filter_item_family=" + window.btoa(filter_item_family) +
             "&filter_item_id=" + window.btoa(filter_item_id);
 
-        if (filter_month == "" || filter_year == "" || filter_revision == "" || filter_item_family == "" && filter_supplier == "") {
-                toastr.warning("Please select Period, Revision Supplier or Product Family!", "Information");
+        if (filter_month == "" || filter_year == "" || filter_revision == "" || filter_item_family == "" && filter_supplier == "" && filter_po == "") {
+                toastr.warning("Please select Period, Revision Supplier, PO No or Product Family!", "Information");
         } else {
             window.location.assign(url);
             // $('#dg').datagrid({
@@ -535,6 +545,7 @@
         var filter_year = $("#filter_year").textbox('getValue');
         var filter_revision = $("#filter_revision").combobox('getValue');
         var filter_supplier = $("#filter_supplier").combobox('getValue');
+        var filter_po = $("#filter_po").combobox('getValue');
         var filter_item_family = $("#filter_item_family").combobox('getValue');
         var filter_item_id = $("#filter_item_id").combogrid('getValue');
 
@@ -542,6 +553,7 @@
             "&filter_year=" + window.btoa(filter_year) +
             "&filter_revision=" + window.btoa(filter_revision) +
             "&filter_supplier=" + window.btoa(filter_supplier) +
+            "&filter_po=" + window.btoa(filter_po) +
             "&filter_item_family=" + window.btoa(filter_item_family) +
             "&filter_item_id=" + window.btoa(filter_item_id);
 
@@ -574,6 +586,7 @@
         var filter_year = $("#filter_year").textbox('getValue');
         var filter_revision = $("#filter_revision").combobox('getValue');
         var filter_supplier = $("#filter_supplier").combobox('getValue');
+        var filter_po = $("#filter_po").combobox('getValue');
         var filter_item_family = $("#filter_item_family").combobox('getValue');
         var filter_item_id = $("#filter_item_id").combogrid('getValue');
 
@@ -581,10 +594,11 @@
             "&filter_year=" + window.btoa(filter_year) +
             "&filter_revision=" + window.btoa(filter_revision) +
             "&filter_supplier=" + window.btoa(filter_supplier) +
+            "&filter_po=" + window.btoa(filter_po) +
             "&filter_item_family=" + window.btoa(filter_item_family) +
             "&filter_item_id=" + window.btoa(filter_item_id);
 
-        if (filter_month == "" || filter_year == "" || filter_revision == "" || filter_item_family == "" && filter_supplier == "") {
+        if (filter_month == "" || filter_year == "" || filter_revision == "" || filter_item_family == "" && filter_supplier == "" && filter_po == "") {
             toastr.warning("Please select Period, Revision Supplier or Product Family!", "Information");
         }else{
             $('#dg').datagrid({
@@ -745,6 +759,19 @@
             valueField: 'supplier_id',
             textField: 'supplier_name',
             prompt: 'Select Supplier',
+            icons: [{
+                iconCls: 'icon-clear',
+                handler: function(e) {
+                    $(e.data.target).combobox('clear').combobox('textbox').focus();
+                }
+            }],
+        });
+
+        $('#filter_po').combobox({
+            url: '<?php echo base_url('planning/purchase_orders/readPono'); ?>',
+            valueField: 'purchase_order_no',
+            textField: 'purchase_order_no',
+            prompt: 'Select PO No',
             icons: [{
                 iconCls: 'icon-clear',
                 handler: function(e) {

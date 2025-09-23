@@ -306,6 +306,7 @@ class Delivery_schedule_days extends CI_Controller
             $filter_revision = base64_decode($this->input->get('filter_revision'));
             $filter_item_family = base64_decode($this->input->get('filter_item_family'));
             $filter_supplier = base64_decode($this->input->get('filter_supplier'));
+            $filter_po = base64_decode($this->input->get('filter_po'));
             $filter_item_id = base64_decode($this->input->get('filter_item_id'));
 
             //Select Query
@@ -322,6 +323,9 @@ class Delivery_schedule_days extends CI_Controller
             }
             if($filter_supplier != ""){
                 $this->db->where('a.supplier_id', $filter_supplier);
+            }
+            if($filter_po != ""){
+                $this->db->where('a.po_no', $filter_po);
             }
             $this->db->like('a.part_no', $filter_item_id);
             $this->db->order_by('c.name', 'asc');
@@ -403,6 +407,7 @@ class Delivery_schedule_days extends CI_Controller
         $filter_year = base64_decode($this->input->get('filter_year'));
         $filter_revision = base64_decode($this->input->get('filter_revision'));
         $filter_supplier = base64_decode($this->input->get('filter_supplier'));
+        $filter_po = base64_decode($this->input->get('filter_po'));
         $filter_item_family = base64_decode($this->input->get('filter_item_family'));
         $filter_item_id = base64_decode($this->input->get('filter_item_id'));
 
@@ -427,6 +432,9 @@ class Delivery_schedule_days extends CI_Controller
         $this->db->where('a.revision', $filter_revision);
         if($filter_supplier != ""){
             $this->db->where('a.supplier_id', $filter_supplier);
+        }
+        if($filter_po != ""){
+            $this->db->where('a.po_no', $filter_po);
         }
         if($filter_item_family != ""){
             $this->db->where('a.product_family', $filter_item_family);
@@ -763,6 +771,7 @@ class Delivery_schedule_days extends CI_Controller
         $filter_revision = base64_decode($this->input->get('filter_revision'));
         $filter_item_family = base64_decode($this->input->get('filter_item_family'));
         $filter_supplier = base64_decode($this->input->get('filter_supplier'));
+        $filter_po = base64_decode($this->input->get('filter_po'));
         $filter_item_id = base64_decode($this->input->get('filter_item_id'));
 
         $firstDate = date('01 M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
@@ -784,6 +793,9 @@ class Delivery_schedule_days extends CI_Controller
         }
         if($filter_supplier != ""){
             $this->db->where('a.supplier_id', $filter_supplier);
+        }
+        if($filter_po != ""){
+            $this->db->where('a.po_no', $filter_po);
         }
         if($filter_item_id != ""){
             $this->db->where('a.part_no', $filter_item_id);
