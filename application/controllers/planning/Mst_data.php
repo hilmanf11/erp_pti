@@ -110,4 +110,11 @@ class Mst_data extends CI_Controller
 
         echo json_encode($records);
     }
+
+    public function readUom(){
+        $query = $this->db->query("SELECT number, name FROM uom ORDER BY number ASC");
+        $records = $query->result_array();
+
+        echo json_encode($records);
+    }
 }

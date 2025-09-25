@@ -6,7 +6,10 @@
             <th rowspan="2" data-options="field:'uom_from',width:80,halign:'center'">Uom From</th>
             <th rowspan="2" data-options="field:'uom_to',width:80,halign:'center'">Uom To</th>
             <th rowspan="2" data-options="field:'type',width:100,halign:'center'">Type</th>
-            <th rowspan="2" data-options="field:'amount',width:100,halign:'center'">Amount</th>
+            <th rowspan="2" data-options="field:'amount',width:100,halign:'center'">Qty Convertion</th>
+            <th rowspan="2" data-options="field:'mpq',width:100,halign:'center'">MPQ</th>
+            <th rowspan="2" data-options="field:'moq',width:100,halign:'center'">MOQ</th>
+            <th rowspan="2" data-options="field:'description',width:100,halign:'center'">Description</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
         </tr>
@@ -34,8 +37,8 @@
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Unit of Measure</span>
-                <input style="width:25%;" name="uom_from" id="uom_from" required="" class="easyui-textbox"> To
-                <input style="width:25%;" name="uom_to" id="uom_to" required="" class="easyui-textbox">
+                <input style="width:25%;" name="uom_from" id="uom_from" required="" class="easyui-combobox"> To
+                <input style="width:25%;" name="uom_to" id="uom_to" required="" class="easyui-combobox">
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Type</span>
@@ -45,8 +48,17 @@
                 </select>
             </div>
             <div class="fitem">
-                <span style="width:35%; display:inline-block;">Amount</span>
+                <span style="width:35%; display:inline-block;">Qty Convertion</span>
                 <input style="width:30%;" name="amount" id="amount" required="" class="easyui-numberbox">
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">MPQ/MOQ</span>
+                <input style="width:30%;" name="mpq" id="mpq" required="" class="easyui-numberbox">
+                <input style="width:30%;" name="moq" id="moq" required="" class="easyui-numberbox">
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Description</span>
+                <input style="width:60%;" name="description" id="description" class="easyui-textbox">
             </div>
         </fieldset>
     </form>
@@ -211,12 +223,19 @@
             ]
         });
 
-        // $('#uom_from').combobox({
-        //     url: '<?php echo base_url('planning/convertions/readUom'); ?>',
-        //     valueField: 'number',
-        //     textField: 'name',
-        //     prompt: 'Select Unit of Measure',
-        // });
+        $('#uom_from').combobox({
+            url: '<?php echo base_url('planning/mst_data/readUom'); ?>',
+            valueField: 'name',
+            textField: 'name',
+            prompt: 'From',
+        });
+
+        $('#uom_to').combobox({
+            url: '<?php echo base_url('planning/mst_data/readUom'); ?>',
+            valueField: 'name',
+            textField: 'name',
+            prompt: 'To',
+        });
 
         //Upload Data
         $('#dlg_upload').dialog({
