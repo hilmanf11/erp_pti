@@ -601,16 +601,19 @@ class Marketing_price extends CI_Controller
             if ($data['type'] == 'IMPORT') {
                 $assurance = $this->api->read('mst_assurance', [], ["type" => 'IMPORT']);
                 $transportation = $this->api->read('mst_transportation', [], ["type" => 'IMPORT']);
-                $import_duty = $this->api->read('mst_import_duty', [], ["type" => 'IMPORT']);
             } else {
                 $assurance = $this->api->read('mst_assurance', [], ["type" => 'LOCAL']);
                 $transportation = $this->api->read('mst_transportation', [], ["type" => 'LOCAL']);
-                $import_duty = $this->api->read('mst_import_duty', [], ["type" => 'LOCAL']);
             }
 
+            $mst_import_duty = $this->api->read('mst_import_duty', [], ["plant" => $data['plant'], "supplier_id" => $data['supplier_id'], "item_id" => $data['item_id']]);
+            if (!empty(@$mst_import_duty->percentage)) {
+                $import_duty_price = $data['price'] * (@$mst_import_duty->percentage / 100);
+            } else {
+                $import_duty_price = 0;
+            }
             $assurance_price = $data['price'] * @$assurance->percentage;
             $transportation_price = $data['price'] * (@$transportation->percentage / 100);
-            $import_duty_price = $data['price'] * (@$import_duty->percentage / 100);
             $total_price = $data['price'] + $assurance_price + $transportation_price + $import_duty_price;
             $html .= '<tr>
                         <td>' . $no . '</td>
