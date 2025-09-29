@@ -307,12 +307,12 @@ class Generate_mrp extends CI_Controller
             $filter_month = base64_decode($this->input->get('filter_month'));
             $filter_year = base64_decode($this->input->get('filter_year'));
             $filter_revision = base64_decode($this->input->get('filter_revision'));
-            $filter_part_no = base64_decode($this->input->get('filter_part_no'));
+            $filter_part_no = trim(base64_decode($this->input->get('filter_part_no')));
             $filter_product_family = base64_decode($this->input->get('filter_product_family'));
 
             $mpsRev = $this->api->query("SELECT max(revision) as rev FROM generate_mps_detail WHERE p_month='$filter_month' and p_year='$filter_year'");
             $this->db->query("DELETE FROM generate_mrp WHERE p_month = '$filter_month' and p_year = '$filter_year' and revision='$filter_revision' and product_no like '%$filter_part_no%' and product_family like '%$filter_product_family%'");
-
+            
             //Select Query
             $this->db->select('b.p_month, b.p_year, b.revision, 
                 a.component_id as product_no, 
