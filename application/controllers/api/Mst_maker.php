@@ -27,7 +27,7 @@ class Mst_maker extends CI_Controller
         } elseif ($this->checkuserAccess($this->id_menu()) > 0) {
             $data['button'] = $this->getbutton($this->id_menu());
             $this->load->view('template/header', $data);
-            $this->load->view('planning/marketing_price');
+            $this->load->view('planning/mst_maker');
         } else {
             redirect('error_access');
         }

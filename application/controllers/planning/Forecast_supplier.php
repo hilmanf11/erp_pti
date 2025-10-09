@@ -123,21 +123,21 @@ class Forecast_supplier extends CI_Controller
             $this->db->select("a.p_month,
                     a.p_year,a.revision,a.part_no, a.part_name, a.product_family, 
                     a.issued_1, a.issued_2, a.issued_3, a.issued_avg, a.qty_rm, a.qty_wip, a.qty_vendor, a.total_stock, a.qty_supply, a.qty_wo,a.total_wo, 
-                    a.need_1, a.need_2, a.need_3, a.need_4, a.need_5, a.need_6,
+                    a.need_1, a.need_2, a.need_3, a.need_4, a.need_5, a.need_6, a.avg_need,
                     a.balance_1, 
                     coalesce(a.balance_1-a.need_2,0) as balance_2, 
                     coalesce(a.balance_2-a.need_3,0) as balance_3, 
                     coalesce(a.balance_3-a.need_4,0) as balance_4, 
                     coalesce(a.balance_4-a.need_5,0) as balance_5, 
-                    coalesce(a.balance_5-a.need_6,0) as balance_6,
+                    coalesce(a.balance_5-a.need_6,0) as balance_6, 
+                    coalesce(a.avg_balance,0) as avg_balance, 
                     (case when a.balance_1 > 0 then 0  else a.need_1 end) as forecast_1,
                     (case when coalesce(a.balance_1 - a.need_2,0) > 0 then 0  else a.need_2 end) as forecast_2,
                     (case when coalesce(a.balance_2 - a.need_3,0) > 0 then 0  else a.need_3 end) as forecast_3,
                     (case when coalesce(a.balance_3 - a.need_4,0) > 0 then 0  else a.need_4 end) as forecast_4,
                     (case when coalesce(a.balance_4 - a.need_5,0) > 0 then 0  else a.need_5 end) as forecast_5,
                     (case when coalesce(a.balance_5 - a.need_6,0) > 0 then 0  else a.need_6 end) as forecast_6,
-                    (case when coalesce(a.avg_balance,0) > 0 then 0  else a.avg_need end) as avg_forecast,
-                    a.avg_need, coalesce(a.avg_balance,0) as avg_balance, 
+                    coalesce(a.avg_need,0) as avg_forecast,
                     a.total_need, a.purchase_order,
                     b.id as vendor_id, 
                     b.name as vendor_name, 
@@ -159,6 +159,7 @@ class Forecast_supplier extends CI_Controller
             $this->db->where('c.share_order >', 0);
             $this->db->like('a.product_family', $filter_product_family);
             $this->db->like('a.part_no', $item_id);
+            // $this->db->where_in('a.part_no', ['+1-2291193-3', '+2236793-3', '+2294140-2']);
             $this->db->order_by('a.part_no', 'asc');
             // $this->db->limit(10);
             //Total Data
@@ -181,13 +182,13 @@ class Forecast_supplier extends CI_Controller
                         $record_balance_3 = $record['balance_5'];
                         $record_balance_4 = $record['balance_6'];
                         $record_balance_5 = $record['avg_balance'];
-                        $record_balance_6 = $record['avg_balance'];
+                        $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                         $record_forecast_1 = $record['forecast_3'];
                         $record_forecast_2 = $record['forecast_4'];
                         $record_forecast_3 = $record['forecast_5'];
                         $record_forecast_4 = $record['forecast_6'];
                         $record_forecast_5 = $record['avg_forecast'];
-                        $record_forecast_6 = $record['avg_forecast'];
+                        $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                     } else if ($month_from_leadtime == 2) {
                         $record_need_1 = $record['need_4'];
                         $record_need_2 = $record['need_5'];
@@ -199,14 +200,14 @@ class Forecast_supplier extends CI_Controller
                         $record_balance_2 = $record['balance_5'];
                         $record_balance_3 = $record['balance_6'];
                         $record_balance_4 = $record['avg_balance'];
-                        $record_balance_5 = $record['avg_balance'];
-                        $record_balance_6 = $record['avg_balance'];
+                        $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                        $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                         $record_forecast_1 = $record['forecast_4'];
                         $record_forecast_2 = $record['forecast_5'];
                         $record_forecast_3 = $record['forecast_6'];
                         $record_forecast_4 = $record['avg_forecast'];
-                        $record_forecast_5 = $record['avg_forecast'];
-                        $record_forecast_6 = $record['avg_forecast'];
+                        $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                     } else if ($month_from_leadtime == 3) {
                         $record_need_1 = $record['need_5'];
                         $record_need_2 = $record['need_6'];
@@ -217,15 +218,15 @@ class Forecast_supplier extends CI_Controller
                         $record_balance_1 = $record['balance_5'];
                         $record_balance_2 = $record['balance_6'];
                         $record_balance_3 = $record['avg_balance'];
-                        $record_balance_4 = $record['avg_balance'];
-                        $record_balance_5 = $record['avg_balance'];
-                        $record_balance_6 = $record['avg_balance'];
+                        $record_balance_4 = $record_balance_3 - abs($record['avg_need']);
+                        $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                        $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                         $record_forecast_1 = $record['forecast_5'];
                         $record_forecast_2 = $record['forecast_6'];
                         $record_forecast_3 = $record['avg_forecast'];
-                        $record_forecast_4 = $record['avg_forecast'];
-                        $record_forecast_5 = $record['avg_forecast'];
-                        $record_forecast_6 = $record['avg_forecast'];
+                        $record_forecast_4 = ($record_balance_4 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                     } else if ($month_from_leadtime == 4) {
                         $record_need_1 = $record['need_6'];
                         $record_need_2 = $record['avg_need'];
@@ -235,16 +236,16 @@ class Forecast_supplier extends CI_Controller
                         $record_need_6 = $record['avg_need'];
                         $record_balance_1 = $record['balance_6'];
                         $record_balance_2 = $record['avg_balance'];
-                        $record_balance_3 = $record['avg_balance'];
-                        $record_balance_4 = $record['avg_balance'];
-                        $record_balance_5 = $record['avg_balance'];
-                        $record_balance_6 = $record['avg_balance'];
+                        $record_balance_3 = $record_balance_2 - abs($record['avg_need']);
+                        $record_balance_4 = $record_balance_3 - abs($record['avg_need']);
+                        $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                        $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                         $record_forecast_1 = $record['forecast_6'];
-                        $record_forecast_2 = $record['avg_forecast'];
-                        $record_forecast_3 = $record['avg_forecast'];
-                        $record_forecast_4 = $record['avg_forecast'];
-                        $record_forecast_5 = $record['avg_forecast'];
-                        $record_forecast_6 = $record['avg_forecast'];
+                        $record_forecast_2 = ($record_balance_2 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_3 = ($record_balance_3 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_4 = ($record_balance_4 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                     } else {
                         $record_need_1 = $record['avg_need'];
                         $record_need_2 = $record['avg_need'];
@@ -253,17 +254,17 @@ class Forecast_supplier extends CI_Controller
                         $record_need_5 = $record['avg_need'];
                         $record_need_6 = $record['avg_need'];
                         $record_balance_1 = $record['avg_balance'];
-                        $record_balance_2 = $record_balance_1 - $record['avg_need'];
-                        $record_balance_3 = $record_balance_2 - $record['avg_need'];
-                        $record_balance_4 = $record_balance_3 - $record['avg_need'];
-                        $record_balance_5 = $record_balance_4 - $record['avg_need'];
-                        $record_balance_6 =  $record_balance_5 - $record['avg_need'];
-                        $record_forecast_1 = $record['avg_forecast'];
-                        $record_forecast_2 = $record['avg_forecast'];
-                        $record_forecast_3 = $record['avg_forecast'];
-                        $record_forecast_4 = $record['avg_forecast'];
-                        $record_forecast_5 = $record['avg_forecast'];
-                        $record_forecast_6 = $record['avg_forecast'];
+                        $record_balance_2 = $record_balance_1 - abs($record['avg_need']);
+                        $record_balance_3 = $record_balance_2 - abs($record['avg_need']);
+                        $record_balance_4 = $record_balance_3 - abs($record['avg_need']);
+                        $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                        $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
+                        $record_forecast_1 = ($record_balance_1 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_2 = ($record_balance_2 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_3 = ($record_balance_3 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_4 = ($record_balance_4 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                     }
                 } else { // jika maker type local maka need dimulai m+1 atau need_2
                     if ($month_from_leadtime == 1) {
@@ -297,13 +298,13 @@ class Forecast_supplier extends CI_Controller
                         $record_balance_3 = $record['balance_5'];
                         $record_balance_4 = $record['balance_6'];
                         $record_balance_5 = $record['avg_balance'];
-                        $record_balance_6 = $record['avg_balance'];
+                        $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                         $record_forecast_1 = $record['forecast_3'];
                         $record_forecast_2 = $record['forecast_4'];
                         $record_forecast_3 = $record['forecast_5'];
                         $record_forecast_4 = $record['forecast_6'];
                         $record_forecast_5 = $record['avg_forecast'];
-                        $record_forecast_6 = $record['avg_forecast'];
+                        $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                     } else if ($month_from_leadtime == 3) {
                         $record_need_1 = $record['need_4'];
                         $record_need_2 = $record['need_5'];
@@ -315,14 +316,14 @@ class Forecast_supplier extends CI_Controller
                         $record_balance_2 = $record['balance_5'];
                         $record_balance_3 = $record['balance_6'];
                         $record_balance_4 = $record['avg_balance'];
-                        $record_balance_5 = $record['avg_balance'];
-                        $record_balance_6 = $record['avg_balance'];
+                        $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                        $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                         $record_forecast_1 = $record['forecast_4'];
                         $record_forecast_2 = $record['forecast_5'];
                         $record_forecast_3 = $record['forecast_6'];
                         $record_forecast_4 = $record['avg_forecast'];
-                        $record_forecast_5 = $record['avg_forecast'];
-                        $record_forecast_6 = $record['avg_forecast'];
+                        $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                     } else if ($month_from_leadtime == 4) {
                         $record_need_1 = $record['need_5'];
                         $record_need_2 = $record['need_6'];
@@ -333,15 +334,15 @@ class Forecast_supplier extends CI_Controller
                         $record_balance_1 = $record['balance_5'];
                         $record_balance_2 = $record['balance_6'];
                         $record_balance_3 = $record['avg_balance'];
-                        $record_balance_4 = $record['avg_balance'];
-                        $record_balance_5 = $record['avg_balance'];
-                        $record_balance_6 = $record['avg_balance'];
+                        $record_balance_4 = $record_balance_3 - abs($record['avg_need']);
+                        $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                        $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                         $record_forecast_1 = $record['forecast_5'];
                         $record_forecast_2 = $record['forecast_6'];
                         $record_forecast_3 = $record['avg_forecast'];
-                        $record_forecast_4 = $record['avg_forecast'];
-                        $record_forecast_5 = $record['avg_forecast'];
-                        $record_forecast_6 = $record['avg_forecast'];
+                        $record_forecast_4 = ($record_balance_4 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                     } else if ($month_from_leadtime == 5) {
                         $record_need_1 = $record['need_6'];
                         $record_need_2 = $record['avg_need'];
@@ -351,16 +352,16 @@ class Forecast_supplier extends CI_Controller
                         $record_need_6 = $record['avg_need'];
                         $record_balance_1 = $record['balance_6'];
                         $record_balance_2 = $record['avg_balance'];
-                        $record_balance_3 = $record['avg_balance'];
-                        $record_balance_4 = $record['avg_balance'];
-                        $record_balance_5 = $record['avg_balance'];
-                        $record_balance_6 = $record['avg_balance'];
+                        $record_balance_3 = $record_balance_2 - abs($record['avg_need']);
+                        $record_balance_4 = $record_balance_3 - abs($record['avg_need']);
+                        $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                        $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                         $record_forecast_1 = $record['forecast_6'];
                         $record_forecast_2 = $record['avg_forecast'];
-                        $record_forecast_3 = $record['avg_forecast'];
-                        $record_forecast_4 = $record['avg_forecast'];
-                        $record_forecast_5 = $record['avg_forecast'];
-                        $record_forecast_6 = $record['avg_forecast'];
+                        $record_forecast_3 = ($record_balance_3 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_4 = ($record_balance_4 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                     } else {
                         $record_need_1 = $record['avg_need'];
                         $record_need_2 = $record['avg_need'];
@@ -369,17 +370,17 @@ class Forecast_supplier extends CI_Controller
                         $record_need_5 = $record['avg_need'];
                         $record_need_6 = $record['avg_need'];
                         $record_balance_1 = $record['avg_balance'];
-                        $record_balance_2 = $record_balance_1 - $record['avg_need'];
-                        $record_balance_3 = $record_balance_2 - $record['avg_need'];
-                        $record_balance_4 = $record_balance_3 - $record['avg_need'];
-                        $record_balance_5 = $record_balance_4 - $record['avg_need'];
-                        $record_balance_6 = $record_balance_5 - $record['avg_need'];
-                        $record_forecast_1 = $record['avg_forecast'];
-                        $record_forecast_2 = $record['avg_forecast'];
-                        $record_forecast_3 = $record['avg_forecast'];
-                        $record_forecast_4 = $record['avg_forecast'];
-                        $record_forecast_5 = $record['avg_forecast'];
-                        $record_forecast_6 = $record['avg_forecast'];
+                        $record_balance_2 = $record_balance_1 - abs($record['avg_need']);
+                        $record_balance_3 = $record_balance_2 - abs($record['avg_need']);
+                        $record_balance_4 = $record_balance_3 - abs($record['avg_need']);
+                        $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                        $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
+                        $record_forecast_1 = ($record_balance_1 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_2 = ($record_balance_2 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_3 = ($record_balance_3 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_4 = ($record_balance_4 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                        $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                     }
                 }
 
@@ -849,24 +850,24 @@ class Forecast_supplier extends CI_Controller
         $fc_3 = $this->readMonths(date('m', strtotime('+3 month', strtotime($periode))));
         $fc_4 = $this->readMonths(date('m', strtotime('+4 month', strtotime($periode))));
 
-        $this->db->select('a.p_month,
+        $this->db->select("a.p_month,
                     a.p_year,a.revision,a.part_no, a.part_name, a.product_family, 
                     a.issued_1, a.issued_2, a.issued_3, a.issued_avg, a.qty_rm, a.qty_wip, a.qty_vendor, a.total_stock, a.qty_supply, a.qty_wo,a.total_wo, 
-                    a.need_1, a.need_2, a.need_3, a.need_4, a.need_5, a.need_6,
+                    a.need_1, a.need_2, a.need_3, a.need_4, a.need_5, a.need_6, a.avg_need,
                     a.balance_1, 
                     coalesce(a.balance_1-a.need_2,0) as balance_2, 
                     coalesce(a.balance_2-a.need_3,0) as balance_3, 
                     coalesce(a.balance_3-a.need_4,0) as balance_4, 
                     coalesce(a.balance_4-a.need_5,0) as balance_5, 
-                    coalesce(a.balance_5-a.need_6,0) as balance_6,
+                    coalesce(a.balance_5-a.need_6,0) as balance_6, 
+                    coalesce(a.avg_balance,0) as avg_balance, 
                     (case when a.balance_1 > 0 then 0  else a.need_1 end) as forecast_1,
                     (case when coalesce(a.balance_1 - a.need_2,0) > 0 then 0  else a.need_2 end) as forecast_2,
                     (case when coalesce(a.balance_2 - a.need_3,0) > 0 then 0  else a.need_3 end) as forecast_3,
                     (case when coalesce(a.balance_3 - a.need_4,0) > 0 then 0  else a.need_4 end) as forecast_4,
                     (case when coalesce(a.balance_4 - a.need_5,0) > 0 then 0  else a.need_5 end) as forecast_5,
                     (case when coalesce(a.balance_5 - a.need_6,0) > 0 then 0  else a.need_6 end) as forecast_6,
-                    (case when coalesce(a.avg_balance,0) > 0 then 0  else a.avg_need end) as avg_forecast,
-                    a.avg_need, coalesce(a.avg_balance,0) as avg_balance, 
+                    coalesce(a.avg_need,0) as avg_forecast,
                     a.total_need, a.purchase_order,
                     b.id as vendor_id, 
                     b.name as vendor_name, 
@@ -877,7 +878,7 @@ class Forecast_supplier extends CI_Controller
                     c.mpq,
                     c.moq,
                     d.name as maker_name, 
-                    d.type as maker_type');
+                    d.type as maker_type");
         $this->db->from('generate_mrp_finals a');
         $this->db->join('supplier_items c', 'a.part_no = c.item_id', 'left');
         $this->db->join('suppliers b', 'c.supplier_id = b.id', 'left');
@@ -973,13 +974,13 @@ class Forecast_supplier extends CI_Controller
                     $record_balance_3 = $record['balance_5'];
                     $record_balance_4 = $record['balance_6'];
                     $record_balance_5 = $record['avg_balance'];
-                    $record_balance_6 = $record['avg_balance'];
+                    $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                     $record_forecast_1 = $record['forecast_3'];
                     $record_forecast_2 = $record['forecast_4'];
                     $record_forecast_3 = $record['forecast_5'];
                     $record_forecast_4 = $record['forecast_6'];
                     $record_forecast_5 = $record['avg_forecast'];
-                    $record_forecast_6 = $record['avg_forecast'];
+                    $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                 } else if ($month_from_leadtime == 2) {
                     $record_need_1 = $record['need_4'];
                     $record_need_2 = $record['need_5'];
@@ -991,14 +992,14 @@ class Forecast_supplier extends CI_Controller
                     $record_balance_2 = $record['balance_5'];
                     $record_balance_3 = $record['balance_6'];
                     $record_balance_4 = $record['avg_balance'];
-                    $record_balance_5 = $record['avg_balance'];
-                    $record_balance_6 = $record['avg_balance'];
+                    $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                    $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                     $record_forecast_1 = $record['forecast_4'];
                     $record_forecast_2 = $record['forecast_5'];
                     $record_forecast_3 = $record['forecast_6'];
                     $record_forecast_4 = $record['avg_forecast'];
-                    $record_forecast_5 = $record['avg_forecast'];
-                    $record_forecast_6 = $record['avg_forecast'];
+                    $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                 } else if ($month_from_leadtime == 3) {
                     $record_need_1 = $record['need_5'];
                     $record_need_2 = $record['need_6'];
@@ -1009,15 +1010,15 @@ class Forecast_supplier extends CI_Controller
                     $record_balance_1 = $record['balance_5'];
                     $record_balance_2 = $record['balance_6'];
                     $record_balance_3 = $record['avg_balance'];
-                    $record_balance_4 = $record['avg_balance'];
-                    $record_balance_5 = $record['avg_balance'];
-                    $record_balance_6 = $record['avg_balance'];
+                    $record_balance_4 = $record_balance_3 - abs($record['avg_need']);
+                    $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                    $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                     $record_forecast_1 = $record['forecast_5'];
                     $record_forecast_2 = $record['forecast_6'];
                     $record_forecast_3 = $record['avg_forecast'];
-                    $record_forecast_4 = $record['avg_forecast'];
-                    $record_forecast_5 = $record['avg_forecast'];
-                    $record_forecast_6 = $record['avg_forecast'];
+                    $record_forecast_4 = ($record_balance_4 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                 } else if ($month_from_leadtime == 4) {
                     $record_need_1 = $record['need_6'];
                     $record_need_2 = $record['avg_need'];
@@ -1027,16 +1028,16 @@ class Forecast_supplier extends CI_Controller
                     $record_need_6 = $record['avg_need'];
                     $record_balance_1 = $record['balance_6'];
                     $record_balance_2 = $record['avg_balance'];
-                    $record_balance_3 = $record['avg_balance'];
-                    $record_balance_4 = $record['avg_balance'];
-                    $record_balance_5 = $record['avg_balance'];
-                    $record_balance_6 = $record['avg_balance'];
+                    $record_balance_3 = $record_balance_2 - abs($record['avg_need']);
+                    $record_balance_4 = $record_balance_3 - abs($record['avg_need']);
+                    $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                    $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                     $record_forecast_1 = $record['forecast_6'];
-                    $record_forecast_2 = $record['avg_forecast'];
-                    $record_forecast_3 = $record['avg_forecast'];
-                    $record_forecast_4 = $record['avg_forecast'];
-                    $record_forecast_5 = $record['avg_forecast'];
-                    $record_forecast_6 = $record['avg_forecast'];
+                    $record_forecast_2 = ($record_balance_2 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_3 = ($record_balance_3 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_4 = ($record_balance_4 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                 } else {
                     $record_need_1 = $record['avg_need'];
                     $record_need_2 = $record['avg_need'];
@@ -1045,17 +1046,17 @@ class Forecast_supplier extends CI_Controller
                     $record_need_5 = $record['avg_need'];
                     $record_need_6 = $record['avg_need'];
                     $record_balance_1 = $record['avg_balance'];
-                    $record_balance_2 = $record_balance_1 - $record['avg_need'];
-                    $record_balance_3 = $record_balance_2 - $record['avg_need'];
-                    $record_balance_4 = $record_balance_3 - $record['avg_need'];
-                    $record_balance_5 = $record_balance_4 - $record['avg_need'];
-                    $record_balance_6 =  $record_balance_5 - $record['avg_need'];
-                    $record_forecast_1 = $record['avg_forecast'];
-                    $record_forecast_2 = $record['avg_forecast'];
-                    $record_forecast_3 = $record['avg_forecast'];
-                    $record_forecast_4 = $record['avg_forecast'];
-                    $record_forecast_5 = $record['avg_forecast'];
-                    $record_forecast_6 = $record['avg_forecast'];
+                    $record_balance_2 = $record_balance_1 - abs($record['avg_need']);
+                    $record_balance_3 = $record_balance_2 - abs($record['avg_need']);
+                    $record_balance_4 = $record_balance_3 - abs($record['avg_need']);
+                    $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                    $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
+                    $record_forecast_1 = ($record_balance_1 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_2 = ($record_balance_2 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_3 = ($record_balance_3 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_4 = ($record_balance_4 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                 }
             } else { // jika maker type local maka need dimulai m+1 atau need_2
                 if ($month_from_leadtime == 1) {
@@ -1089,13 +1090,13 @@ class Forecast_supplier extends CI_Controller
                     $record_balance_3 = $record['balance_5'];
                     $record_balance_4 = $record['balance_6'];
                     $record_balance_5 = $record['avg_balance'];
-                    $record_balance_6 = $record['avg_balance'];
+                    $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                     $record_forecast_1 = $record['forecast_3'];
                     $record_forecast_2 = $record['forecast_4'];
                     $record_forecast_3 = $record['forecast_5'];
                     $record_forecast_4 = $record['forecast_6'];
                     $record_forecast_5 = $record['avg_forecast'];
-                    $record_forecast_6 = $record['avg_forecast'];
+                    $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                 } else if ($month_from_leadtime == 3) {
                     $record_need_1 = $record['need_4'];
                     $record_need_2 = $record['need_5'];
@@ -1107,14 +1108,14 @@ class Forecast_supplier extends CI_Controller
                     $record_balance_2 = $record['balance_5'];
                     $record_balance_3 = $record['balance_6'];
                     $record_balance_4 = $record['avg_balance'];
-                    $record_balance_5 = $record['avg_balance'];
-                    $record_balance_6 = $record['avg_balance'];
+                    $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                    $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                     $record_forecast_1 = $record['forecast_4'];
                     $record_forecast_2 = $record['forecast_5'];
                     $record_forecast_3 = $record['forecast_6'];
                     $record_forecast_4 = $record['avg_forecast'];
-                    $record_forecast_5 = $record['avg_forecast'];
-                    $record_forecast_6 = $record['avg_forecast'];
+                    $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                 } else if ($month_from_leadtime == 4) {
                     $record_need_1 = $record['need_5'];
                     $record_need_2 = $record['need_6'];
@@ -1125,15 +1126,15 @@ class Forecast_supplier extends CI_Controller
                     $record_balance_1 = $record['balance_5'];
                     $record_balance_2 = $record['balance_6'];
                     $record_balance_3 = $record['avg_balance'];
-                    $record_balance_4 = $record['avg_balance'];
-                    $record_balance_5 = $record['avg_balance'];
-                    $record_balance_6 = $record['avg_balance'];
+                    $record_balance_4 = $record_balance_3 - abs($record['avg_need']);
+                    $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                    $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                     $record_forecast_1 = $record['forecast_5'];
                     $record_forecast_2 = $record['forecast_6'];
                     $record_forecast_3 = $record['avg_forecast'];
-                    $record_forecast_4 = $record['avg_forecast'];
-                    $record_forecast_5 = $record['avg_forecast'];
-                    $record_forecast_6 = $record['avg_forecast'];
+                    $record_forecast_4 = ($record_balance_4 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                 } else if ($month_from_leadtime == 5) {
                     $record_need_1 = $record['need_6'];
                     $record_need_2 = $record['avg_need'];
@@ -1143,16 +1144,16 @@ class Forecast_supplier extends CI_Controller
                     $record_need_6 = $record['avg_need'];
                     $record_balance_1 = $record['balance_6'];
                     $record_balance_2 = $record['avg_balance'];
-                    $record_balance_3 = $record['avg_balance'];
-                    $record_balance_4 = $record['avg_balance'];
-                    $record_balance_5 = $record['avg_balance'];
-                    $record_balance_6 = $record['avg_balance'];
+                    $record_balance_3 = $record_balance_2 - abs($record['avg_need']);
+                    $record_balance_4 = $record_balance_3 - abs($record['avg_need']);
+                    $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                    $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
                     $record_forecast_1 = $record['forecast_6'];
                     $record_forecast_2 = $record['avg_forecast'];
-                    $record_forecast_3 = $record['avg_forecast'];
-                    $record_forecast_4 = $record['avg_forecast'];
-                    $record_forecast_5 = $record['avg_forecast'];
-                    $record_forecast_6 = $record['avg_forecast'];
+                    $record_forecast_3 = ($record_balance_3 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_4 = ($record_balance_4 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                 } else {
                     $record_need_1 = $record['avg_need'];
                     $record_need_2 = $record['avg_need'];
@@ -1161,17 +1162,17 @@ class Forecast_supplier extends CI_Controller
                     $record_need_5 = $record['avg_need'];
                     $record_need_6 = $record['avg_need'];
                     $record_balance_1 = $record['avg_balance'];
-                    $record_balance_2 = $record_balance_1 - $record['avg_need'];
-                    $record_balance_3 = $record_balance_2 - $record['avg_need'];
-                    $record_balance_4 = $record_balance_3 - $record['avg_need'];
-                    $record_balance_5 = $record_balance_4 - $record['avg_need'];
-                    $record_balance_6 = $record_balance_5 - $record['avg_need'];
-                    $record_forecast_1 = $record['avg_forecast'];
-                    $record_forecast_2 = $record['avg_forecast'];
-                    $record_forecast_3 = $record['avg_forecast'];
-                    $record_forecast_4 = $record['avg_forecast'];
-                    $record_forecast_5 = $record['avg_forecast'];
-                    $record_forecast_6 = $record['avg_forecast'];
+                    $record_balance_2 = $record_balance_1 - abs($record['avg_need']);
+                    $record_balance_3 = $record_balance_2 - abs($record['avg_need']);
+                    $record_balance_4 = $record_balance_3 - abs($record['avg_need']);
+                    $record_balance_5 = $record_balance_4 - abs($record['avg_need']);
+                    $record_balance_6 =  $record_balance_5 - abs($record['avg_need']);
+                    $record_forecast_1 = ($record_balance_1 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_2 = ($record_balance_2 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_3 = ($record_balance_3 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_4 = ($record_balance_4 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_5 = ($record_balance_5 > 0) ? 0 : $record['avg_forecast'];
+                    $record_forecast_6 = ($record_balance_6 > 0) ? 0 : $record['avg_forecast'];
                 }
             }
 
