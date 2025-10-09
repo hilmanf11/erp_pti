@@ -137,10 +137,7 @@ class LME_prices extends CI_Controller
             ."TRIM(a.ven_id) AS ven_id,"
             ."TRIM(a.item_id) AS part_no,"
             ."COALESCE(TRIM(d.name), '') AS supplier,"
-            ."COALESCE(TRIM(e.item_supplier), '') AS maker_no,"
             ."COALESCE(TRIM(f.name), '') AS maker_name,"
-            ."COALESCE(TRIM(g.item_name), '') AS part_name,"
-            ."COALESCE(e.moq, 0) AS moq,"
             ."a.created_date AS u_date,"
             ."TRIM(b.name) AS u_by"
         )->from('lme_price_logs a')
@@ -207,10 +204,7 @@ class LME_prices extends CI_Controller
             ."TRIM(a.ven_id) AS ven_id,"
             ."TRIM(a.item_id) AS part_no,"
             ."COALESCE(TRIM(d.name), '') AS supplier,"
-            ."COALESCE(TRIM(e.item_supplier), '') AS maker_no,"
             ."COALESCE(TRIM(f.name), '') AS maker_name,"
-            ."COALESCE(TRIM(g.item_name), '') AS part_name,"
-            ."COALESCE(e.moq, 0) AS moq,"
             .$cols
             ."COALESCE(a.updated_date, a.created_date) AS u_date,"
             ."COALESCE(TRIM(c.name), TRIM(b.name)) AS u_by"
@@ -375,16 +369,17 @@ class LME_prices extends CI_Controller
 
             $makers = $this->api->read('mst_maker', [], ['number' => $maker]);
             $suppliers = $this->api->read('suppliers', [], ['number' => $supp]);
-            $items = $this->api->read('mst_item_raw', [], ['item_id' => $item]);
+            // $items = $this->api->read('mst_item_raw', [], ['item_id' => $item]);
             $ranges = $this->api->read('lme_ranges', [], [
                 "lme_start" => $range_arr[0],
                 "lme_end" => $range_arr[1]
             ]);
 
-            if (empty($items)) {
-                $result['title'] = 'Undefine';
-                $result['message'] = "Item ID $item no found!";
-            } elseif (empty($makers)) {
+            // if (empty($items)) {
+            //     $result['title'] = 'Undefine';
+            //     $result['message'] = "Item ID $item no found!";
+            // } else
+            if (empty($makers)) {
                 $result['title'] = 'Undefine';
                 $result['message'] = "Maker Code $maker no found!";
             } elseif (empty($suppliers)) {
@@ -477,10 +472,7 @@ class LME_prices extends CI_Controller
             ."TRIM(a.ven_id) AS ven_id,"
             ."TRIM(a.item_id) AS part_no,"
             ."COALESCE(TRIM(d.name), '') AS supplier,"
-            ."COALESCE(TRIM(e.item_supplier), '') AS maker_no,"
             ."COALESCE(TRIM(f.name), '') AS maker_name,"
-            ."COALESCE(TRIM(g.item_name), '') AS part_name,"
-            ."COALESCE(e.moq, 0) AS moq,"
             .$cols
             ."COALESCE(a.updated_date, a.created_date) AS u_date,"
             ."COALESCE(TRIM(c.name), TRIM(b.name)) AS u_by"
@@ -528,11 +520,8 @@ class LME_prices extends CI_Controller
                 <th width="20" rowspan="2">No</th>
                 <th rowspan="2">Item ID</th>
                 <th rowspan="2">Supplier</th>
-                <th rowspan="2">Part No Maker</th>
                 <th rowspan="2">WIRE Name Maker</th>
-                <th rowspan="2">Part No BEI</th>
-                <th rowspan="2">Part Name BEI</th>
-                <th rowspan="2">MOQ</th>
+                <th rowspan="2">Part No</th>
                 <th colspan="'.count($ranges).'">Unit Packing MOQ Price  & LME Range (USD/MTR)</th>
                 <th rowspan="2">Last Date</th>
                 <th rowspan="2">By</th>
@@ -546,11 +535,8 @@ class LME_prices extends CI_Controller
                 <td align="center">' . $no . '</td>
                 <td>' . $data['part_no'] . '</td>
                 <td>' . $data['supplier'] . '</td>
-                <td>' . $data['maker_no'] . '</td>
                 <td>' . $data['maker_name'] . '</td>
-                <td>' . $data['part_no'] . '</td>
-                <td>' . $data['part_name'] . '</td>
-                <td align="right">' . $data['moq'] . '</td>';
+                <td>' . $data['part_no'] . '</td>';
             foreach ($ranges as $key => $value) { $html .= '<td>' . $data[$value] . '</td>'; }
             $html .= '<td align="center">' . $data['u_date'] . '</td>
                 <td>' . $data['u_by'] . '</td>

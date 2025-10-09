@@ -4,11 +4,8 @@
             <th rowspan="2" field="ck" checkbox="true"></th>
             <th rowspan="2" data-options="field:'part_no',width:'100',halign:'center'">Item ID</th>
             <th rowspan="2" data-options="field:'supplier',width:'200',halign:'center'">Supplier</th>
-            <th rowspan="2" data-options="field:'maker_no',width:'100',halign:'center'">Part No Maker</th>
             <th rowspan="2" data-options="field:'maker_name',width:'300',halign:'center'">WIRE Name Maker</th>
-            <th rowspan="2" data-options="field:'part_no',width:'100',halign:'center'">Part No BEI</th>
-            <th rowspan="2" data-options="field:'part_name',width:'100',halign:'center',align:'center'">Part Name BEI</th>
-            <th rowspan="2" data-options="field:'moq',width:'100',halign:'center',align:'right'">MOQ</th>
+            <th rowspan="2" data-options="field:'part_no',width:'100',halign:'center'">Part No</th>
             <th rowspan="2" data-options="field:'id',width:'100',halign:'center',align:'center',formatter:btnHistory">History</th>
             <th colspan="<?= $colspan ?>" data-options="field:''">Unit Packing MOQ Price  & LME Range (USD/MTR)</th>
             <th rowspan="2" data-options="field:'u_date',width:'150',halign:'center',align:'center'">Last Date</th>
@@ -45,7 +42,7 @@
                 <input style="width:60%;" name="f_supp_id" id="f_supp_id" class="easyui-combogrid">
             </div>
             <div class="fitem">
-                <span style="width:35%; display:inline-block;">Part No BEI</span>
+                <span style="width:35%; display:inline-block;">Part No</span>
                 <input style="width:60%;" name="f_part_no" id="f_part_no" class="easyui-combogrid">
             </div>
         </div>
@@ -63,7 +60,7 @@
                     <input style="width:60%;" name="maker" id="maker" class="easyui-combogrid">
                 </div>
                 <div class="fitem">
-                    <span style="width:35%; display:inline-block;">Part No BEI</span>
+                    <span style="width:35%; display:inline-block;">Part No</span>
                     <input style="width:60%;" name="part_no" id="part_no" class="easyui-combogrid">
                 </div>
                 <div class="fitem">
@@ -253,11 +250,8 @@
                     columns: [[
                         {field: 'part_no', title: 'Item ID', width: '100', halign: 'center', rowspan: 2},
                         {field: 'supplier', title: 'Supplier', width: '200', halign: 'center', rowspan: 2},
-                        {field: 'maker_no', title: 'Part No Maker', width: '100', halign: 'center', rowspan: 2},
                         {field: 'maker_name', title: 'WIRE Name Maker', width: '300', halign: 'center', rowspan: 2},
-                        {field: 'part_no', title: 'Part No BEI', width: '100', halign: 'center', rowspan: 2},
-                        {field: 'part_name', title: 'Part Name BEI', width: '100', halign: 'center', rowspan: 2},
-                        {field: 'moq', title: 'MOQ', width: '100', halign: 'center', rowspan: 2},
+                        {field: 'part_no', title: 'Part No', width: '100', halign: 'center', rowspan: 2},
                         {title: 'Unit Packing MOQ Price  & LME Range (USD/MTR)', width: '100', halign: 'center', colspan: result.span.length},
                         {field: 'u_date', title: 'Last Date', width: '150', halign: 'center', rowspan: 2},
                         {field: 'u_by', title: 'By', width: '100', halign: 'center', rowspan: 2}
@@ -386,7 +380,7 @@
             textField: 'item',
             mode: 'remote',
             fitColumns: true,
-            prompt: "Select Part No BEI",
+            prompt: "Select Part No",
             icons: [{
                 iconCls: 'icon-clear',
                 handler: function(e) {
@@ -397,7 +391,7 @@
                     $(e.data.target).combogrid('clear').combogrid('textbox').focus();
                 }
             }],
-            columns: [[{field: 'item', title: 'Part No BEI', halign: 'center', width: '49%'}]],
+            columns: [[{field: 'item', title: 'Part No', halign: 'center', width: '49%'}]],
             onSelect: function (index, row) {
                 $('#supp_id').combogrid('clear').combogrid('enable').combogrid('grid')
                     .datagrid('reload', {
