@@ -12,17 +12,19 @@ class Marketing_price_wire extends CI_Controller
         $this->load->library('session');
     }
 
-    public function index()
+    public function index($param = '')
     {
         $data = [];
 
         $this->db->distinct()->select(
-            "a.*,"
+             "'GS' AS plant_id,"
+            ."a.*,"
             ."COALESCE(TRIM(b.name),'') AS supp_name,"
             ."COALESCE(TRIM(c.name),'') AS maker_name"
         )->from("marketing_price_wire a")
             ->join("suppliers b", "a.supp_id = b.number")
             ->join("mst_maker c", "a.maker_code = c.number");
+        if (!empty($param)) { $this->db->like('a.item_id', base64_decode($param)); }
         $get = $this->db->get()->result_array();
         // die($this->db->last_query());
         foreach ($get as $index => $row) {
