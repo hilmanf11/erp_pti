@@ -240,13 +240,11 @@
             $.messager.progress('close');
             if (result.span.length != 0) {
                 $('#dg_history').datagrid({
-                    pagination: true,
                     clientPaging: false,
                     remoteFilter: true,
                     rownumbers: true,
+                    pagination: true,
                     fit: true,
-                    pageList: [20, 50, 100, 500, 1000],
-                    pageSize: 20,
                     columns: [[
                         {field: 'part_no', title: 'Item ID', width: '100', halign: 'center', rowspan: 2},
                         {field: 'supplier', title: 'Supplier', width: '200', halign: 'center', rowspan: 2},
@@ -266,13 +264,11 @@
     $(function() {
         $('#dg').datagrid({
             url: '<?= base_url('planning/lme_prices/datatables') ?>',
-            pagination: true,
             clientPaging: false,
             remoteFilter: true,
             rownumbers: true,
+            pagination: true,
             fit: true,
-            pageList: [20, 50, 100, 500, 1000],
-            pageSize: 20,
             onLoadSuccess: function () { $('.easyui-linkbutton').linkbutton(); }
         });
 

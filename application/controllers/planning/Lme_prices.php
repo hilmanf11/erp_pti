@@ -180,11 +180,16 @@ class LME_prices extends CI_Controller
 
     public function datatables()
     {
+        $page = $this->input->post('page');
+        $rows = $this->input->post('rows');
+        $page = isset($page) ? intval($page) : 1;
+        $rows = isset($rows) ? intval($rows) : 10;
+        $offset = ($page - 1) * $rows;
+
         $f_lme_range = base64_decode($this->input->get('f_lme_range'));
         $f_supplier = base64_decode($this->input->get('f_supplier'));
         $f_part_no = base64_decode($this->input->get('f_part_no'));
         $f_maker = base64_decode($this->input->get('f_maker'));
-        $result = array('total' => 0, 'rows' => []);
 
         $get = $this->db->select("id, CONCAT(lme_start,'-',lme_end) AS ranges")
         ->from("lme_ranges")->order_by("id")->get()->result_object();
@@ -220,17 +225,16 @@ class LME_prices extends CI_Controller
         if (!empty($f_part_no)) { $this->db->where("a.item_id", $f_part_no); }
         if (!empty($f_maker)) { $this->db->where("a.maker_code", $f_maker); }
         $this->db->order_by('id');
-        $result['total'] = $this->db->count_all_results('', false);
-        $result['rows'] = $this->db->get()->result_array();
+        $result = $this->db->get()->result_array();
 
-        foreach ($result['rows'] as $key => $value) {
+        foreach ($result as $key => $value) {
             foreach (json_decode($value['prices']) as $key2 => $value2) {
                 if (isset($ranges[$value2->range]))
-                    { $result['rows'][$key][$ranges[$value2->range]] = floatval($value2->price); }
+                    { $result[$key][$ranges[$value2->range]] = floatval($value2->price); }
             }
         }
 
-        echo json_encode($result);
+        echo json_encode(array('total' => count($result), 'rows' => array_splice($result, $offset, $rows)));
     }
 
     public function create()

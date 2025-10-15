@@ -146,6 +146,12 @@ class Marketing_price_wire extends CI_Controller
 
     public function datatables($act = '')
     {
+        $page = $this->input->post('page');
+        $rows = $this->input->post('rows');
+        $page = isset($page) ? intval($page) : 1;
+        $rows = isset($rows) ? intval($rows) : 10;
+        $offset = ($page - 1) * $rows;
+
         $supplier = base64_decode($this->input->post('supplier'));
         $range = base64_decode($this->input->post('range'));
         $item = base64_decode($this->input->post('item'));
@@ -251,7 +257,7 @@ class Marketing_price_wire extends CI_Controller
             $html .= '</table></body></html>';
             echo $html;
         } else {
-            $result = array('total' => count($datas), 'rows' => $datas);
+            $result = array('total' => count($get), 'rows' => array_slice($datas, $offset, $rows));
             echo json_encode($result);
         }
     }

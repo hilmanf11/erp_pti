@@ -40,35 +40,24 @@ class LME_ranges extends CI_Controller
     public function datatables()
     {
         if ($this->input->post()) {
-            // $filters = json_decode($this->input->post('filterRules'));
             $page = $this->input->post('page');
             $rows = $this->input->post('rows');
-            //Pagination 1-10
-            $page   = isset($page) ? intval($page) : 1;
-            $rows   = isset($rows) ? intval($rows) : 10;
+            $page = isset($page) ? intval($page) : 1;
+            $rows = isset($rows) ? intval($rows) : 10;
             $offset = ($page - 1) * $rows;
-            $result = array();
-            //Select Query
-            $this->db->select("a.*, CONCAT(a.lme_start,'-',a.lme_end) AS lme_range, TRIM(b.name) AS c_by, TRIM(c.name) AS u_by");
-            $this->db->from('lme_ranges a');
-            $this->db->join('user b', 'a.created_by = b.username', 'left');
-            $this->db->join('user c', 'a.updated_by = c.username', 'left');
-            // if (@count($filters) > 0) {
-            //     foreach ($filters as $filter) {
-            //         $this->db->like($filter->field, $filter->value);
-            //     }
-            // }
-            $this->db->order_by('id');
-            //Total Data
-            $totalRows = $this->db->count_all_results('', false);
-            //Limit 1 - 10
-            $this->db->limit($rows, $offset);
-            //Get Data Array
+
+            $this->db->select(
+                 "a.*,"
+                ."CONCAT(a.lme_start,'-',a.lme_end) AS lme_range,"
+                ."TRIM(b.name) AS c_by,"
+                ."TRIM(c.name) AS u_by"
+            )->from('lme_ranges a')
+                ->join('user b', 'a.created_by = b.username', 'left')
+                ->join('user c', 'a.updated_by = c.username', 'left')
+            ->order_by('id');
             $records = $this->db->get()->result_array();
-            //Mapping Data
-            $result['total'] = $totalRows;
-            $result = array_merge($result, ['rows' => $records]);
-            echo json_encode($result);
+
+            echo json_encode(array('total' => count($records), 'rows' => array_splice($records, $offset, $rows)));
         }
     }
 
