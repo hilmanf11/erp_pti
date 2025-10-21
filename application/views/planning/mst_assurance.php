@@ -3,7 +3,7 @@
         <tr>
             <th rowspan="2" field="ck" checkbox="true"></th>
             <th rowspan="2" data-options="field:'type',width:100,halign:'center'">Type</th>
-            <th rowspan="2" data-options="field:'percentage',width:100,halign:'center', align:'right'">Percentage</th>
+            <th rowspan="2" data-options="field:'percentage',width:100,halign:'center', align:'right'">Koefisien</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
         </tr>
