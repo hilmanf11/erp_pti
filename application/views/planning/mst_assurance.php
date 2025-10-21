@@ -33,7 +33,7 @@
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Percentage</span>
-                <input style="width:60%;" name="percentage" id="percentage" required="true" class="easyui-numberbox" data-options="precision:4">
+                <input style="width:60%;" name="percentage" id="percentage" required="true" class="easyui-numberbox" data-options="precision:6">
             </div>
         </fieldset>
     </form>
