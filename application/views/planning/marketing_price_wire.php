@@ -23,13 +23,8 @@
             </div>
         </div>
     </fieldset>
-    <a href="javascript:;" class="easyui-linkbutton" onclick="btnGenerate()" data-options="{plain:true}"><i class="fa fa-gear"></i> Generate</a>
 	<?= $button ?>
 </div>
-<div id="dlg-generate" class="easyui-dialog" style="padding: 3px;"><center>
-	<span style="font-size: 10px; font-style: italic;">Please fill in "<b>PRICEWIRE</b>"</span><br>
-	<input id="f_generate" class="easyui-textbox">
-</center></div>
 <iframe id="printout" src="<?= base_url('planning/marketing_price_wire/datatables/print') ?>" style="width: 100%;" hidden></iframe>
 <script>
     $(function() {
@@ -103,22 +98,6 @@
             }],
             columns: [[{field: 'item', title: 'Item ID', halign: 'center', width: '98%'}]]
         });
-
-        $('#dlg-generate').dialog({
-        	title: 'Confirm Generate',
-        	closed: true,
-        	cache: false,
-        	modal: true,
-        	buttons: [{
-                text: 'Submit',
-                iconCls: 'icon-ok',
-                handler: function() { generate($('#f_generate').textbox('getValue')); }
-            }]
-        });
-
-        $('#f_generate').textbox('textbox').on('keyup', function (e) {
-        	if (e.keyCode == 13) { generate($(this).val()); }
-        }).css('text-align', 'center');
     });
 
 	function btnSearch() {
@@ -131,41 +110,11 @@
 			range: range,
 			item: item
 		});
-	}
-
-	function btnGenerate() {
-		$('#dlg-generate').dialog('open');
-		$('#f_generate').textbox('clear').textbox('textbox').focus();
-	}
-
-	function generate(value = '') {
-		if (value == 'PRICEWIRE') {
-			var range = window.btoa($('#f_range').combogrid('getValue'));
-			var item = window.btoa($('#f_item_id').combogrid('getValue'));
-			var supplier = window.btoa($('#f_supplier').combogrid('getValue'));
-
-			$('#dlg-generate').dialog('close');
-			$('#dg').datagrid('loading');
-			$.ajax({
-				url: '<?= base_url('planning/marketing_price_wire/generate'); ?>',
-				async: false,
-				method: 'POST',
-				dataType: 'json',
-				data: {
-					supplier: supplier,
-					range: range,
-					item: item
-				},
-				success: function (result) {
-					$('#dg').datagrid('loaded');
-					if (result.stat == 'ok') { btnSearch(); }
-					else { toastr.error(result.stat); }
-				}
-			});
-		} else {
-			toastr.warning("Value content does not match!", "Information");
-			$('#f_generate').textbox('clear').textbox('textbox').focus();
-		}
+        $("#printout").attr('src', '<?= base_url('planning/marketing_price_wire/datatables/print') ?>'
+            +'?supplier='+supplier
+            +'&range='+range
+            +'&item='+item
+        );
 	}
 
     function pdf() { $("#printout").get(0).contentWindow.print(); }

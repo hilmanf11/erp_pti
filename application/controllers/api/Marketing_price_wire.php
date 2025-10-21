@@ -18,22 +18,50 @@ class Marketing_price_wire extends CI_Controller
 
         $this->db->distinct()->select(
              "'GS' AS plant_id,"
-            ."a.*,"
+            ."TRIM(a.item_id) AS item,"
+            ."TRIM(a.ven_id) AS supplier,"
+            ."COALESCE(TRIM(b.type),'') AS type,"
+            ."TRIM(a.maker_code) AS maker,"
+            ."TRIM(a.data_lme) AS lme,"
+            ."COALESCE(TRIM(c.percentage),0) AS duty,"
+            ."COALESCE(TRIM(d.percentage),0) AS insurance,"
+            ."COALESCE(TRIM(e.percentage),0) AS transport,"
             ."COALESCE(TRIM(b.name),'') AS supp_name,"
-            ."COALESCE(TRIM(c.name),'') AS maker_name"
-        )->from("marketing_price_wire a")
-            ->join("suppliers b", "a.supp_id = b.number")
-            ->join("mst_maker c", "a.maker_code = c.number");
-        if (!empty($param)) { $this->db->like('a.item_id', base64_decode($param)); }
-        $get = $this->db->get()->result_array();
+            ."COALESCE(TRIM(f.name),'') AS maker_name"
+        )->from("lme_prices a")
+            ->join("suppliers b", "a.ven_id = b.number")
+            ->join("mst_import_duty c", "b.id = c.supplier_id AND a.item_id = c.item_id", "left")
+            ->join("mst_assurance d", "b.type = d.type")
+            ->join("mst_transportation e", "b.type = e.type")
+            ->join("mst_maker f", "a.maker_code = f.number")
+        ->order_by('item');
+        $get = $this->db->get()->result_object();
         // die($this->db->last_query());
+        // die(var_dump($get));
         foreach ($get as $index => $row) {
-            $row['price'] = floatval($row['price']);
-            $row['duty_price'] = floatval(number_format((floatval($row['import_duty']) / 100) * $row['price'], 4));
-            $row['insurance_price'] = floatval(number_format(floatval($row['insurance']) * $row['price'], 4));
-            $row['transport_price'] = floatval(number_format((floatval($row['transportation']) / 100) * $row['price'], 4));
-            $row['total_price'] = floatval(number_format($row['price'] + $row['duty_price'] + $row['insurance_price'] + $row['transport_price'], 4));
-            array_push($data, $row);
+            $ranges = json_decode($row->lme);
+            foreach ($ranges as $key => $value) {
+                $price = floatval($value->price);
+                $duty_price = floatval(number_format((floatval($row->duty) / 100) * $price, 4));
+                $insurance_price = floatval(number_format(floatval($row->insurance) * $price, 4));
+                $transport_price = floatval(number_format(floatval($row->transport) * $price, 4));
+                $total_price = floatval(number_format($price + $duty_price + $insurance_price + $transport_price, 4));
+                array_push($data, [
+                    "plant_id" => $row->plant_id,
+                    "item_id" => $row->item,
+                    "supp_id" => $row->supplier,
+                    "supp_name" => $row->supp_name,
+                    "type" => $row->type,
+                    "maker_code" => $row->maker,
+                    "maker_name" => $row->maker_name,
+                    "ranges" => $value->range,
+                    "price" => $price,
+                    "duty_price" => $duty_price,
+                    "insurance_price" => $insurance_price,
+                    "transport_price" => $transport_price,
+                    "total_price" => $total_price
+                ]);
+            }
         }
 
         $this->output
