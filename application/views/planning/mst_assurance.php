@@ -3,7 +3,7 @@
         <tr>
             <th rowspan="2" field="ck" checkbox="true"></th>
             <th rowspan="2" data-options="field:'type',width:100,halign:'center'">Type</th>
-            <th rowspan="2" data-options="field:'percentage',width:100,halign:'center', align:'right'">Percentage</th>
+            <th rowspan="2" data-options="field:'percentage',width:100,halign:'center', align:'right'">Koefisien</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
         </tr>
@@ -33,7 +33,7 @@
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Percentage</span>
-                <input style="width:60%;" name="percentage" id="percentage" required="true" class="easyui-numberbox" data-options="precision:4">
+                <input style="width:60%;" name="percentage" id="percentage" required="true" class="easyui-numberbox" data-options="precision:6">
             </div>
         </fieldset>
     </form>
