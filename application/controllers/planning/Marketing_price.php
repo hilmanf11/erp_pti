@@ -133,7 +133,7 @@ class Marketing_price extends CI_Controller
             }
 
             $assurance_price = $record['price'] * @$assurance->percentage;
-            $transportation_price = $record['price'] * (@$transportation->percentage / 100);
+            $transportation_price = $record['price'] * @$transportation->percentage;
             $total_price = $record['price'] + $assurance_price + $transportation_price + $import_duty_price;
             $arr[] = array(
                 "plant" => $record['plant'],
@@ -613,7 +613,7 @@ class Marketing_price extends CI_Controller
                 $import_duty_price = 0;
             }
             $assurance_price = $data['price'] * @$assurance->percentage;
-            $transportation_price = $data['price'] * (@$transportation->percentage / 100);
+            $transportation_price = $data['price'] * @$transportation->percentage;
             $total_price = $data['price'] + $assurance_price + $transportation_price + $import_duty_price;
             $html .= '<tr>
                         <td>' . $no . '</td>
