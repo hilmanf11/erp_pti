@@ -150,7 +150,7 @@ class Marketing_price extends CI_Controller
                 "transportation_price" => $transportation_price,
                 "import_duty_price" => $import_duty_price,
                 "import_duty_percentage" => @$mst_import_duty->percentage,
-                "total_price" => number_format($total_price, 4),
+                "total_price" => number_format($total_price, 4, ".", ""),
             );
         }
         $result['total'] = $totalRows;
