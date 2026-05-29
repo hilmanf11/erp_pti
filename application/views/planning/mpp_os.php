@@ -35,6 +35,7 @@
             <div class="fitem">
                 <span style="width:35%; display:inline-block;"></span>
                 <a href="javascript:;" class="easyui-linkbutton" onclick="filter()"><i class="fa fa-search"></i> Filter Data</a>
+                <a href="javascript:;" class="easyui-linkbutton" onclick="filter('display')"><i class="fa fa-search"></i> Display Data</a>
             </div>
         </div>
         <div style="width: 50%;">
@@ -93,6 +94,14 @@
                 <input style="width:60%;" name="product_name" id="product_name" required="true" class="easyui-textbox">
             </div>
             <div class="fitem">
+                <span style="width:35%; display:inline-block;">Customer Nick</span>
+                <input style="width:60%;" id="customer_nick" class="easyui-textbox" readonly>
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Customer Name</span>
+                <input style="width:60%;" id="customer_name" class="easyui-textbox" readonly>
+            </div>
+            <div class="fitem">
                 <span style="width:35%; display:inline-block;">Circuit No</span>
                 <input style="width:30%;" name="circuit_no" id="circuit_no" readonly="true" class="easyui-textbox">
             </div>
@@ -134,6 +143,28 @@
 
 <!-- PDF -->
 <iframe id="printout" src="<?= base_url('planning/mpp_os/print') ?>" style="width: 100%;" hidden></iframe>
+
+<div id="dlg_display" class="easyui-window" title="Display Data" data-options="closed: true,modal:true" style="width: 1200px; height: 550px;">
+    <table id="dg_display" class="easyui-datagrid" style="width: 100%; height: 100%;">
+        <thead>
+            <tr>
+                <th rowspan="2" data-options="field:'customer_name',width:250,halign:'center'">Customer</th>
+                <th rowspan="2" data-options="field:'item_id',width:150,halign:'center'">Product No</th>
+                <th rowspan="2" data-options="field:'item_name',width:200,halign:'center'">Product Name</th>
+                <th rowspan="2" data-options="field:'circuit_no',width:50,halign:'center', align:'center'">CCT</th>
+                <th rowspan="2" data-options="field:'os_mpp',width:80,halign:'center', align:'center', formatter: numberformat">OS MPP</th>
+                <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
+                <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
+            </tr>
+            <tr>
+                <th data-options="field:'created_by',width:100,align:'center'"> By</th>
+                <th data-options="field:'created_date',width:150,align:'center'"> Date</th>
+                <th data-options="field:'updated_by',width:100,align:'center'"> By</th>
+                <th data-options="field:'updated_date',width:150,align:'center'"> Date</th>
+            </tr>
+        </thead>
+    </table>
+</div>
 
 <script>
     //Add Data
@@ -200,31 +231,31 @@
         window.location.assign('<?= base_url('template/tmp_mpp_os.xls') ?>');
     }
 
-    function filter() {
+    function filter(act='') {
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").textbox('getValue');
         var filter_revision = $("#filter_revision").combobox('getValue');
         var filter_customer_id = $("#filter_customer_id").combobox('getValue');
         var filter_product_no = $("#filter_product_no").combogrid('getValue');
-        var url = "?filter_customer_id=" + window.btoa(filter_customer_id) +
-            "&filter_product_no=" + window.btoa(filter_product_no) +
-            "&filter_month=" + window.btoa(filter_month) +
-            "&filter_year=" + window.btoa(filter_year) +
-            "&filter_revision=" + window.btoa(filter_revision);
 
         if(filter_month == "" || filter_year == "" || filter_revision == ""){
             toastr.info("Please Select Period and Revision");
         }else{
-            $('#dg').datagrid({
-                url: '<?= base_url('planning/mpp_os/datatables') ?>' + url,
-                rowStyler: function(index, row) {
-                    if (row.p_month == null) {
-                        return 'background-color:#FFDAD2;';
-                    }
-                }
-            });
+            var dg = 'dg';
+            if (act == 'display') {
+                dg += '_display';
+                if (filter_customer_id == '') { filter_customer_id = 'all'; }
+                $('#dlg_display').window('open');
+            }
+            var url = "?filter_customer_id=" + window.btoa(filter_customer_id) +
+                "&filter_product_no=" + window.btoa(filter_product_no) +
+                "&filter_month=" + window.btoa(filter_month) +
+                "&filter_year=" + window.btoa(filter_year) +
+                "&filter_revision=" + window.btoa(filter_revision);
 
-            $("#printout").attr('src', '<?= base_url('planning/mpp_os/print') ?>' + url);
+            $("#"+dg).datagrid("reload", "<?= base_url('planning/mpp_os/datatables') ?>"+url);
+
+            $("#printout").attr("src", "<?= base_url('planning/mpp_os/print') ?>"+url);
         }
     }
 
@@ -258,7 +289,6 @@
     $(function() {
         $("#filter_month").combobox('setValue', '<?= date("m") ?>');
         $('#dg').datagrid({
-            url: '<?= base_url('planning/mpp_os/datatables') ?>',
             pagination: true,
             clientPaging: false,
             remoteFilter: true,
@@ -266,7 +296,22 @@
             fit: true,
             pageList: [20, 50, 100, 500, 1000],
             pageSize: 20,
+            rowStyler: function(index, row) {
+                if (row.p_month == null) { return 'background-color:#FFDAD2;'; }
+            },
         });
+        $('#dg_display').datagrid({
+            pagination: true,
+            clientPaging: false,
+            remoteFilter: false,
+            rownumbers: true,
+            // fit: true,
+            pageList: [20, 50, 100, 500, 1000],
+            pageSize: 20,
+            rowStyler: function(index, row) {
+                if (row.p_month == null) { return 'background-color:#FFDAD2;'; }
+            },
+        }).datagrid('enableFilter');
 
         //Save Data
         $('#dlg_insert').dialog({
@@ -448,8 +493,8 @@
         $('#filter_product_no').combogrid({
             url: '<?= base_url('planning/mst_data/readProducts') ?>',
             panelWidth: 400,
-            idField: 'item_id',
-            textField: 'item_id',
+            idField: 'product_no',
+            textField: 'product_no',
             mode: 'remote',
             fitColumns: true,
             prompt: "Select Product No",
@@ -461,11 +506,11 @@
             }],
             columns: [
                 [{
-                    field: 'item_id',
+                    field: 'product_no',
                     title: 'Item ID',
                     width: 200
                 }, {
-                    field: 'item_name',
+                    field: 'product_name',
                     title: 'Item Name',
                     width: 200
                 }]
@@ -473,7 +518,7 @@
         });
 
         $('#filter_customer_id').combobox({
-            url: '<?php echo base_url('planning/mst_data/readCustomers'); ?>',
+            url: "<?= base_url('planning/mst_data/readCustomers') ?>?setting=<?= $nik ?>",
             valueField: 'number',
             textField: 'name',
             prompt: 'Select Customer',
@@ -488,24 +533,26 @@
         $('#product_no').combogrid({
             url: '<?= base_url('planning/mst_data/readProducts') ?>',
             panelWidth: 400,
-            idField: 'item_id',
-            textField: 'item_id',
+            idField: 'product_no',
+            textField: 'product_no',
             mode: 'remote',
             fitColumns: true,
             prompt: "Select Product No",
             columns: [
                 [{
-                    field: 'item_id',
+                    field: 'product_no',
                     title: 'Item ID',
                     width: 200
                 }, {
-                    field: 'item_name',
+                    field: 'product_name',
                     title: 'Item Name',
                     width: 200
                 }]
             ],
             onSelect: function(index, row) {
-                $("#product_name").textbox('setValue', row.item_name);
+                $("#product_name").textbox('setValue', row.product_name);
+                $("#customer_nick").textbox('setValue', row.cust_nick);
+                $("#customer_name").textbox('setValue', row.cust_name);
                 $.ajax({
                     type: "post",
                     url: "<?php echo base_url('planning/mst_data/readCircuitTotal'); ?>",

@@ -246,6 +246,7 @@ class Mps_vs_mpp extends CI_Controller
             $this->db->having('balance <', 0);
         }
             $this->db->order_by('balance', 'desc');
+            // die($this->db->get_compiled_select());
 
             //Total Data
             $totalRows = $this->db->count_all_results('', false);
@@ -478,7 +479,7 @@ class Mps_vs_mpp extends CI_Controller
         $this->db->order_by('balance', 'desc');
         // $query = $this->db->get_compiled_select();
 
-// echo $query;
+        // echo $query;
         $records = $this->db->get()->result_array();
 
 

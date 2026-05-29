@@ -402,16 +402,20 @@ class LME_prices extends CI_Controller
             if (!empty($result['title'])) { echo json_encode($result); }
             else {
                 $datas = json_decode(json_encode([['range' => $range, 'price' => $price]]));
+                $price_id = $id;
 
                 if ($id == 'in') {
                     $lme = json_encode($datas);
-                    $send = $this->api->create('lme_prices', [
+                    $data = [
                         'maker_code' => $maker,
                         'ven_id' => $supp,
                         'item_id' => $item,
                         'currency' => 'USD',
                         'data_lme' => $lme
-                    ], "LMEP", "lme_prices");
+                    ];
+
+                    $send = $this->api->create('lme_prices', $data, "LMEP", "lme_prices");
+                    $price_id = $this->api->read("lme_prices", [], $data)->id;
                 } else {
                     $this->db->select("TRIM(data_lme) AS datas")->from('lme_prices')->where('id', $id);
                     // die($this->db->last_query());
@@ -427,7 +431,7 @@ class LME_prices extends CI_Controller
                 $get = json_decode($send, true);
                 if ($get['theme'] == 'success') {
                     $this->api->create('lme_price_logs', [
-                        'price_id' => $get['id'],
+                        'price_id' => $price_id,
                         'maker_code' => $maker,
                         'ven_id' => $supp,
                         'item_id' => $item,

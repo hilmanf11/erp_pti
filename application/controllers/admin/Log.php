@@ -60,6 +60,44 @@ class Log extends CI_Controller
         }
     }
 
+    //RECOVERY DATA
+    public function recovery(){
+        $id = $this->input->post('id');
+        $menu = $this->input->post('menu');
+        $log = $this->api->read('log', [], ['id' => $id, "menu" => $menu]);
+        
+        $desc = json_decode($log->description, false);
+        if($this->db->insert($menu, $desc)){
+            die(json_encode(array("title" => "Recovery Success", "message" => "Recovery Data Successfull, Please check in Module", "theme" => "success")));
+        }else{
+            die(json_encode(array("title" => "Failed", "message" => "Data Already Created", "theme" => "error")));
+        }
+    }
+
+    //DETAIL DATA
+    public function details()
+    {
+        $id = $this->input->post('id');
+
+        $this->db->select('*');
+        $this->db->from('log');
+        $this->db->where("id", $id);
+        $record = $this->db->get()->row();
+        $descriptions = json_decode($record->description);
+
+        $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
+                <table id="customers" border="1" style="width: 100%;">';
+        foreach ($descriptions as $description => $value) {
+            $html .= '  <tr>
+                            <th>' . $description . '</th>
+                            <th>' . $value . '</th>
+                        </tr>';
+        }
+        $html .= '</table>';
+
+        die($html);
+    }
+
     public function print($option = "")
     {
         if ($option == "excel") {

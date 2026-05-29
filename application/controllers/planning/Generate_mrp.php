@@ -206,6 +206,62 @@ class Generate_mrp extends CI_Controller
         }
     }
 
+    public function datatableException(){
+        $post = $this->input->post();
+        $filter_month = $post['filter_month'];
+        $filter_year = $post['filter_year'];
+        $filter_revision = $post['filter_revision'];
+        
+        $this->db->select("a.part_no, a.part_name, b.item_supplier,
+            a.total_need,
+            COALESCE(c.mpq, 0) AS mpq, 
+            COALESCE(c.moq, 0) AS moq, 
+            COALESCE(c.leadtime, 0) AS leadtime, 
+            COALESCE(c.share_order, 0) AS share_order");
+        $this->db->from("generate_mrp_finals a");
+        $this->db->join('mst_item_raw b', 'a.part_no = b.item_id');
+        $this->db->join("(select * from supplier_items where share_order > 0) c", "a.part_no = c.item_id", "left");
+        $this->db->where("a.p_month", $filter_month);
+        $this->db->where("a.p_year", $filter_year);
+        $this->db->where("a.revision", $filter_revision);
+        $this->db->where("(coalesce(c.mpq, 0) = 0 or coalesce(c.moq, 0) = 0 or coalesce(c.leadtime, 0) = 0 or coalesce(c.share_order, 0) = 0)");
+        $this->db->group_by('a.id');
+        $this->db->order_by('b.item_id', 'asc');
+        $records = $this->db->get()->result_array();
+        
+        $result['total'] = count($records);
+        $result = array_merge($result, ['rows' => $records]);
+        echo json_encode($result);
+    }
+
+    public function datatableNoLttp(){
+        $post = $this->input->post();
+        $filter_month = $post['filter_month'];
+        $filter_year = $post['filter_year'];
+        $filter_revision = $post['filter_revision'];
+
+        $query = $this->db->query("SELECT a.item_id, a.item_name, a.item_supplier, SUM(b.whs) AS whs, SUM(b.ospo) AS ospo, SUM(b.os_supply) AS os_supply, SUM(b.os_wip) AS os_wip, SUM(b.os_wo) AS os_wo
+        FROM mst_item_raw a 
+        JOIN (
+            SELECT product_no, actual AS whs, '0' AS ospo, '0' AS os_supply, '0' AS os_wip, '0' AS os_wo FROM rm_stock WHERE p_month='$filter_month' AND p_year='$filter_year' AND revision='$filter_revision'
+            UNION
+            SELECT product_no, '0' AS whs, actual AS ospo, '0' AS os_supply, '0' AS os_wip, '0' AS os_wo FROM os_vendor WHERE p_month='$filter_month' AND p_year='$filter_year' AND revision='$filter_revision'
+            UNION
+            SELECT product_no, '0' AS whs, '0' AS ospo, '0' AS os_supply, qty AS os_wip, '0' AS os_wo FROM balance_wip WHERE p_month='$filter_month' AND p_year='$filter_year' AND revision='$filter_revision'
+            UNION
+            SELECT product_no, '0' AS whs, '0' AS ospo, actual AS os_supply, '0' AS os_wip, '0' AS os_wo FROM os_supply WHERE p_month='$filter_month' AND p_year='$filter_year' AND revision='$filter_revision'
+            UNION
+            SELECT product_no, '0' AS whs, '0' AS ospo, '0' AS os_supply, '0' AS os_wip, actual AS os_wo FROM os_mpp WHERE p_month='$filter_month' AND p_year='$filter_year' AND revision='$filter_revision'
+            ORDER BY product_no ASC) b ON a.item_id = b.product_no
+            WHERE a.item_id NOT IN (SELECT part_no FROM generate_mrp_finals WHERE p_month='$filter_month' AND p_year='$filter_year' AND revision='$filter_revision')
+        GROUP BY a.id");
+        $records = $query->result_array();
+        
+        $result['total'] = count($records);
+        $result = array_merge($result, ['rows' => $records]);
+        echo json_encode($result);
+    }
+
     public function getDataMpp($filter_month, $filter_year, $filter_cutoff, $item_rm_id, $type){
         $query = $this->db->query("SELECT z.component_id,
             SUM(total_date_1) as date_1,
@@ -312,6 +368,7 @@ class Generate_mrp extends CI_Controller
 
             $mpsRev = $this->api->query("SELECT max(revision) as rev FROM generate_mps_detail WHERE p_month='$filter_month' and p_year='$filter_year'");
             $this->db->query("DELETE FROM generate_mrp WHERE p_month = '$filter_month' and p_year = '$filter_year' and revision='$filter_revision' and product_no like '%$filter_part_no%' and product_family like '%$filter_product_family%'");
+            $max_revision = @$mpsRev[0]->rev;
             
             //Select Query
             $this->db->select('b.p_month, b.p_year, b.revision, 
@@ -324,19 +381,19 @@ class Generate_mrp extends CI_Controller
                 a.qty as qpa, 
                 ROUND(SUM(b.prod_plan * a.qty), 2) as qty');
             $this->db->from('mst_bom a');
-            $this->db->join('generate_mps_detail b', 'a.item_id = b.product_no');
+            $this->db->join("(select * from generate_mps_detail WHERE p_month = '$filter_month' and p_year = '$filter_year' and revision = '$max_revision' GROUP BY product_no, ltpp_month2) b", 'a.item_id = b.product_no');
             $this->db->join('mst_item_raw c', 'a.component_id = c.item_id');
             $this->db->join('mst_item_family d', 'd.number = c.pfm_id', 'left');
             $this->db->join('uom e', 'e.number = c.um_id', 'left');
-            $this->db->where('b.p_month', $filter_month);
-            $this->db->where('b.p_year', $filter_year);
-            $this->db->where('b.revision', @$mpsRev[0]->rev);
+            // $this->db->where('b.p_month', $filter_month);
+            // $this->db->where('b.p_year', $filter_year);
+            // $this->db->where('b.revision', @$mpsRev[0]->rev);
             // $this->db->where('product_no', 'ZYM024-081C');
             // $this->db->where('prod_plan >', 0);
             if($filter_product_family != ""){
                 $this->db->where('d.name', $filter_product_family);
             }
-            if($filter_product_family != ""){
+            if($filter_part_no != ""){
                 $this->db->where('c.item_id', $filter_part_no);
             }
             $this->db->group_by('b.ltpp_month2');
@@ -602,7 +659,7 @@ class Generate_mrp extends CI_Controller
             $this->db->join('mst_maker b', 'a.maker_code = b.number', 'left');
             $this->db->where('a.item_id', $generate['product_no']);
             $this->db->where('a.share_order >', 0);
-            // $this->db->group_by('a.item_id');
+            // $this->db->where("(a.approved_to = '' or a.approved is null)");
             $this->db->order_by('a.leadtime', 'desc');
             $supplier_item = $this->db->get()->row();
 
@@ -829,8 +886,8 @@ class Generate_mrp extends CI_Controller
                         $avg_balance = ($balance_6 - $avg_need);
                 }
 
-                if($total_need > 0 && @$supplier_item->moq > 0 && @$supplier_item->mpq > 0){
-                    if($total_need > @$supplier_item->moq){
+                if($total_need > 0){
+                    if($total_need > @$supplier_item->mpq){
                         $purchase_order = (ceil($total_need / @$supplier_item->mpq) * @$supplier_item->mpq);
                     }else{
                         $purchase_order = (ceil($total_need / @$supplier_item->moq) * @$supplier_item->moq);
@@ -948,11 +1005,11 @@ class Generate_mrp extends CI_Controller
                         "p_year" => $generate['p_year'],
                         "revision" => $generate['revision'],
                         "part_no" => $product_no
-                    ], $postFinal);
+                    ], $postFinal, "log");
 
                     echo $send;
                 } else {
-                    $send = $this->api->create('generate_mrp_finals', $postFinal, "MRP", "JUTA");
+                    $send = $this->api->create('generate_mrp_finals', $postFinal, "MRP", "JUTA", "log");
                     echo $send;
                 }
             }else{
@@ -978,11 +1035,11 @@ class Generate_mrp extends CI_Controller
                     "p_year" => $post['p_year'],
                     "revision" => $post['revision'],
                     "part_no" => $post['part_no']
-                ], $post);
+                ], $post, "log");
 
                 echo $send;
             } else {
-                $send = $this->api->create('generate_mrp_abcclass', $post, "ABC", "JUTA");
+                $send = $this->api->create('generate_mrp_abcclass', $post, "ABC", "JUTA", "log");
                 echo $send;
             }
         }

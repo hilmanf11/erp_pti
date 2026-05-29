@@ -13,7 +13,7 @@ class Mst_line extends CI_Controller
         $this->load->model('api');
 
         //Validasi Form
-        $this->form_validation->set_rules('line_no', 'Line No', 'required|min_length[1]|max_length[30]');
+        $this->form_validation->set_rules('line_no', 'Customer ID', 'required|min_length[1]|max_length[30]');
     }
 
     public function index()
@@ -30,10 +30,21 @@ class Mst_line extends CI_Controller
         }
     }
 
-    public function reads()
+    public function reads($act = '')
     {
-        $send = $this->api->reads('mst_line', [], [], "", "remarks", "asc");
-        echo json_encode($send);
+        if (!empty($act)) {
+            $this->db->distinct()->select("TRIM(number) AS number")
+            ->from("user")->where("username", $this->session->username);
+            $user_number = $this->db->get()->row()->number;
+
+            $this->db->distinct()->select("TRIM(customer) AS customers")
+            ->from($act)->where("user_id", $user_number);
+            $customers = explode(",", $this->db->get()->row()->customers);
+        }
+        $this->db->distinct()->select("*")->from("mst_line");
+        if (!empty($act)) { $this->db->where_in("line_no", $customers); }
+
+        echo json_encode($this->db->order_by("remarks")->get()->result());
     }
 
     public function datatables()
@@ -65,6 +76,8 @@ class Mst_line extends CI_Controller
                         $this->db->like("a.line_description", $filter->value);
                     } elseif ($filter->field == "customer_nick") {
                         $this->db->like("a.customer_nick", $filter->value);
+                    } elseif ($filter->field == "customer_code") {
+                        $this->db->like("a.customer_code", $filter->value);
                     } elseif ($filter->field == "remarks") {
                         $this->db->like("a.remarks", $filter->value);
                     } elseif ($filter->field == "line_position") {
@@ -77,6 +90,8 @@ class Mst_line extends CI_Controller
                         $this->db->like("c.name", $filter->value);
                     } elseif ($filter->field == "updated_date") {
                         $this->db->like("a.updated_date", $filter->value);
+                    } else {
+                        $this->db->like($filter->field, $filter->value);
                     }
                 }
             }

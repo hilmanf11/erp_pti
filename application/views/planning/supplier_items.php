@@ -5,6 +5,7 @@
             <th field="ck" checkbox="true"></th>
             <th data-options="field:'plant',width:50,halign:'center'">Plant</th>
             <th data-options="field:'supplier_name',width:250,halign:'center'">Vendor Name</th>
+            <th data-options="field:'quotation_number',width:250,halign:'center'">Quotation No</th>
             <th data-options="field:'item_id',width:200,halign:'center'">Part No</th>
         </tr>
     </thead>
@@ -163,6 +164,14 @@
                     <input style="width:60%;" name="supplier_id" id="supplier_id" required="" class="easyui-combogrid">
                 </div>
                 <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Quotation No</span>
+                    <input style="width:60%;" name="quotation_number" id="quotation_number" required class="easyui-textbox">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Quotation Date</span>
+                    <input style="width:60%;" name="quotation_date" id="quotation_date" required class="easyui-datebox" data-options="formatter: myformatter, parser: myparser">
+                </div>
+                <div class="fitem">
                     <span style="width:35%; display:inline-block;">Category</span>
                     <input style="width:60%;" id="category" required="" class="easyui-combobox">
                 </div>
@@ -178,13 +187,13 @@
                     <span style="width:35%; display:inline-block;">Part Vendor</span>
                     <input style="width:60%;" name="item_supplier" id="item_supplier" class="easyui-textbox">
                 </div>
+            </div>
+
+            <div style="width: 33%; float: left;">
                 <div class="fitem">
                     <span style="width:35%; display:inline-block;">COO Name</span>
                     <input style="width:60%;" name="coo_name" id="coo_name" class="easyui-textbox">
                 </div>
-            </div>
-
-            <div style="width: 33%; float: left;">
                 <div class="fitem">
                     <span style="width:35%; display:inline-block;">Maker</span>
                     <input style="width:60%;" name="maker_code" id="maker_code" required class="easyui-combogrid">
@@ -265,6 +274,9 @@
                 <!-- <th data-options="field:'plant',width:80,halign:'center'">Plant</th> -->
                 <th data-options="field:'created_date',width:150,halign:'center'">Created Date</th>
                 <th data-options="field:'created_by',width:150,halign:'center'">Created By</th>
+                <th data-options="field:'quotation_number',width:250,halign:'center'">Quotation No</th>
+                <th data-options="field:'quotation_date',width:250,halign:'center'">Quotation Date</th>
+                <th data-options="field:'valid_date',width:80,align:'center'">Valid Date</th>
                 <th data-options="field:'supplier_name',width:250,halign:'center'">Vendor Name</th>
                 <!-- <th data-options="field:'type',width:100,align:'center'">Vendor Type</th> -->
                 <!-- <th data-options="field:'origin',width:120,halign:'center'">Vendor Origin</th> -->
@@ -283,9 +295,8 @@
                 <th data-options="field:'mpq',width:80,halign:'center',align:'right',formatter:numberformatComa">MPQ</th>
                 <th data-options="field:'moq',width:80,halign:'center',align:'right',formatter:numberformatComa">MOQ</th>
                 <th data-options="field:'uom',width:80,align:'center'">UoM</th>
-                <th data-options="field:'price',width:80,halign:'center',align:'right',formatter:numberformat">Price</th>
                 <th data-options="field:'currency',width:80,align:'center'">Currency</th>
-                <th data-options="field:'valid_date',width:80,align:'center'">Valid Date</th>
+                <th data-options="field:'price',width:80,halign:'center',align:'right',formatter:numberformat">Price</th>
                 <th data-options="field:'leadtime',width:80,align:'center'">Leadtime</th>
                 <th data-options="field:'share_order',width:80,align:'center'">Share Order</th>
                 <th data-options="field:'remarks',width:200,halign:'center'">Remarks</th>
@@ -299,13 +310,15 @@
         <thead>
             <tr>
                 <th field="ck" checkbox="true"></th>
-                <th data-options="field:'start_date',width:100,align:'center'">Start Date</th>
-                <th data-options="field:'valid_date',width:100,align:'center'">Valid Date</th>
-                <th data-options="field:'price',width:100,halign:'center',align:'right',formatter:numberformat">Price</th>
-                <th data-options="field:'currency',width:80,align:'center'">Currency</th>
-                <th data-options="field:'remarks',width:250,halign:'center'">Remarks</th>
-                <th data-options="field:'created_date',width:150,halign:'center'">Created Date</th>
-                <th data-options="field:'created_by',width:100,halign:'center'">Created By</th>
+                <th data-options="field:'quotation_number',halign:'center'">Quotation No</th>
+                <th data-options="field:'quotation_date',halign:'center'">Quotation Date</th>
+                <th data-options="field:'start_date',align:'center'">Start Date</th>
+                <th data-options="field:'valid_date',align:'center'">Valid Date</th>
+                <th data-options="field:'currency',align:'center'">Currency</th>
+                <th data-options="field:'price',halign:'center',align:'right',formatter:numberformat">Price</th>
+                <th data-options="field:'remarks',halign:'center'">Remarks</th>
+                <th data-options="field:'created_date',halign:'center'">Created Date</th>
+                <th data-options="field:'created_by',halign:'center'">Created By</th>
             </tr>
         </thead>
     </table>
@@ -336,9 +349,15 @@
 <script>
     //ADD DATA
     function add() {
-        $('#dlg_insert').dialog('open');
         url_save = '<?= base_url('planning/supplier_items/create') ?>';
+        var date = new Date();
+        var y = date.getFullYear();
+        var m = date.getMonth() + 1;
+        var d = date.getDate();
+
+        $('#dlg_insert').dialog('open');
         $('#frm_insert').form('clear');
+        $("#quotation_date").datebox("setValue", y + '-' + (m < 10 ? ('0' + m) : m) + '-' + (d < 10 ? ('0' + d) : d));
     }
 
     function addprice() {
@@ -610,7 +629,7 @@
                 var ddv = $(this).datagrid('getRowDetail', index).find('table.ddv');
 
                 ddv.datagrid({
-                    url: '<?= base_url('planning/supplier_items/datatablePriceLogs?supplier_item_id=') ?>' + window.btoa(row.supplier_item_id),
+                    url: '<?= base_url('planning/supplier_items/datatablePriceLogs?supplier_item_id=') ?>' + window.btoa(row.id),
                     singleSelect: true,
                     rownumbers: true,
                     columns: [
@@ -618,36 +637,29 @@
                             field: 'created_by',
                             title: 'Update By',
                             halign: 'center',
-                            width: 100
                         }, {
                             field: 'created_date',
                             title: 'Update Date',
                             halign: 'Update',
-                            width: 150
                         }, {
                             field: 'start_date',
                             title: 'Start Date',
                             halign: 'center',
-                            width: 100
                         }, {
                             field: 'valid_date',
                             title: 'Valid Date',
                             halign: 'center',
-                            width: 100
                         }, {
                             field: 'price',
                             title: 'Price',
                             halign: 'center',
-                            width: 100
                         }, {
                             field: 'currency',
                             title: 'Currency',
                             halign: 'center',
-                            width: 80
                         }, {
                             field: 'remarks',
                             title: 'Remarks',
-                            width: 200,
                             halign: 'center',
                         }, ]
                     ],

@@ -172,7 +172,7 @@
                     $form_input .= ' <div style="float: left; width: 14%;">
                                         <div class="fitem">
                                             <span style="width:40%; display:inline-block;">'.$tgl.' | '.$wpp.'</span>
-                                            <input style="width:50%;" name="date_'.$tgl.'" id="date_'.$tgl.'" class="easyui-textbox" data-options="onChange: function(){ hitung(); }">
+                                            <input style="width:50%;" name="date_'.$tgl.'" id="date_'.$tgl.'" class="easyui-textbox" data-options="onChange: function(newValue, oldValue){ hitung($(this),oldValue); }">
                                         </div>
                                     </div>';
                     $tgl++;
@@ -181,7 +181,7 @@
 
                 $last_date = ' <div class="fitem" hidden>
                                     <span style="width:40%; display:inline-block;">Last Date</span>
-                                    <input style="width:50%;" id="last_date" class="easyui-textbox" value="'.($tgl-1).'">
+                                    <input style="width:50%;" id="last_date" class="easyui-textbox" value="'.($tgl-1).'" data-options="onChange: function(newValue, oldValue){ hitung($(this),oldValue); }">
                                 </div>';
             ?>
         </tr>
@@ -513,7 +513,7 @@
 
         if(filter_revision != ""){
             $.messager.prompt('Generate MPP', 'Please input Password Push Data', function(r){
-                if (r == "TESTINGMPP123"){
+                if (r == "PUSHDATAMPP"){
                     Swal.fire({
                         title: 'Please Wait for Push Data WIP',
                         showConfirmButton: false,
@@ -937,18 +937,19 @@
             "&filter_line_no=" + window.btoa(filter_line_no) +
             "&filter_product_no=" + window.btoa(filter_product_no);
 
-        if (filter_month == "" || filter_year == "" || filter_revision == "") {
-            toastr.warning("Please select Period and Customer!", "Information");
-        } else {
-            window.location.assign('<?= base_url('planning/generate_mpp/print/excel') ?>' + url);
-        }
+        if (
+            filter_month == ""
+            || filter_year == ""
+            // || filter_revision == ""
+        ) { toastr.warning("Please select Period and Customer!", "Information"); }
+        else { window.location.assign('<?= base_url('planning/generate_mpp/print/excel') ?>' + url); }
     }
 
     function reload() {
         window.location.reload();
     }
 
-    function hitung(){
+    function hitung(elem, old){
         var last_date = $("#last_date").textbox('getValue');
 
         var date_1 = $("#date_1").textbox('getValue');
@@ -1035,16 +1036,15 @@
 
         var total = (parseInt(date_1) + parseInt(date_2) + parseInt(date_3) + parseInt(date_4) + parseInt(date_5) + parseInt(date_6) + parseInt(date_7) + parseInt(date_8)
             + parseInt(date_9) + parseInt(date_10) + parseInt(date_11) + parseInt(date_12) + parseInt(date_13) + parseInt(date_14) + parseInt(date_15) + parseInt(date_16)
-            + parseInt(date_17) + parseInt(date_18) + parseInt(date_19) + parseInt(date_20) + parseInt(date_21) + parseInt(date_22) + parseInt(date_23) + parseInt(date_24) + parseInt(date_25) + parseInt(date_26) + parseInt(date_27) + parseInt(date_28) + parseInt(date_29) + parseInt(date_30));
+            + parseInt(date_17) + parseInt(date_18) + parseInt(date_19) + parseInt(date_20) + parseInt(date_21) + parseInt(date_22) + parseInt(date_23) + parseInt(date_24) + parseInt(date_25) + parseInt(date_26) + parseInt(date_27) + parseInt(date_28) + parseInt(date_29) + parseInt(date_30) + parseInt(date_31));
 
-        $("#floating").textbox('setValue', total);
+        var mpsprod = $("#mpsprod").textbox('getValue');
 
-        // var mpsprod = $("#mpsprod").textbox('getValue');
-
-        // if(parseInt(mpsprod) < parseInt(total)){
-        //     toastr.error("Plotting > Prodplan");
-        //     return false;
-        // }
+        if(parseInt(mpsprod) < parseInt(total)){
+            $(elem).textbox('setValue', 0);
+            toastr.error("Plotting > Prodplan");
+            return false;
+        } else { $("#floating").textbox('setValue', total); }
     }
 
     function nextdata(){
@@ -1086,7 +1086,11 @@
     }
 
     $(function() {
-        $("#add").html('Generate');
+        var btnAdd = $($("#add").parents('a'));
+        btnAdd.linkbutton({
+            text: `<i class="fa fa-plus"></i> Generate`,
+            <?php if ($total_mpp != 0) { ?>disabled: true<?php } ?>
+        });
 
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").textbox('getValue');
@@ -1117,154 +1121,154 @@
 
 
         // $('#dg').datagrid({
-        //     pagination: true,
-        //     rownumbers: true,
-        //     singleSelect: true,
-        //     onClickCell: function(index,field,value){
-        //         if(value == "F"){
-        //             $(this).datagrid('refreshRow', index);
-        //         }
-        //     },
-        //     onEndEdit:function(index,row){
-        //         Swal.fire({
-        //             title: 'Please Wait to Update Data',
-        //             showConfirmButton: false,
-        //             allowOutsideClick: false,
-        //             allowEscapeKey: false,
-        //             didOpen: () => {
-        //                 Swal.showLoading();
-        //             },
-        //         });
+            // pagination: true,
+            // rownumbers: true,
+            // singleSelect: true,
+            // onClickCell: function(index,field,value){
+            //     if(value == "F"){
+            //         $(this).datagrid('refreshRow', index);
+            //     }
+            // },
+            // onEndEdit:function(index,row){
+            //     Swal.fire({
+            //         title: 'Please Wait to Update Data',
+            //         showConfirmButton: false,
+            //         allowOutsideClick: false,
+            //         allowEscapeKey: false,
+            //         didOpen: () => {
+            //             Swal.showLoading();
+            //         },
+            //     });
 
-        //         if($.isNumeric(row.date_1)){ var date_1 = row.date_1; }else{ var date_1 = 0; }
-        //         if($.isNumeric(row.date_2)){ var date_2 = row.date_2; }else{ var date_2 = 0; }
-        //         if($.isNumeric(row.date_3)){ var date_3 = row.date_3; }else{ var date_3 = 0; }
-        //         if($.isNumeric(row.date_4)){ var date_4 = row.date_4; }else{ var date_4 = 0; }
-        //         if($.isNumeric(row.date_5)){ var date_5 = row.date_5; }else{ var date_5 = 0; }
-        //         if($.isNumeric(row.date_6)){ var date_6 = row.date_6; }else{ var date_6 = 0; }
-        //         if($.isNumeric(row.date_7)){ var date_7 = row.date_7; }else{ var date_7 = 0; }
-        //         if($.isNumeric(row.date_8)){ var date_8 = row.date_8; }else{ var date_8 = 0; }
-        //         if($.isNumeric(row.date_9)){ var date_9 = row.date_9; }else{ var date_9 = 0; }
-        //         if($.isNumeric(row.date_10)){ var date_10 = row.date_10; }else{ var date_10 = 0; }
-        //         if($.isNumeric(row.date_11)){ var date_11 = row.date_11; }else{ var date_11 = 0; }
-        //         if($.isNumeric(row.date_12)){ var date_12 = row.date_12; }else{ var date_12 = 0; }
-        //         if($.isNumeric(row.date_13)){ var date_13 = row.date_13; }else{ var date_13 = 0; }
-        //         if($.isNumeric(row.date_14)){ var date_14 = row.date_14; }else{ var date_14 = 0; }
-        //         if($.isNumeric(row.date_15)){ var date_15 = row.date_15; }else{ var date_15 = 0; }
-        //         if($.isNumeric(row.date_16)){ var date_16 = row.date_16; }else{ var date_16 = 0; }
-        //         if($.isNumeric(row.date_17)){ var date_17 = row.date_17; }else{ var date_17 = 0; }
-        //         if($.isNumeric(row.date_18)){ var date_18 = row.date_18; }else{ var date_18 = 0; }
-        //         if($.isNumeric(row.date_19)){ var date_19 = row.date_19; }else{ var date_19 = 0; }
-        //         if($.isNumeric(row.date_20)){ var date_20 = row.date_20; }else{ var date_20 = 0; }
-        //         if($.isNumeric(row.date_21)){ var date_21 = row.date_21; }else{ var date_21 = 0; }
-        //         if($.isNumeric(row.date_22)){ var date_22 = row.date_22; }else{ var date_22 = 0; }
-        //         if($.isNumeric(row.date_23)){ var date_23 = row.date_23; }else{ var date_23 = 0; }
-        //         if($.isNumeric(row.date_24)){ var date_24 = row.date_24; }else{ var date_24 = 0; }
-        //         if($.isNumeric(row.date_25)){ var date_25 = row.date_25; }else{ var date_25 = 0; }
-        //         if($.isNumeric(row.date_26)){ var date_26 = row.date_26; }else{ var date_26 = 0; }
-        //         if($.isNumeric(row.date_27)){ var date_27 = row.date_27; }else{ var date_27 = 0; }
-        //         if($.isNumeric(row.date_28)){ var date_28 = row.date_28; }else{ var date_28 = 0; }
-        //         if($.isNumeric(row.date_29)){ var date_29 = row.date_29; }else{ var date_29 = 0; }
-        //         if($.isNumeric(row.date_30)){ var date_30 = row.date_30; }else{ var date_30 = 0; }
-        //         if($.isNumeric(row.date_31)){ var date_31 = row.date_31; }else{ var date_31 = 0; }
+            //     if($.isNumeric(row.date_1)){ var date_1 = row.date_1; }else{ var date_1 = 0; }
+            //     if($.isNumeric(row.date_2)){ var date_2 = row.date_2; }else{ var date_2 = 0; }
+            //     if($.isNumeric(row.date_3)){ var date_3 = row.date_3; }else{ var date_3 = 0; }
+            //     if($.isNumeric(row.date_4)){ var date_4 = row.date_4; }else{ var date_4 = 0; }
+            //     if($.isNumeric(row.date_5)){ var date_5 = row.date_5; }else{ var date_5 = 0; }
+            //     if($.isNumeric(row.date_6)){ var date_6 = row.date_6; }else{ var date_6 = 0; }
+            //     if($.isNumeric(row.date_7)){ var date_7 = row.date_7; }else{ var date_7 = 0; }
+            //     if($.isNumeric(row.date_8)){ var date_8 = row.date_8; }else{ var date_8 = 0; }
+            //     if($.isNumeric(row.date_9)){ var date_9 = row.date_9; }else{ var date_9 = 0; }
+            //     if($.isNumeric(row.date_10)){ var date_10 = row.date_10; }else{ var date_10 = 0; }
+            //     if($.isNumeric(row.date_11)){ var date_11 = row.date_11; }else{ var date_11 = 0; }
+            //     if($.isNumeric(row.date_12)){ var date_12 = row.date_12; }else{ var date_12 = 0; }
+            //     if($.isNumeric(row.date_13)){ var date_13 = row.date_13; }else{ var date_13 = 0; }
+            //     if($.isNumeric(row.date_14)){ var date_14 = row.date_14; }else{ var date_14 = 0; }
+            //     if($.isNumeric(row.date_15)){ var date_15 = row.date_15; }else{ var date_15 = 0; }
+            //     if($.isNumeric(row.date_16)){ var date_16 = row.date_16; }else{ var date_16 = 0; }
+            //     if($.isNumeric(row.date_17)){ var date_17 = row.date_17; }else{ var date_17 = 0; }
+            //     if($.isNumeric(row.date_18)){ var date_18 = row.date_18; }else{ var date_18 = 0; }
+            //     if($.isNumeric(row.date_19)){ var date_19 = row.date_19; }else{ var date_19 = 0; }
+            //     if($.isNumeric(row.date_20)){ var date_20 = row.date_20; }else{ var date_20 = 0; }
+            //     if($.isNumeric(row.date_21)){ var date_21 = row.date_21; }else{ var date_21 = 0; }
+            //     if($.isNumeric(row.date_22)){ var date_22 = row.date_22; }else{ var date_22 = 0; }
+            //     if($.isNumeric(row.date_23)){ var date_23 = row.date_23; }else{ var date_23 = 0; }
+            //     if($.isNumeric(row.date_24)){ var date_24 = row.date_24; }else{ var date_24 = 0; }
+            //     if($.isNumeric(row.date_25)){ var date_25 = row.date_25; }else{ var date_25 = 0; }
+            //     if($.isNumeric(row.date_26)){ var date_26 = row.date_26; }else{ var date_26 = 0; }
+            //     if($.isNumeric(row.date_27)){ var date_27 = row.date_27; }else{ var date_27 = 0; }
+            //     if($.isNumeric(row.date_28)){ var date_28 = row.date_28; }else{ var date_28 = 0; }
+            //     if($.isNumeric(row.date_29)){ var date_29 = row.date_29; }else{ var date_29 = 0; }
+            //     if($.isNumeric(row.date_30)){ var date_30 = row.date_30; }else{ var date_30 = 0; }
+            //     if($.isNumeric(row.date_31)){ var date_31 = row.date_31; }else{ var date_31 = 0; }
 
 
-        //         var total = (parseInt(date_1) + 
-        //             parseInt(date_2) + 
-        //             parseInt(date_3) + 
-        //             parseInt(date_4) +
-        //             parseInt(date_5) +
-        //             parseInt(date_6) +
-        //             parseInt(date_7) +
-        //             parseInt(date_8) +
-        //             parseInt(date_9) +
-        //             parseInt(date_10) +
-        //             parseInt(date_11) +
-        //             parseInt(date_12) +
-        //             parseInt(date_13) +
-        //             parseInt(date_14) +
-        //             parseInt(date_15) +
-        //             parseInt(date_16) +
-        //             parseInt(date_17) +
-        //             parseInt(date_18) +
-        //             parseInt(date_19) +
-        //             parseInt(date_20) +
-        //             parseInt(date_21) +
-        //             parseInt(date_22) +
-        //             parseInt(date_23) +
-        //             parseInt(date_24) +
-        //             parseInt(date_25) +
-        //             parseInt(date_26) +
-        //             parseInt(date_27) +
-        //             parseInt(date_28) +
-        //             parseInt(date_29) +
-        //             parseInt(date_30) +
-        //             parseInt(date_31));
+            //     var total = (parseInt(date_1) + 
+            //         parseInt(date_2) + 
+            //         parseInt(date_3) + 
+            //         parseInt(date_4) +
+            //         parseInt(date_5) +
+            //         parseInt(date_6) +
+            //         parseInt(date_7) +
+            //         parseInt(date_8) +
+            //         parseInt(date_9) +
+            //         parseInt(date_10) +
+            //         parseInt(date_11) +
+            //         parseInt(date_12) +
+            //         parseInt(date_13) +
+            //         parseInt(date_14) +
+            //         parseInt(date_15) +
+            //         parseInt(date_16) +
+            //         parseInt(date_17) +
+            //         parseInt(date_18) +
+            //         parseInt(date_19) +
+            //         parseInt(date_20) +
+            //         parseInt(date_21) +
+            //         parseInt(date_22) +
+            //         parseInt(date_23) +
+            //         parseInt(date_24) +
+            //         parseInt(date_25) +
+            //         parseInt(date_26) +
+            //         parseInt(date_27) +
+            //         parseInt(date_28) +
+            //         parseInt(date_29) +
+            //         parseInt(date_30) +
+            //         parseInt(date_31));
 
-        //         if(row.date_1 != "F"){ var w_date_1 = "&date_1=" + row.date_1; }else{ var w_date_1 = ""; }
-        //         if(row.date_2 != "F"){ var w_date_2 = "&date_2=" + row.date_2; }else{ var w_date_2 = ""; }
-        //         if(row.date_3 != "F"){ var w_date_3 = "&date_3=" + row.date_3; }else{ var w_date_3 = ""; }
-        //         if(row.date_4 != "F"){ var w_date_4 = "&date_4=" + row.date_4; }else{ var w_date_4 = ""; }
-        //         if(row.date_5 != "F"){ var w_date_5 = "&date_5=" + row.date_5; }else{ var w_date_5 = ""; }
-        //         if(row.date_6 != "F"){ var w_date_6 = "&date_6=" + row.date_6; }else{ var w_date_6 = ""; }
-        //         if(row.date_7 != "F"){ var w_date_7 = "&date_7=" + row.date_7; }else{ var w_date_7 = ""; }
-        //         if(row.date_8 != "F"){ var w_date_8 = "&date_8=" + row.date_8; }else{ var w_date_8 = ""; }
-        //         if(row.date_9 != "F"){ var w_date_9 = "&date_9=" + row.date_9; }else{ var w_date_9 = ""; }
-        //         if(row.date_10 != "F"){ var w_date_10 = "&date_10=" + row.date_10; }else{ var w_date_10 = ""; }
-        //         if(row.date_11 != "F"){ var w_date_11 = "&date_11=" + row.date_11; }else{ var w_date_11 = ""; }
-        //         if(row.date_12 != "F"){ var w_date_12 = "&date_12=" + row.date_12; }else{ var w_date_12 = ""; }
-        //         if(row.date_13 != "F"){ var w_date_13 = "&date_13=" + row.date_13; }else{ var w_date_13 = ""; }
-        //         if(row.date_14 != "F"){ var w_date_14 = "&date_14=" + row.date_14; }else{ var w_date_14 = ""; }
-        //         if(row.date_15 != "F"){ var w_date_15 = "&date_15=" + row.date_15; }else{ var w_date_15 = ""; }
-        //         if(row.date_16 != "F"){ var w_date_16 = "&date_16=" + row.date_16; }else{ var w_date_16 = ""; }
-        //         if(row.date_17 != "F"){ var w_date_17 = "&date_17=" + row.date_17; }else{ var w_date_17 = ""; }
-        //         if(row.date_18 != "F"){ var w_date_18 = "&date_18=" + row.date_18; }else{ var w_date_18 = ""; }
-        //         if(row.date_19 != "F"){ var w_date_19 = "&date_19=" + row.date_19; }else{ var w_date_19 = ""; }
-        //         if(row.date_20 != "F"){ var w_date_20 = "&date_20=" + row.date_20; }else{ var w_date_20 = ""; }
-        //         if(row.date_21 != "F"){ var w_date_21 = "&date_21=" + row.date_21; }else{ var w_date_21 = ""; }
-        //         if(row.date_22 != "F"){ var w_date_22 = "&date_22=" + row.date_22; }else{ var w_date_22 = ""; }
-        //         if(row.date_23 != "F"){ var w_date_23 = "&date_23=" + row.date_23; }else{ var w_date_23 = ""; }
-        //         if(row.date_24 != "F"){ var w_date_24 = "&date_24=" + row.date_24; }else{ var w_date_24 = ""; }
-        //         if(row.date_25 != "F"){ var w_date_25 = "&date_25=" + row.date_25; }else{ var w_date_25 = ""; }
-        //         if(row.date_26 != "F"){ var w_date_26 = "&date_26=" + row.date_26; }else{ var w_date_26 = ""; }
-        //         if(row.date_27 != "F"){ var w_date_27 = "&date_27=" + row.date_27; }else{ var w_date_27 = ""; }
-        //         if(row.date_28 != "F"){ var w_date_28 = "&date_28=" + row.date_28; }else{ var w_date_28 = ""; }
-        //         if(row.date_29 != "F"){ var w_date_29 = "&date_29=" + row.date_29; }else{ var w_date_29 = ""; }
-        //         if(row.date_30 != "F"){ var w_date_30 = "&date_30=" + row.date_30; }else{ var w_date_30 = ""; }
-        //         if(row.date_31 != "F"){ var w_date_31 = "&date_31=" + row.date_31; }else{ var w_date_31 = ""; }
+            //     if(row.date_1 != "F"){ var w_date_1 = "&date_1=" + row.date_1; }else{ var w_date_1 = ""; }
+            //     if(row.date_2 != "F"){ var w_date_2 = "&date_2=" + row.date_2; }else{ var w_date_2 = ""; }
+            //     if(row.date_3 != "F"){ var w_date_3 = "&date_3=" + row.date_3; }else{ var w_date_3 = ""; }
+            //     if(row.date_4 != "F"){ var w_date_4 = "&date_4=" + row.date_4; }else{ var w_date_4 = ""; }
+            //     if(row.date_5 != "F"){ var w_date_5 = "&date_5=" + row.date_5; }else{ var w_date_5 = ""; }
+            //     if(row.date_6 != "F"){ var w_date_6 = "&date_6=" + row.date_6; }else{ var w_date_6 = ""; }
+            //     if(row.date_7 != "F"){ var w_date_7 = "&date_7=" + row.date_7; }else{ var w_date_7 = ""; }
+            //     if(row.date_8 != "F"){ var w_date_8 = "&date_8=" + row.date_8; }else{ var w_date_8 = ""; }
+            //     if(row.date_9 != "F"){ var w_date_9 = "&date_9=" + row.date_9; }else{ var w_date_9 = ""; }
+            //     if(row.date_10 != "F"){ var w_date_10 = "&date_10=" + row.date_10; }else{ var w_date_10 = ""; }
+            //     if(row.date_11 != "F"){ var w_date_11 = "&date_11=" + row.date_11; }else{ var w_date_11 = ""; }
+            //     if(row.date_12 != "F"){ var w_date_12 = "&date_12=" + row.date_12; }else{ var w_date_12 = ""; }
+            //     if(row.date_13 != "F"){ var w_date_13 = "&date_13=" + row.date_13; }else{ var w_date_13 = ""; }
+            //     if(row.date_14 != "F"){ var w_date_14 = "&date_14=" + row.date_14; }else{ var w_date_14 = ""; }
+            //     if(row.date_15 != "F"){ var w_date_15 = "&date_15=" + row.date_15; }else{ var w_date_15 = ""; }
+            //     if(row.date_16 != "F"){ var w_date_16 = "&date_16=" + row.date_16; }else{ var w_date_16 = ""; }
+            //     if(row.date_17 != "F"){ var w_date_17 = "&date_17=" + row.date_17; }else{ var w_date_17 = ""; }
+            //     if(row.date_18 != "F"){ var w_date_18 = "&date_18=" + row.date_18; }else{ var w_date_18 = ""; }
+            //     if(row.date_19 != "F"){ var w_date_19 = "&date_19=" + row.date_19; }else{ var w_date_19 = ""; }
+            //     if(row.date_20 != "F"){ var w_date_20 = "&date_20=" + row.date_20; }else{ var w_date_20 = ""; }
+            //     if(row.date_21 != "F"){ var w_date_21 = "&date_21=" + row.date_21; }else{ var w_date_21 = ""; }
+            //     if(row.date_22 != "F"){ var w_date_22 = "&date_22=" + row.date_22; }else{ var w_date_22 = ""; }
+            //     if(row.date_23 != "F"){ var w_date_23 = "&date_23=" + row.date_23; }else{ var w_date_23 = ""; }
+            //     if(row.date_24 != "F"){ var w_date_24 = "&date_24=" + row.date_24; }else{ var w_date_24 = ""; }
+            //     if(row.date_25 != "F"){ var w_date_25 = "&date_25=" + row.date_25; }else{ var w_date_25 = ""; }
+            //     if(row.date_26 != "F"){ var w_date_26 = "&date_26=" + row.date_26; }else{ var w_date_26 = ""; }
+            //     if(row.date_27 != "F"){ var w_date_27 = "&date_27=" + row.date_27; }else{ var w_date_27 = ""; }
+            //     if(row.date_28 != "F"){ var w_date_28 = "&date_28=" + row.date_28; }else{ var w_date_28 = ""; }
+            //     if(row.date_29 != "F"){ var w_date_29 = "&date_29=" + row.date_29; }else{ var w_date_29 = ""; }
+            //     if(row.date_30 != "F"){ var w_date_30 = "&date_30=" + row.date_30; }else{ var w_date_30 = ""; }
+            //     if(row.date_31 != "F"){ var w_date_31 = "&date_31=" + row.date_31; }else{ var w_date_31 = ""; }
 
-        //         if(row.mpsprod >= total){
-        //             $.ajax({
-        //                 type: "post",
-        //                 url: "<?= base_url('planning/generate_mpp/update?id=') ?>" + window.btoa(row.id),
-        //                 data: "deleted_is=0" + w_date_1 + w_date_2 + w_date_3 + w_date_4 + w_date_5 + 
-        //                 w_date_6 + w_date_7 + w_date_8 + w_date_9 + w_date_10 + w_date_11 + w_date_12 + w_date_13 + w_date_14 +
-        //                 w_date_15 + w_date_16 + w_date_17 + w_date_18 + w_date_19 + w_date_20 + w_date_21 + w_date_22 + w_date_23 +
-        //                 w_date_24 + w_date_25 + w_date_26 + w_date_27 + w_date_28 + w_date_29 + w_date_30 + w_date_31,
-        //                 dataType: "json",
-        //                 success: function(response) {
-        //                     toastr.success(response.message, response.title);
-        //                     Swal.close();
-        //                     $('#dg').datagrid('reload');
-        //                 }
-        //             });
-        //         }else{
-        //             toastr.error("Total qty should not be bigger than prodplan | "+row.prod_plan+" == "+total, "Failed");
-        //             Swal.close();
-        //             $('#dg').datagrid('reload');
-        //         }
-        //     },
-        //     onBeforeEdit:function(index,row){
-        //         row.editing = false;
-        //         $(this).datagrid('refreshRow', index);
-        //     },
-        //     onAfterEdit:function(index,row){
-        //         row.editing = false;
-        //         $(this).datagrid('refreshRow', index);
-        //     },
+            //     if(row.mpsprod >= total){
+            //         $.ajax({
+            //             type: "post",
+            //             url: "<?= base_url('planning/generate_mpp/update?id=') ?>" + window.btoa(row.id),
+            //             data: "deleted_is=0" + w_date_1 + w_date_2 + w_date_3 + w_date_4 + w_date_5 + 
+            //             w_date_6 + w_date_7 + w_date_8 + w_date_9 + w_date_10 + w_date_11 + w_date_12 + w_date_13 + w_date_14 +
+            //             w_date_15 + w_date_16 + w_date_17 + w_date_18 + w_date_19 + w_date_20 + w_date_21 + w_date_22 + w_date_23 +
+            //             w_date_24 + w_date_25 + w_date_26 + w_date_27 + w_date_28 + w_date_29 + w_date_30 + w_date_31,
+            //             dataType: "json",
+            //             success: function(response) {
+            //                 toastr.success(response.message, response.title);
+            //                 Swal.close();
+            //                 $('#dg').datagrid('reload');
+            //             }
+            //         });
+            //     }else{
+            //         toastr.error("Total qty should not be bigger than prodplan | "+row.prod_plan+" == "+total, "Failed");
+            //         Swal.close();
+            //         $('#dg').datagrid('reload');
+            //     }
+            // },
+            // onBeforeEdit:function(index,row){
+            //     row.editing = false;
+            //     $(this).datagrid('refreshRow', index);
+            // },
+            // onAfterEdit:function(index,row){
+            //     row.editing = false;
+            //     $(this).datagrid('refreshRow', index);
+            // },
         // }).datagrid('enableCellEditing').datagrid('gotoCell', {
-        //     index: 0,
-        //     field: 'product_no'
+            // index: 0,
+            // field: 'product_no'
         // });
 
         $('#filter_month').combobox({
@@ -1286,7 +1290,9 @@
                     url: '<?php echo base_url('planning/generate_mpp/readRevisions/'); ?>' + row.id + '/' + filter_year,
                     dataType: "json",
                     success: function(rev) {
+                        console.log(rev);
                         $('#filter_revision').textbox('setValue', rev.revision);
+                        btnAdd.linkbutton({disabled: rev.total_mpp != 0});
                     }
                 });
             }
@@ -1311,14 +1317,16 @@
                     url: '<?php echo base_url('planning/generate_mpp/readRevisions/'); ?>' + filter_month + '/' + row.id,
                     dataType: "json",
                     success: function(rev) {
+                        console.log(rev);
                         $('#filter_revision').textbox('setValue', rev.revision);
+                        btnAdd.linkbutton({disabled: rev.total_mpp != 0});
                     }
                 });
             }
         });
 
         $('#filter_line_no').combobox({
-            url: '<?php echo base_url('planning/mst_line/reads'); ?>',
+            url: '<?php echo base_url('planning/mst_line/reads/setting_customer'); ?>',
             valueField: 'line_no',
             textField: 'remarks',
             prompt: 'Select Customer Name',
@@ -1333,8 +1341,8 @@
         $('#filter_product_no').combogrid({
             url: '<?= base_url('planning/mst_data/readProducts') ?>',
             panelWidth: 400,
-            idField: 'item_id',
-            textField: 'item_id',
+            idField: 'product_no',
+            textField: 'product_no',
             mode: 'remote',
             fitColumns: true,
             prompt: "Select Product No",
@@ -1346,11 +1354,11 @@
             }],
             columns: [
                 [{
-                    field: 'item_id',
+                    field: 'product_no',
                     title: 'Item ID',
                     width: 200
                 }, {
-                    field: 'item_name',
+                    field: 'product_name',
                     title: 'Item Name',
                     width: 200
                 }]

@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "erp-mobile-askara",
+  "private_key_id": "48761fdba6bb6d260e5acaf9668bf35acd92f241",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDBfnjHmb3M9tvQ\n1UCezFyOvwAULFHHUbiRw+TKD+LhKQJu80JfTkUwjeLTMvjnOliPoEsz1lTPnQw2\ngxLwmJFEtzhfrI9PfltZIeo3VXvbZdL00/f4YX/Qf57cHsAmpwWDST6PPXGeRmo7\nFGymWun4VczcF30QppooifkiaqeJr7Wo0t73SQQbBVcYA/svB8gZ26jAJh8LimqH\nI40J08JmOuONORNm3Beb8cF6xggcFL3rY1CRBe2dySOSgB777ly1GYbyEAWB2Rc3\nYsZtFOTKT986tUDzj462kC8+dsLFQosdRf5VIcTS1FyN6QFVHHzPVEcInEYIrirC\nT9AS8Ux5AgMBAAECggEADYV8w7gE6TKUBFkuqZou2qPSydYaBeN6UideENfA20qu\nGppBuF7EG4NCx07/0UrEvw6syqvO4+492P5aX7lNp39lP1xT7HJwSD+EOkctP1Tz\ng7vfT3piv+t3Krs0Ys8XpcfDySc6ThzuFgBUomBmir3WMcgra3M1ASG5KPRKjma7\nnsxe6D/1Y7t9lVKiMGrwneL6v4gy2Ib+3o9/YtJ7JLn0/cG8xPIz+abybH8wxJLH\naqb/rAlvoiEsOA6+HuM8wKuWgUVG1vRuRPt41jjgM2XlRkClyiUYVwKDju7M0Dmq\n+fgNEsVngK1gn0rpkaeLrI/OlfWzgdWeE3dsA7epXQKBgQDivw+Ss8jVfJ7VhiCh\ntlOilVM9eC/UDd2W0O8Z0dBYsiM9EEjKoHERtJI7FtXfxfumK7LyrecClQbXZGnY\n4rkpG/gFvkm9uwb4DVk3Bh61j+DpZkKvR5E1PgAlRkTefDwnx+NHbuFoCYE8b8yp\nU2ieq2rkBV6NJL2TsyjrdlchpQKBgQDadSjeFNxyxqdi5/kmLpbhw8bAhnkoVdl3\nr6TvLujLFKMTjCwNUSi32Zk8VA5+2iCHHawvJ34E+zbo5+UZ8g8c78SiSbZ7oySA\n0sRFOnRrx1j3+ULJozlWQ9EdWu7etT644M7qyG5SzdTK60+uGaYK4X3btcOZsnoT\nqmjP5MVfRQKBgQC3rpMNAns1BkkdLBSPK8ZAtLrD1vLX04uoOwUWY3NmBpipROHS\n03oFH8Q9/dev+RBMoqXKFbpHyzXJktx0B+Z7ON8IuAfAnRueIiIdguWpqy5FpMNs\nfotRGDLB/1SW7wlEKJcjLN2Ii/qXXPHsUVc1AiQLJ5ZavGKencoORMV8yQKBgQCP\nU8rqWhmAnGF5/OR0bqDDouUlr5SSKDEz22OFIevOQc30p0THv/XNGdD1ydhw1b/9\npjQwA+MkdYXDLVIcwbm0rIMATwiQ+aqbcq0fFokHpZTzrPBqxtJ5jKkIb37FU3jB\nZ42acMIhRbZVJCn0+hL8lJE0s36Puo9pk6aMr3XnWQKBgC2ePUtlnO+npLMopelY\nDOacy4WTUz+rz/teauWq37YQi7ptV5UrfO83wT0wJzeTBCzHOpRsXcaYRHAzvtRW\ndKX9TNHRwl+ToYe8jo71oOw74biHC6/nHaITOdYZzXMpmxeIz756MbLz6rNSkaBq\nL16NxV4EJRu78zLCb9UmG9t4\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-del92@erp-mobile-askara.iam.gserviceaccount.com",
+  "client_id": "100274796194991963341",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-del92%40erp-mobile-askara.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

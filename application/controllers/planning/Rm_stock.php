@@ -91,26 +91,36 @@ class Rm_stock extends CI_Controller
                 order by c.pfm_name, coalesce(round(sum(a.ith_qty)),0) desc
             ");
             $items = $itemq->result_array();
-            $arr = array();
 
+            $rm_stock = $this->api->reads('rm_stock', [], [
+                "p_month" => $filter_month,
+                "p_year" => $filter_year,
+                "revision" => $filter_revision
+            ]);
+
+            foreach ($rm_stock as $stock) {
+                $product_no = trim($stock->product_no);
+                $osVenId[$product_no] = $stock->id;
+                $osVenQty[$product_no] = $stock->actual;
+                $osVenCreatedby[$product_no] = $stock->created_by;
+                $osVenCreateddate[$product_no] = $stock->created_date;
+                $osVenUpdatedby[$product_no] = $stock->updated_by;
+                $osVenUpdateddate[$product_no] = $stock->updated_date;
+                $osVenStatus[$product_no] = $stock->status;
+            }
+
+            $arr = array();
             foreach ($items as $item) {
-                $item_id = $item['item_id'];
+                $item_id = trim($item['item_id']);
                 $item_name = $item['item_name'];
                 $pfm_name = $item['pfm_name'];
                 $qty = $item['stock'];
 
-                $rm_stock = $this->api->read('rm_stock', [], [
-                    "product_no" => $item_id,
-                    "p_month" => $filter_month,
-                    "p_year" => $filter_year,
-                    "revision" => $filter_revision
-                ]);
-
-                if ($rm_stock) {
-                    if($rm_stock->status == "EMPTY"){
+                if (!empty($osVenId[$item_id])) {
+                    if($osVenStatus[$item_id] == "EMPTY"){
                         $status = "GENERATE";
                     }else{
-                        $status = $rm_stock->status;
+                        $status = $osVenStatus[$item_id];
                     }
 
                     $arr[] = array(
@@ -122,8 +132,8 @@ class Rm_stock extends CI_Controller
                         "product_name" => $item_name,
                         "product_family" => $pfm_name,
                         "qty" => round($qty),
-                        "actual" => round($rm_stock->actual),
-                        "status" => $status,
+                        "actual" => round($osVenQty[$item_id]),
+                        "status" => $status
                     );
                 } else {
                     $arr[] = array(
@@ -330,24 +340,35 @@ class Rm_stock extends CI_Controller
         $items = $itemq->result_array();
         $records = array();
 
+        $rm_stock = $this->api->reads('rm_stock', [], [
+            "p_month" => $filter_month,
+            "p_year" => $filter_year,
+            "revision" => $filter_revision
+        ]);
+
+        foreach ($rm_stock as $stock) {
+            $product_no = trim($stock->product_no);
+            $osVenId[$product_no] = $stock->id;
+            $osVenQty[$product_no] = $stock->actual;
+            $osVenCreatedby[$product_no] = $stock->created_by;
+            $osVenCreateddate[$product_no] = $stock->created_date;
+            $osVenUpdatedby[$product_no] = $stock->updated_by;
+            $osVenUpdateddate[$product_no] = $stock->updated_date;
+            $osVenStatus[$product_no] = $stock->status;
+        }
+
+        $records = array();
         foreach ($items as $item) {
-            $item_id = $item['item_id'];
+            $item_id = trim($item['item_id']);
             $item_name = $item['item_name'];
             $pfm_name = $item['pfm_name'];
             $qty = $item['stock'];
 
-            $rm_stock = $this->api->read('rm_stock', [], [
-                "product_no" => $item_id,
-                "p_month" => $filter_month,
-                "p_year" => $filter_year,
-                "revision" => $filter_revision
-            ]);
-
-            if ($rm_stock) {
-                if($rm_stock->status == "EMPTY"){
+            if (!empty($osVenId[$item_id])) {
+                if($osVenStatus[$item_id] == "EMPTY"){
                     $status = "GENERATE";
                 }else{
-                    $status = $rm_stock->status;
+                    $status = $osVenStatus[$item_id];
                 }
 
                 $records[] = array(
@@ -358,9 +379,9 @@ class Rm_stock extends CI_Controller
                     "product_no" => $item_id,
                     "product_name" => $item_name,
                     "product_family" => $pfm_name,
-                    "qty" => $qty,
-                    "actual" => $qty,
-                    "status" => $status,
+                    "qty" => round($qty),
+                    "actual" => round($osVenQty[$item_id]),
+                    "status" => $status
                 );
             } else {
                 $records[] = array(
@@ -371,8 +392,8 @@ class Rm_stock extends CI_Controller
                     "product_no" => $item_id,
                     "product_name" => $item_name,
                     "product_family" => $pfm_name,
-                    "qty" => $qty,
-                    "actual" => $qty,
+                    "qty" => round($qty),
+                    "actual" => round($qty),
                     "status" => "EMPTY",
                 );
             }

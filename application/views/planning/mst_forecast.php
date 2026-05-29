@@ -47,6 +47,7 @@
             <div class="fitem">
                 <span style="width:35%; display:inline-block;"></span>
                 <a href="javascript:;" class="easyui-linkbutton" onclick="filter()"><i class="fa fa-search"></i> Filter Data</a>
+                <a href="javascript:;" class="easyui-linkbutton" onclick="filter('display')"><i class="fa fa-search"></i> Display Data</a>
             </div>
         </div>
         <div style="width: 45%;">
@@ -103,6 +104,14 @@
             <div class="fitem" hidden>
                 <span style="width:35%; display:inline-block;">Product Name</span>
                 <input style="width:60%;" name="product_name" id="product_name" class="easyui-textbox">
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Customer Code</span>
+                <input style="width:60%;" id="customer_code" class="easyui-textbox" readonly>
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Customer Name</span>
+                <input style="width:60%;" id="customer_name" class="easyui-textbox" readonly>
             </div>
         </fieldset>
         <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
@@ -187,11 +196,46 @@
 <!-- PDF -->
 <iframe id="printout" src="<?= base_url('planning/mst_forecast/print') ?>" style="width: 100%;" hidden></iframe>
 
+<div id="dlg_display" class="easyui-window" title="Display Data" data-options="closed: true,modal:true" style="width: 1200px; height: 550px;">
+    <table id="dg_display" class="easyui-datagrid" style="width:99.5%;">
+        <thead>
+            <tr>
+                <th rowspan="2" data-options="field:'customer_name',width:200,halign:'center'">Customer</th>
+                <th rowspan="2" data-options="field:'item_id',width:200,halign:'center'">Product No</th>
+                <th rowspan="2" data-options="field:'item_name',width:200,halign:'center'">Product Name</th>
+                <th rowspan="2" data-options="field:'circuit_no',width:50,halign:'center'">CCT</th>
+                <th colspan="12" data-options="field:'',width:100,halign:'center'">Months</th>
+                <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
+                <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
+            </tr>
+            <tr>
+                <th data-options="field:'january',width:80,align:'center'">Month 1</th>
+                <th data-options="field:'february',width:80,align:'center'">Month 2</th>
+                <th data-options="field:'march',width:80,align:'center'">Month 3</th>
+                <th data-options="field:'april',width:80,align:'center'">Month 4</th>
+                <th data-options="field:'may',width:80,align:'center'">Month 5</th>
+                <th data-options="field:'june',width:80,align:'center'">Month 6</th>
+                <th data-options="field:'june',width:80,align:'center'">Month 7</th>
+                <th data-options="field:'june',width:80,align:'center'">Month 8</th>
+                <th data-options="field:'june',width:80,align:'center'">Month 9</th>
+                <th data-options="field:'june',width:80,align:'center'">Month 10</th>
+                <th data-options="field:'june',width:80,align:'center'">Month 11</th>
+                <th data-options="field:'june',width:80,align:'center'">Month 12</th>
+                <th data-options="field:'created_name',width:100,align:'center'"> By</th>
+                <th data-options="field:'created_date',width:150,align:'center'"> Date</th>
+                <th data-options="field:'updated_name',width:100,align:'center'"> By</th>
+                <th data-options="field:'updated_date',width:150,align:'center'"> Date</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
 <script>
     //Add Data
     function add() {
-        $('#dlg_insert').dialog('open');
+        is_update = false;
         url_save = '<?= base_url('planning/mst_forecast/create') ?>';
+        $('#dlg_insert').dialog('open');
         $('#frm_insert').form('clear');
         $("#p_year").numberbox('setValue', '<?= date("Y") ?>');
         $("#p_month").combobox('setValue', '<?= date("m") ?>');
@@ -200,32 +244,11 @@
         $("#p_year").numberbox('enable');
         $("#revision").combobox('enable');
 
-        $('#product_no').combogrid({
-            url: '<?= base_url('planning/mst_data/readProducts') ?>',
-            panelWidth: 400,
-            idField: 'item_id',
-            textField: 'item_id',
-            mode: 'remote',
-            fitColumns: true,
-            prompt: "Select Product No",
-            columns: [
-                [{
-                    field: 'item_id',
-                    title: 'Item ID',
-                    width: 200
-                }, {
-                    field: 'item_name',
-                    title: 'Item Name',
-                    width: 200
-                }]
-            ],
-            onSelect: function(index, row) {
-                $("#product_name").textbox('setValue', row.item_name);
-            }
-        });
+        $('#product_no').combogrid('grid').datagrid('reload', "<?= base_url('planning/mst_data/readProducts') ?>");
     }
 
     //Edit Data
+    var is_update = true;
     function update() {
         var row = $('#dg').datagrid('getSelected');
         if (row) {
@@ -238,43 +261,9 @@
             var p_month = $("#p_month").combobox('getValue');
             var p_year = $("#p_year").numberbox('getValue');
             var revision = $("#revision").combobox('getValue');
+            is_update = true;
 
-            $('#product_no').combogrid({
-                url: '<?= base_url('planning/mst_forecast/readProducts?p_month=') ?>' + p_month + '&p_year='+p_year+'&revision=' + revision,
-                panelWidth: 400,
-                idField: 'product_no',
-                textField: 'product_no',
-                mode: 'remote',
-                fitColumns: true,
-                prompt: "Select Product No",
-                columns: [
-                    [{
-                        field: 'product_no',
-                        title: 'Item ID',
-                        width: 200
-                    }, {
-                        field: 'product_name',
-                        title: 'Item Name',
-                        width: 200
-                    }]
-                ],
-                onSelect: function(index, row2) {
-                    $("#product_name").textbox('setValue', row2.product_name);
-                    $("#month_1").numberbox('setValue', row2.month_1);
-                    $("#month_2").numberbox('setValue', row2.month_2);
-                    $("#month_3").numberbox('setValue', row2.month_3);
-                    $("#month_4").numberbox('setValue', row2.month_4);
-                    $("#month_5").numberbox('setValue', row2.month_5);
-                    $("#month_6").numberbox('setValue', row2.month_6);
-                    $("#month_7").numberbox('setValue', row2.month_7);
-                    $("#month_8").numberbox('setValue', row2.month_8);
-                    $("#month_9").numberbox('setValue', row2.month_9);
-                    $("#month_10").numberbox('setValue', row2.month_10);
-                    $("#month_11").numberbox('setValue', row2.month_11);
-                    $("#month_12").numberbox('setValue', row2.month_12);
-                }
-            });
-
+            $('#product_no').combogrid('grid').datagrid('reload', "<?= base_url('planning/mst_forecast/readProducts?p_month=') ?>"+p_month+'&p_year='+p_year+'&revision='+revision);
             $("#product_no").combogrid('setValue', row.product_no);
             var product_no = $("#product_no").combogrid('getValue');
 
@@ -334,183 +323,77 @@
         }
     }
 
-    function filter() {
+    function filter(act='') {
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").textbox('getValue');
         var filter_revision = $("#filter_revision").combobox('getValue');
         var filter_customer_id = $("#filter_customer_id").combobox('getValue');
         var filter_product_no = $("#filter_product_no").combogrid('getValue');
 
-        if(filter_month == "" || filter_year == "" || filter_revision == ""){
+        if (filter_month == "" || filter_year == "" || filter_revision == "") {
             toastr.info("Please Select Period and Revision");
-        }else{
-            var url = "?filter_customer_id=" + window.btoa(filter_customer_id) +
-            "&filter_product_no=" + window.btoa(filter_product_no) +
-            "&filter_revision=" + window.btoa(filter_revision) +
-            "&filter_month=" + window.btoa(filter_month) +
-            "&filter_year=" + window.btoa(filter_year);
-
+        } else {
             $.ajax({
                 type: "post",
                 url: "<?= base_url('planning/mst_forecast/readMonths') ?>",
                 data: "month=" + window.btoa(filter_month) + "&year=" + window.btoa(filter_year),
                 dataType: "json",
                 success: function(monthName) {
-                    $('#dg').datagrid({
-                        url: '<?= base_url('planning/mst_forecast/datatables') ?>' + url,
+                    var dg = 'dg';
+                    var columns = [[
+                        {field: 'ck', checkbox: true, rowspan: 2},
+                        {field: 'customer_name', title: 'Customer', width: 200, halign: 'center', rowspan: 2},
+                        {field: 'item_id', title: 'Product No', width: 200, halign: 'center', rowspan: 2},
+                        {field: 'item_name', title: 'Product Name', width: 200, halign: 'center', rowspan: 2},
+                        {field: 'circuit_no', title: 'CCT', width: 50, align: 'center', rowspan: 2},
+                        {field: '', title: 'Months', width: 200, align: 'center', colspan: 12},
+                        {field: '', title: 'Created', width: 200, align: 'center', colspan: 2},
+                        {field: '', title: 'Updated', width: 200, align: 'center', colspan: 2}
+                    ],[
+                        {field: 'month_1', title: monthName[0], width: 80, align: 'center', formatter: numberformat},
+                        {field: 'month_2', title: monthName[1], width: 80, align: 'center', formatter: numberformat},
+                        {field: 'month_3', title: monthName[2], width: 80, align: 'center', formatter: numberformat},
+                        {field: 'month_4', title: monthName[3], width: 80, align: 'center', formatter: numberformat},
+                        {field: 'month_5', title: monthName[4], width: 80, align: 'center', formatter: numberformat},
+                        {field: 'month_6', title: monthName[5], width: 80, align: 'center', formatter: numberformat},
+                        {field: 'month_7', title: monthName[6], width: 80, align: 'center', formatter: numberformat},
+                        {field: 'month_8', title: monthName[7], width: 80, align: 'center', formatter: numberformat},
+                        {field: 'month_9', title: monthName[8], width: 80, align: 'center', formatter: numberformat},
+                        {field: 'month_10', title: monthName[9], width: 80, align: 'center', formatter: numberformat},
+                        {field: 'month_11', title: monthName[10], width: 80, align: 'center', formatter: numberformat},
+                        {field: 'month_12', title: monthName[11], width: 80, align: 'center', formatter: numberformat},
+                        {field: 'created_name', title: 'By', width: 100, align: 'center'},
+                        {field: 'created_date', title: 'Date', width: 150, align: 'center'},
+                        {field: 'updated_name', title: 'By', width: 100, align: 'center'},
+                        {field: 'updated_date', title: 'Date', width: 150, align: 'center'}
+                    ]];
+
+                    if (act == 'display') {
+                        dg += '_display';
+                        columns[0].splice(0, 1);
+                        if (filter_customer_id == '') { filter_customer_id = 'all'; }
+                        $('#dlg_display').window('open');
+                    }
+                    var url = "?filter_customer_id=" + window.btoa(filter_customer_id) +
+                    "&filter_product_no=" + window.btoa(filter_product_no) +
+                    "&filter_revision=" + window.btoa(filter_revision) +
+                    "&filter_month=" + window.btoa(filter_month) +
+                    "&filter_year=" + window.btoa(filter_year);
+
+                    $('#'+dg).datagrid({
+                        url: "<?= base_url('planning/mst_forecast/datatables') ?>" + url,
                         pageList: ['10', '20', '30', '40', '50', '100', '500', '1000'],
-                        columns: [
-                            [{
-                                field: 'ck',
-                                checkbox: true,
-                                rowspan: 2
-                            }, {
-                                field: 'customer_name',
-                                title: 'Customer',
-                                width: 200,
-                                halign: 'center',
-                                rowspan: 2
-                            }, {
-                                field: 'item_id',
-                                title: 'Product No',
-                                width: 200,
-                                halign: 'center',
-                                rowspan: 2
-                            }, {
-                                field: 'item_name',
-                                title: 'Product Name',
-                                width: 200,
-                                halign: 'center',
-                                rowspan: 2
-                            }, {
-                                field: 'circuit_no',
-                                title: 'CCT',
-                                width: 50,
-                                align: 'center',
-                                rowspan: 2
-                            }, {
-                                field: '',
-                                title: 'Months',
-                                width: 200,
-                                align: 'center',
-                                colspan: 12
-                            }, {
-                                field: '',
-                                title: 'Created',
-                                width: 200,
-                                align: 'center',
-                                colspan: 2
-                            }, {
-                                field: '',
-                                title: 'Updated',
-                                width: 200,
-                                align: 'center',
-                                colspan: 2
-                            }],
-                            [{
-                                field: 'month_1',
-                                title: monthName[0],
-                                width: 80,
-                                align: 'center',
-                                formatter: numberformat
-                            }, {
-                                field: 'month_2',
-                                title: monthName[1],
-                                width: 80,
-                                align: 'center',
-                                formatter: numberformat
-                            }, {
-                                field: 'month_3',
-                                title: monthName[2],
-                                width: 80,
-                                align: 'center',
-                                formatter: numberformat
-                            }, {
-                                field: 'month_4',
-                                title: monthName[3],
-                                width: 80,
-                                align: 'center',
-                                formatter: numberformat
-                            }, {
-                                field: 'month_5',
-                                title: monthName[4],
-                                width: 80,
-                                align: 'center',
-                                formatter: numberformat
-                            }, {
-                                field: 'month_6',
-                                title: monthName[5],
-                                width: 80,
-                                align: 'center',
-                                formatter: numberformat
-                            }, {
-                                field: 'month_7',
-                                title: monthName[6],
-                                width: 80,
-                                align: 'center',
-                                formatter: numberformat
-                            }, {
-                                field: 'month_8',
-                                title: monthName[7],
-                                width: 80,
-                                align: 'center',
-                                formatter: numberformat
-                            }, {
-                                field: 'month_9',
-                                title: monthName[8],
-                                width: 80,
-                                align: 'center',
-                                formatter: numberformat
-                            }, {
-                                field: 'month_10',
-                                title: monthName[9],
-                                width: 80,
-                                align: 'center',
-                                formatter: numberformat
-                            }, {
-                                field: 'month_11',
-                                title: monthName[10],
-                                width: 80,
-                                align: 'center',
-                                formatter: numberformat
-                            }, {
-                                field: 'month_12',
-                                title: monthName[11],
-                                width: 80,
-                                align: 'center',
-                                formatter: numberformat
-                            }, {
-                                field: 'created_name',
-                                title: 'By',
-                                width: 100,
-                                align: 'center'
-                            }, {
-                                field: 'created_date',
-                                title: 'Date',
-                                width: 150,
-                                align: 'center'
-                            }, {
-                                field: 'updated_name',
-                                title: 'By',
-                                width: 100,
-                                align: 'center'
-                            }, {
-                                field: 'updated_date',
-                                title: 'Date',
-                                width: 150,
-                                align: 'center'
-                            }]
-                        ],
+                        columns: columns,
                         rowStyler: function(index, row) {
                             if (row.p_month == null) {
                                 return 'background-color:#FFDAD2;';
                             }
                         }
                     });
+
+                    $("#printout").attr('src', "<?= base_url('planning/mst_forecast/print') ?>" + url);
                 }
             });
-
-            $("#printout").attr('src', '<?= base_url('planning/mst_forecast/print') ?>' + url);
         }
     }
 
@@ -546,7 +429,16 @@
         $("#filter_month").combobox('setValue', '<?= date("m") ?>');
 
         $('#dg').datagrid({
-            url: '<?= base_url('planning/mst_forecast/datatables') ?>',
+            pagination: true,
+            clientPaging: false,
+            remoteFilter: true,
+            rownumbers: true,
+            fit: true,
+            pageList: [20, 50, 100, 500, 1000],
+            pageSize: 20,
+        });
+
+        $('#dg_display').datagrid({
             pagination: true,
             clientPaging: false,
             remoteFilter: true,
@@ -572,11 +464,11 @@
 
                             if (result.theme == "success") {
                                 toastr.success(result.message, result.title);
+                                $('#dlg_insert').dialog('close');
                             } else {
                                 toastr.error(result.message, result.title);
                             }
 
-                            $('#dlg_insert').dialog('close');
                             $('#dg').datagrid('reload');
                         }
                     });
@@ -584,6 +476,38 @@
             }]
         });
 
+        $('#product_no').combogrid({
+            url: '',
+            panelWidth: 400,
+            idField: 'product_no',
+            textField: 'product_no',
+            mode: 'remote',
+            fitColumns: true,
+            prompt: "Select Product No",
+            columns: [[
+                {field: 'product_no', title: 'Item ID', width: 200},
+                {field: 'product_name', title: 'Item Name', width: 200}
+            ]],
+            onSelect: function(index, row) {
+                $("#product_name").textbox('setValue', row.product_name);
+                $("#customer_code").textbox("setValue", row.cust_nick);
+                $("#customer_name").textbox("setValue", row.cust_name);
+                if (is_update) {
+                    $("#month_1").numberbox('setValue', row.month_1);
+                    $("#month_2").numberbox('setValue', row.month_2);
+                    $("#month_3").numberbox('setValue', row.month_3);
+                    $("#month_4").numberbox('setValue', row.month_4);
+                    $("#month_5").numberbox('setValue', row.month_5);
+                    $("#month_6").numberbox('setValue', row.month_6);
+                    $("#month_7").numberbox('setValue', row.month_7);
+                    $("#month_8").numberbox('setValue', row.month_8);
+                    $("#month_9").numberbox('setValue', row.month_9);
+                    $("#month_10").numberbox('setValue', row.month_10);
+                    $("#month_11").numberbox('setValue', row.month_11);
+                    $("#month_12").numberbox('setValue', row.month_12);
+                }
+            }
+        });
 
         //Upload Data
         $('#dlg_upload').dialog({
@@ -693,8 +617,8 @@
         $('#filter_product_no').combogrid({
             url: '<?= base_url('planning/mst_data/readProducts') ?>',
             panelWidth: 400,
-            idField: 'item_id',
-            textField: 'item_id',
+            idField: 'product_no',
+            textField: 'product_no',
             mode: 'remote',
             fitColumns: true,
             prompt: "Select Product No",
@@ -706,11 +630,11 @@
             }],
             columns: [
                 [{
-                    field: 'item_id',
+                    field: 'product_no',
                     title: 'Item ID',
                     width: 200
                 }, {
-                    field: 'item_name',
+                    field: 'product_name',
                     title: 'Item Name',
                     width: 200
                 }]
@@ -718,7 +642,7 @@
         });
 
         $('#filter_customer_id').combobox({
-            url: '<?php echo base_url('planning/mst_data/readCustomers'); ?>',
+            url: "<?= base_url('planning/mst_data/readCustomers') ?>?setting=<?= $nik ?>",
             valueField: 'number',
             textField: 'name',
             prompt: 'Select Customer',

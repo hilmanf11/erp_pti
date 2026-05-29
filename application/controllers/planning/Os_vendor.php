@@ -84,29 +84,38 @@ class Os_vendor extends CI_Controller
             $this->dummy->order_by('(d.poc_reqqty  - a.por_receiveqty)', 'asc');
             $items = $this->dummy->get()->result_array();
 
+            $os_vendors = $this->api->reads('os_vendor', [], [
+                "p_month" => $filter_month,
+                "p_year" => $filter_year,
+                "revision" => $filter_revision
+            ]);
+
+            foreach ($os_vendors as $os_vendor) {
+                $osVenId[$os_vendor->product_no] = $os_vendor->id;
+                $osVenQty[$os_vendor->product_no] = $os_vendor->actual;
+                $osVenCreatedby[$os_vendor->product_no] = $os_vendor->created_by;
+                $osVenCreateddate[$os_vendor->product_no] = $os_vendor->created_date;
+                $osVenUpdatedby[$os_vendor->product_no] = $os_vendor->updated_by;
+                $osVenUpdateddate[$os_vendor->product_no] = $os_vendor->updated_date;
+                $osVenStatus[$os_vendor->product_no] = $os_vendor->status;
+            }
+
             $arr = array();
             foreach ($items as $item) {
-                $item_id = $item['item_id'];
+                $item_id = trim($item['item_id']);
                 $item_name = $item['item_name'];
                 $pfm_name = $item['pfm_name'];
                 $qty = $item['stock'];
 
-                $os_vendor = $this->api->read('os_vendor', [], [
-                    "product_no" => $item_id,
-                    "p_month" => $filter_month,
-                    "p_year" => $filter_year,
-                    "revision" => $filter_revision
-                ]);
-
-                if ($os_vendor) {
-                    if($os_vendor->status == "EMPTY"){
+                if (!empty($osVenId[$item_id])) {
+                    if($osVenStatus[$item_id] == "EMPTY"){
                         $status = "GENERATE";
                     }else{
-                        $status = $os_vendor->status;
+                        $status = $osVenStatus[$item_id];
                     }
 
                     $arr[] = array(
-                        "id" => $os_vendor->id,
+                        "id" => $osVenId[$item_id],
                         "p_month" => $filter_month,
                         "p_year" => $filter_year,
                         "revision" => $filter_revision,
@@ -115,12 +124,12 @@ class Os_vendor extends CI_Controller
                         "product_name" => $item_name,
                         "product_family" => $pfm_name,
                         "qty" => round($qty),
-                        "actual" => round($os_vendor->actual),
+                        "actual" => round($osVenQty[$item_id]),
                         "status" => $status,
-                        "created_by" => $os_vendor->created_by,
-                        "created_date" => $os_vendor->created_date,
-                        "updated_by" => $os_vendor->updated_by,
-                        "updated_date" => $os_vendor->updated_date,
+                        "created_by" => $osVenCreatedby[$item_id],
+                        "created_date" => $osVenCreateddate[$item_id],
+                        "updated_by" => $osVenUpdatedby[$item_id],
+                        "updated_date" => $osVenUpdateddate[$item_id],
                     );
                 } else {
                     $arr[] = array(
@@ -340,12 +349,19 @@ class Os_vendor extends CI_Controller
         //     having COALESCE(SUM(b.qty_scan) - SUM(b.qty_need), 0) > 0
         //     order by d.pfm_name, COALESCE(SUM(b.qty_scan) - SUM(b.qty_need), 0) asc
         // ");
-        $itemq = $this->db->query("SELECT a.item_id, a.item_name, b.* FROM mst_item_raw a LEFT JOIN os_vendor b ON a.item_id = b.product_no AND b.p_month = '$filter_month' AND b.p_year = '$filter_year' AND b.revision='$filter_revision' 
+        $itemq = $this->db->query("SELECT a.item_id, a.item_name, b.* FROM mst_item_raw a LEFT JOIN 
+            (SELECT * FROM os_vendor WHERE p_month = '$filter_month' AND p_year = '$filter_year' AND revision='$filter_revision' AND actual > 0 limit 10000) b ON a.item_id = b.product_no
             WHERE a.item_id LIKE '%$filter_product_no%' and a.pfm_id like '%$filter_product_family%' AND a.stscode_id = '01' AND a.item_muloq != 0 GROUP BY a.item_id");
         $items = $itemq->result_array();
         $records = array();
 
         foreach ($items as $item) {
+            if($item['status'] == "EMPTY"){
+                $status = "GENERATE";
+            }else{
+                $status = $item['status'];
+            }
+
             $records[] = array(
                 "p_month" => $filter_month,
                 "p_year" => $filter_year,
@@ -356,7 +372,7 @@ class Os_vendor extends CI_Controller
                 "product_family" => $item['product_family'],
                 "actual" => $item['actual'],
                 "qty" => $item['qty'],
-                "status" => $item['status'],
+                "status" => $status,
             );
         }
 

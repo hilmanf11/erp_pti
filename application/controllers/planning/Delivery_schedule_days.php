@@ -310,11 +310,12 @@ class Delivery_schedule_days extends CI_Controller
             $filter_item_id = base64_decode($this->input->get('filter_item_id'));
 
             //Select Query
-            $this->db->select("a.*, d.mpq, d.moq, d.leadtime, c.name as supplier_name, b.name as product_family_name");
+            $this->db->select("a.*, (case when e.mpq is null then d.mpq else e.mpq end) as mpq, (case when e.moq is null then d.moq else e.moq end) as moq, d.leadtime, c.name as supplier_name, b.name as product_family_name");
             $this->db->from('delivery_schedule_days a');
             $this->db->join('mst_item_family b', 'a.product_family = b.number');
             $this->db->join('suppliers c', 'a.supplier_id = c.id');
-            $this->db->join('supplier_items d', 'a.supplier_id = d.supplier_id and a.part_no = d.item_id', 'left');
+            $this->db->join('supplier_items d', 'a.supplier_id = d.supplier_id and a.part_no = d.item_id and d.share_order > 0', 'left');
+            $this->db->join('convertions e', 'a.part_no = e.item_id', 'left');
             $this->db->where('a.p_month', $filter_month);
             $this->db->where('a.p_year', $filter_year);
             $this->db->where('a.revision', $filter_revision);
@@ -328,6 +329,7 @@ class Delivery_schedule_days extends CI_Controller
                 $this->db->where('a.po_no', $filter_po);
             }
             $this->db->like('a.part_no', $filter_item_id);
+            $this->db->group_by('a.id');
             $this->db->order_by('c.name', 'asc');
             $this->db->order_by('a.part_no', 'asc');
             //Total Data
@@ -434,7 +436,7 @@ class Delivery_schedule_days extends CI_Controller
             $this->db->where('a.supplier_id', $filter_supplier);
         }
         if($filter_po != ""){
-            $this->db->where('a.po_no', $filter_po);
+            $this->db->where('a.purchase_order_no', $filter_po);
         }
         if($filter_item_family != ""){
             $this->db->where('a.product_family', $filter_item_family);
@@ -519,6 +521,7 @@ class Delivery_schedule_days extends CI_Controller
             $ithRow = $ith->row();
 
             $day = 1;
+            $arr = array();
             $arrDay = array();
             $firstDate = date('01 M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
             $endDate = date('t M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
@@ -528,15 +531,30 @@ class Delivery_schedule_days extends CI_Controller
             while (strtotime($firstDate) <= strtotime($endDate)) {
                 $plan_qtys = ((@$mpp[0]['date_'.$day] >= 0) ? round(@$mpp[0]['date_'.$day]) : 0);
                 
-                if($plan_qty > @$supp->mpq){
-                    if($plan_qtys > @$supp->mpq){
-                        // $plan_qty_round = (ceil($plan_qtys / @$supp->mpq) * @$supp->mpq);
-                        $plan_qty_round = $plan_qtys;
+                if($plan_qtys > 0){
+                    if($plan_qty > @$supp->mpq){
+                        if($plan_qtys > @$supp->mpq){
+                            $plan_qty_round = (ceil($plan_qtys / @$supp->mpq) * @$supp->mpq);
+                            // $plan_qty_round = $plan_qtys;
+                            if($plan_qty > @$plan_qty_round){
+                                $plan_qty_round = $plan_qty_round;
+                            }else{
+                                $plan_qty_round = $plan_qty;
+                            }
+                        }else{
+                            $plan_qty_round = @$supp->mpq;
+
+                            if($plan_qty > @$plan_qty_round){
+                                $plan_qty_round = $plan_qty_round;
+                            }else{
+                                $plan_qty_round = $plan_qty;
+                            }
+                        }
                     }else{
-                        $plan_qty_round = @$supp->mpq;
+                        $plan_qty_round = $plan_qty;
                     }
                 }else{
-                    $plan_qty_round = $plan_qtys;
+                    $plan_qty_round = 0;
                 }
 
                 $working_date = date("Y-m-d", strtotime($firstDate));
@@ -551,9 +569,9 @@ class Delivery_schedule_days extends CI_Controller
                 $this->db->where('working_date', $working_date);
                 $holiday = $this->db->get()->row();
 
-                $balance += round($etaqty - $plan_qty_round);
+                $balance += round($etaqty - $plan_qtys);
 
-                if($balance <= 0){
+                if($balance < 0){
                     if (date('w', strtotime($firstDate)) !== '0') {
                         if (@$holiday->remarks != null or @$holiday->remarks != "") {
                             $arrDay["plan_".$day] = 0;
@@ -566,11 +584,20 @@ class Delivery_schedule_days extends CI_Controller
                         $arrDay["plan_".$day] = 0;
                         $plan_qty -= 0;
                     }
+                }else{
+                    $arrDay["plan_".$day] = 0;
+                    $plan_qty -= 0;
                 }
 
-                $firstDate = date("d M Y", strtotime("+1 day", strtotime($firstDate)));
+                // $arr["eta_".$day] = (int) $etaqty;
+                // $arr["date_".$day] = round($plan_qtys);
+                // $arr["bal_".$day] = round($balance);
+
+                $firstDate = date("Y-m-d", strtotime("+1 day", strtotime($firstDate)));
                 $day++;
             }
+
+            // die(json_encode($arr));
 
             $delivery_schedule_days = $this->api->read("delivery_schedule_days", [], ["p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision, "part_no" => $item_id, 'po_no' => $po_no]);
 
@@ -778,11 +805,12 @@ class Delivery_schedule_days extends CI_Controller
         $endDate = date('t M Y', strtotime("+1 month", strtotime($filter_year . "-" . $filter_month . "-01")));
         $monthBf = date('F', strtotime("-1 month", strtotime($filter_year . "-" . $filter_month . "-01")));
 
-        $this->db->select("a.*, d.mpq, d.moq, d.leadtime, c.name as supplier_name, b.name as product_family_name");
+        $this->db->select("a.*, (case when e.mpq is null then d.mpq else e.mpq end) as mpq, (case when e.moq is null then d.moq else e.moq end) as moq, d.leadtime, c.name as supplier_name, b.name as product_family_name");
         $this->db->from('delivery_schedule_days a');
         $this->db->join('mst_item_family b', 'a.product_family = b.number');
         $this->db->join('suppliers c', 'a.supplier_id = c.id');
-        $this->db->join('supplier_items d', 'a.supplier_id = d.supplier_id and a.part_no = d.item_id', 'left');
+        $this->db->join('supplier_items d', 'a.supplier_id = d.supplier_id and a.part_no = d.item_id and d.share_order > 0', 'left');
+        $this->db->join('convertions e', 'a.part_no = e.item_id', 'left');
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
         if($filter_revision != ""){
@@ -800,6 +828,7 @@ class Delivery_schedule_days extends CI_Controller
         if($filter_item_id != ""){
             $this->db->where('a.part_no', $filter_item_id);
         }
+        $this->db->group_by('a.id');
         $this->db->order_by('b.name', 'asc');
         $this->db->order_by('c.name', 'asc');
         $this->db->order_by('a.part_no', 'asc');

@@ -143,7 +143,7 @@ class Report_history_po extends CI_Controller
             if ($option == "excel") {
                 $format  = date("Ymd");
                 header("Content-type: application/vnd-ms-excel");
-                header("Content-Disposition: attachment; filename=mst_forecast_$format.xls");
+                header("Content-Disposition: attachment; filename=po_historycal_$format.xls");
             }
 
             //Config

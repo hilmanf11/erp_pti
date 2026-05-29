@@ -23,6 +23,8 @@ class Mst_forecast extends CI_Controller
             redirect('error_session');
         } elseif ($this->checkuserAccess($this->id_menu()) > 0) {
             $data['button'] = $this->getbutton($this->id_menu());
+            $data['nik'] = $this->api->read('user', [], ['id' => $this->session->id])->number;
+
             $this->load->view('template/header', $data);
             $this->load->view('planning/mst_forecast');
         } else {
@@ -45,8 +47,10 @@ class Mst_forecast extends CI_Controller
     	$p_year = $this->input->get('p_year');
     	$revision = $this->input->get('revision');
 
-    	$data = $this->api->query("SELECT * FROM mst_forecast 
-    		WHERE product_no like '%$post%' and p_month = '$p_month' and p_year = '$p_year' and revision = '$revision'");
+        $q = "SELECT a.product_no, a.product_name, COALESCE(b.nickname, '') AS cust_nick, COALESCE(b.name, '') AS cust_name ".
+        "FROM mst_forecast a LEFT JOIN mst_customer b ON a.customer_id = b.number ".
+        "WHERE a.product_no LIKE '%$post%' AND a.p_month = '$p_month' AND a.p_year = '$p_year' AND a.revision = '$revision'";
+    	$data = $this->api->query($q);
 
     	echo json_encode($data);
     }
@@ -84,6 +88,18 @@ class Mst_forecast extends CI_Controller
             $filter_customer_id = base64_decode($this->input->get('filter_customer_id'));
             $filter_product_no = trim(base64_decode($this->input->get('filter_product_no')));
 
+            $customers = [];
+            if (empty($filter_customer_id)) {
+                $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+                $this->db->distinct()->select("customer")->from("setting_customer")->where(["user_id" => $nik]);
+                $wheres = explode(',', $this->db->get()->row()->customer);
+                $this->db->distinct()->select("TRIM(b.number) AS number")
+                ->from("mst_line a")->join("mst_customer b", "a.customer_code = b.nickname")
+                ->where_in("a.line_no", $wheres);
+                foreach ($this->db->get()->result() as $index => $row)
+                    { array_push($customers, $row->number); }
+            }
+
             //Select Query
             $this->db->select('e.*, a.item_id, a.item_name, d.circuit_no, b.name as created_name, c.name as updated_name, f.name as customer_name');
             $this->db->from('mst_item a');
@@ -92,8 +108,9 @@ class Mst_forecast extends CI_Controller
             $this->db->join('user c', 'e.updated_by = c.username', 'left');
             $this->db->join('wip_mst_wos_cct d', 'a.item_id = d.mstwos_assyno', 'left');
             $this->db->join('mst_customer f', 'a.id_customer = f.number', 'left');
-            if ($filter_customer_id != "") {
-                $this->db->where('e.customer_id', $filter_customer_id);
+            if ($filter_customer_id != 'all') {
+                if (empty($customers)) { $this->db->where('e.customer_id', $filter_customer_id); }
+                else { $this->db->where_in('e.customer_id', $customers); }
             }
             if ($filter_product_no != "") {
                 $this->db->where('a.item_id', $filter_product_no);
@@ -102,6 +119,7 @@ class Mst_forecast extends CI_Controller
             $this->db->where("(month_1 > 0 or month_2 > 0 or month_3 > 0 or month_4 > 0 or month_5 > 0 or month_6 > 0 or month_7 > 0 or month_8 > 0 or month_9 > 0 or month_10 > 0)");
             $this->db->where('a.pfm_id', '06');
             $this->db->order_by('f.name');
+            // die($this->db->get_compiled_select());
             //Total Data
             $totalRows = $this->db->count_all_results('', false);
             //Limit 1 - 10
@@ -130,8 +148,17 @@ class Mst_forecast extends CI_Controller
                     "product_no" => $post['product_no']
                 ]);
 
+                $nik = $this->api->read('user', [], ['id' => $this->session->id])->number;
+                $this->db->distinct()->select("TRIM(b.customer_code) AS nick")
+                ->from("setting_customer a")->join("mst_line b", "FIND_IN_SET(b.line_no, a.customer)")
+                ->where(["user_id" => $nik])->order_by("nick");
+                $nicks = [];
+                foreach ($this->db->get()->result() as $index => $row) { array_push($nicks, $row->nick); }
+                // die(var_dump($customer->nickname));
                 if (count($forecasts) > 0) {
                     show_error("Duplicated Data");
+                } elseif (!in_array($customer->nickname, $nicks)) {
+                    show_error("You Not Allowed to Entry This Customer, ".$customer->name);
                 } else {
                     $dataFinal = array_merge($post, array(
                         "customer_id" => @$customer->number,
@@ -231,8 +258,17 @@ class Mst_forecast extends CI_Controller
                 "product_no" => $data['product_no']
             ]);
 
+            $nik = $this->api->read('user', [], ['id' => $this->session->id])->number;
+            $this->db->distinct()->select("TRIM(b.customer_code) AS nick")
+            ->from("setting_customer a")->join("mst_line b", "FIND_IN_SET(b.line_no, a.customer)")
+            ->where(["user_id" => $nik])->order_by("nick");
+            $nicks = [];
+            foreach ($this->db->get()->result() as $index => $row) { array_push($nicks, $row->nick); }
+            // die(var_dump($customer->nickname));
             if (empty($item->item_id)) {
                 echo json_encode(array("title" => "Not Found", "message" => "Product No " . $data['product_no'] . " Not Found", "theme" => "error"));
+            } elseif (!in_array($customer->nickname, $nicks)) {
+                echo json_encode(array("title" => "Failed", "message" => "You Not Allowed to Entry This Customer, ".$customer->name, "theme" => "error"));
             } elseif (count($forecasts) > 0) {
             	$send = $this->api->update('mst_forecast', [
 	                "p_month" => $data['p_month'],
@@ -316,6 +352,16 @@ class Mst_forecast extends CI_Controller
             $month_10 =  date('M Y', strtotime('+10 month', strtotime($filter_year . "-" . $filter_month . "-01")));
             $month_11 =  date('M Y', strtotime('+11 month', strtotime($filter_year . "-" . $filter_month . "-01")));
 
+            $customers = [];
+            if (empty($filter_customer_id)) {
+                $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+                $this->db->distinct()->select("customer")->from("setting_customer")->where(["user_id" => $nik]);
+                $wheres = explode(',', $this->db->get()->row()->customer);
+                $this->db->distinct()->select("TRIM(customer_code) AS nick")->from("mst_line")->where_in("line_no", $wheres);
+                foreach ($this->db->get()->result() as $index => $row)
+                    { array_push($customers, $row->nick); }
+            }
+
             //Select Query
             $this->db->select('e.*, a.item_id, a.item_name, d.circuit_no, b.name as created_name, c.name as updated_name, f.name as customer_name');
             $this->db->from('mst_item a');
@@ -324,8 +370,9 @@ class Mst_forecast extends CI_Controller
             $this->db->join('user c', 'a.updated_by = c.username', 'left');
             $this->db->join('wip_mst_wos_cct d', 'a.item_id = d.mstwos_assyno', 'left');
             $this->db->join('mst_customer f', 'a.id_customer = f.number', 'left');
-            if ($filter_customer_id != "") {
-                $this->db->where('e.customer_id', $filter_customer_id);
+            if ($filter_customer_id != 'all') {
+                if (empty($customers)) { $this->db->where('e.customer_id', $filter_customer_id); }
+                else { $this->db->where_in('f.nickname', $customers); }
             }
             if ($filter_product_no != "") {
                 $this->db->where('a.item_id', $filter_product_no);
@@ -372,9 +419,6 @@ class Mst_forecast extends CI_Controller
         <table id="customers" border="1">
             <tr>
                 <th style="text-align:center;" rowspan="2" width="20">No</th>
-                <th style="text-align:center;" rowspan="2">Month</th>
-                <th style="text-align:center;" rowspan="2">Year</th>
-                <th style="text-align:center;" rowspan="2">Revision</th>
                 <th style="text-align:center;" rowspan="2">Customer</th>
                 <th style="text-align:center;" rowspan="2">Product No</th>
                 <th style="text-align:center;" rowspan="2">Product Name</th>
@@ -399,9 +443,6 @@ class Mst_forecast extends CI_Controller
             foreach ($records as $data) {
                 $html .= '  <tr>
                             <td>' . $no . '</td>
-                            <td>' . $data['p_month'] . '</td>
-                            <td>' . $data['p_year'] . '</td>
-                            <td>' . $data['revision'] . '</td>
                             <td>' . $data['customer_name'] . '</td>
                             <td style="mso-number-format:\@;">' . $data['item_id'] . '</td>
                             <td>' . $data['item_name'] . '</td>

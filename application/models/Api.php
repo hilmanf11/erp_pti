@@ -67,7 +67,7 @@ class Api extends CI_Model
         return $records;
     }
 
-    function create($table, $values, $code = "ID", $autonumber = "")
+    function create($table, $values, $code = "ID", $autonumber = "", $log = "")
     {
         if ($this->session->username != "") {
             $id = $this->autonumber($table, $code, $autonumber);
@@ -78,9 +78,11 @@ class Api extends CI_Model
             ]);
 
             if ($this->db->insert($table, $data)) {
-                $this->log("Create", json_encode($data), $table);
-                $this->approvals($table, $id);
-                return json_encode(array("title" => "Good Job", "message" => "Data Saved Successfully", "theme" => "success", "id" => $id));
+                if($log == ""){
+                    $this->log("Create", json_encode($data), $table);
+                    $this->approvals($table, $id);
+                }
+                return json_encode(array("title" => "Good Job", "message" => "Data Saved Successfully", "theme" => "success"));
             } else {
                 return log_message('error', 'There is an error in your system or data');
             }
@@ -89,7 +91,7 @@ class Api extends CI_Model
         }
     }
 
-    function update($table, $where, $values)
+    function update($table, $where, $values, $log = "")
     {
         if ($this->session->username != "") {
             $data   = array_merge($values, [
@@ -97,14 +99,18 @@ class Api extends CI_Model
                 "updated_date" => date('Y-m-d H:i:s')
             ]);
 
+            $dataBefore = $this->read($table, [], $where);
+
             $this->db->where($where);
             if ($this->db->update($table, $data)) {
-                $this->log("Update", json_encode($data), $table);
+                if($log == ""){
+                    $this->log("Update", json_encode($data), $table);
 
-                $read = $this->read($table, [], $where);
-                $this->approvals($table, @$read->id);
+                    $read = $this->read($table, [], $where);
+                    $this->approvals($table, @$read->id, $dataBefore);
+                }
 
-                return json_encode(array("title" => "Good Job", "message" => "Data Updated Successfully", "theme" => "success", "id" => $read->id));
+                return json_encode(array("title" => "Good Job", "message" => "Data Updated Successfully", "theme" => "success"));
             } else {
                 return log_message('error', 'There is an error in your system or data');
             }
@@ -184,7 +190,7 @@ class Api extends CI_Model
         $this->db->insert('log', $data);
     }
 
-    function approvals($table, $table_id)
+    function approvals($table, $table_id, $dataBefore = null)
     {
         $query = $this->db->query("DESCRIBE $table");
         $fields = $query->result_array();
@@ -194,7 +200,7 @@ class Api extends CI_Model
 
         $fieldExists = false;
         foreach ($fields as $field) {
-            if ($field['Field'] == "approved") {
+            if ($field['Field'] == "approved_data") {
                 $fieldExists = true;
                 break;
             }
@@ -206,6 +212,7 @@ class Api extends CI_Model
                     "approved" => 1,
                     "approved_to" => $approval->user_approval_1,
                     "approved_by" => $this->session->username,
+                    "approved_data" => json_encode($dataBefore),
                 ];
 
                 $this->db->where(["id" => $table_id]);

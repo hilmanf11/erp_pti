@@ -17,7 +17,32 @@
     }
 
     function export_excel() {
-		$('#dg').datagrid('toExcel', "approval_<?= $table ?>.xls");
+    	var tb = $('<table>'), dg = $('#dg');
+    	var columns = dg.datagrid('options').columns, new_column = [], idx = [];
+
+    	delete columns[0][0];
+    	columns[0].forEach(function (arr, index) {
+    		delete arr.rowspan;
+			if (arr.colspan == undefined) { new_column.push(arr); }
+			else {
+				for (var i = 0; i < arr.colspan; i++) {
+					idx.push(new_column.length);
+					new_column.push(arr);
+				}
+			}
+    	});
+    	columns[1].forEach(function (arr, index) {
+    		arr.title = new_column[idx[index]].title + ' ' + arr.title;
+			new_column[idx[index]] = arr;
+    	});
+
+    	tb.datagrid({
+	        data: dg.datagrid('getData').rows,
+	        columns: [new_column]
+	    });
+	    setTimeout(function () {
+	    	tb.datagrid('toExcel', "approval_<?= $table ?>.xls");
+	    },0);
 	}
 
 	function approveCheck() {
@@ -208,76 +233,69 @@
                 [{
 					field: 'ck',
 					checkbox: "true",
+					rowspan: 2
 				},{
 					field: 'plant',
 					width: 80,
 					halign: 'center',
 					title: "Plant",
+					rowspan: 2
 				},{
 					field: 'supplier_name',
 					width: 250,
 					halign: 'center',
 					title: "Vendor",
+					rowspan: 2
 				},{
 					field: 'item_id',
 					width: 200,
 					halign: 'center',
 					title: "Item No",
 					formatter: Itemid,
-				}, {
+					rowspan: 2
+				},{
 					field: 'item_supplier',
 					width: 150,
 					halign: 'center',
 					title: "Item Supplier",
-				}, {
+					rowspan: 2
+				},{
 					field: 'maker_name',
 					width: 150,
 					halign: 'center',
 					title: "Maker",
-				}, {
-					field: 'mpq',
-					width: 80,
+					rowspan: 2
+				},{
 					halign: 'center',
 					title: "MPQ",
-				}, {
-					field: 'moq',
-					width: 80,
+					colspan: 2
+				},{
 					halign: 'center',
 					title: "MOQ",
-				}, {
-					field: 'price',
-					width: 100,
-					halign: 'center',
-					title: "Price",
-					hidden: true,
-					formatter: numberformat,
-				}, {
-					field: 'currency',
-					width: 80,
-					hidden: true,
-					halign: 'center',
-					title: "Currency"
+					colspan: 2
 				},{
-					field: 'leadtime',
-					width: 80,
 					halign: 'center',
-					title: "Leadtime"
-				}, {
+					title: "Leadtime",
+					colspan: 2
+				},{
 					field: 'share_order',
 					width: 80,
 					align: 'right',
 					halign: 'center',
 					title: "Share Order",
-				}, {
+					rowspan: 2
+				},{
 					field: 'remarks',
 					width: 200,
 					halign: 'center',
 					title: "Remarks",
-				}, {
+					rowspan: 2
+				},{
                     field: 'action',
                     width: 80,
                     align: 'center',
                     title: "Action",
+					rowspan: 2,
                     formatter: function(val, row) {
                         if (val != "-") {
                             var approve = "approve('" + row.id + "','" + "<?= $table ?>" + "')";
@@ -287,7 +305,37 @@
                             return a + " " + b;
                         }
                     }
-                }]
+                }],[{
+					field: 'mpq_bf',
+					width: 80,
+					halign: 'center',
+					title: "Before"
+				},{
+					field: 'mpq',
+					width: 80,
+					halign: 'center',
+					title: "After"
+				},{
+					field: 'moq_bf',
+					width: 80,
+					halign: 'center',
+					title: "Before"
+				},{
+					field: 'moq',
+					width: 80,
+					halign: 'center',
+					title: "After"
+				},{
+					field: 'leadtime_bf',
+					width: 80,
+					halign: 'center',
+					title: "Before"
+				},{
+					field: 'leadtime',
+					width: 80,
+					halign: 'center',
+					title: "After"
+				}]
             ],
         }).datagrid('enableFilter');
     });

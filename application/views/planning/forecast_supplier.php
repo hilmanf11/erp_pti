@@ -937,6 +937,12 @@
 
                         $.messager.confirm('Warning', 'Are you sure you want to Send to Approval?', function(r) {
                             if (r) {
+                                $.messager.progress({
+                                    title: 'Please waiting',
+                                    msg: 'Loading data...',
+                                    text: 'Processing' // optional
+                                });
+
                                 var p_month = $("#p_month").combobox('getValue');
                                 var p_year = $("#p_year").combobox('getValue');
                                 var revision = $("#revision").combobox('getValue');
@@ -950,6 +956,7 @@
                                     type: 'POST',
                                     dataType: 'json',
                                     success: function(result) {
+                                        $.messager.progress('close');
                                         if (result.theme == "success") {
                                             requestData(totalrows, json);
                                         } else {
@@ -960,6 +967,7 @@
                                     error: function(jqXHR, textStatus, errorThrown) {
                                         toastr.error(jqXHR.statusText);
                                         $.messager.alert("Error", jqXHR.statusText, 'error');
+                                        $.messager.progress('close');
                                     }
                                 });
                             }

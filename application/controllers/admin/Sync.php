@@ -27,6 +27,23 @@ class Sync extends CI_Controller
         }
     }
 
+    public function getItemFG()
+    {
+        $this->pg = $this->load->database('pg', TRUE);
+        $this->pg->select("*");
+        $this->pg->from("mst_item");
+        $this->pg->where("stscode_id", "01");
+        $this->pg->where("pfm_id", "06");
+        $totalRows = $this->pg->count_all_results('', false);
+        $records = $this->pg->get()->result_array();
+
+        //Mapping Data
+        $result['total'] = $totalRows;
+        $result = array_merge($result, $records);
+
+        die(json_encode($result));
+    }
+
     public function getItems()
     {
         $this->pg = $this->load->database('pg', TRUE);
@@ -313,15 +330,15 @@ class Sync extends CI_Controller
         $this->pg->join("mst_item a", "a.item_id = b.bom_par_item");
         $this->pg->where("a.stscode_id", "01");
         $this->pg->where("a.pfm_id", "06");
-        // $this->pg->where_in("b.bom_par_item", ["30ZYE002A-601A","26011-2500C"]);
-        $totalRows = $this->pg->count_all_results('', false);
+        // $this->pg->where_in("b.bom_com_item", ["6617008-BSS"]);
+        // $totalRows = $this->pg->count_all_results('', false);
         $records = $this->pg->get()->result_array();
 
         //Mapping Data
-        $result['total'] = $totalRows;
+        $result['total'] = count($records);
         $result = array_merge($result, $records);
 
-        $this->db->empty_table("mst_bom");
+        if (empty($this->input->get("pti"))) { $this->db->empty_table("mst_bom"); }
 
         die(json_encode($result));
     }

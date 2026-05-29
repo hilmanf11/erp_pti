@@ -36,7 +36,7 @@
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Item GP</span>
-                <input style="width:60%;" name="item_gp" required="" class="easyui-textbox">
+                <input style="width:60%;" name="item_gp" class="easyui-textbox">
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Item Vendor</span>

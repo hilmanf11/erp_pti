@@ -132,6 +132,27 @@
     </form>
 </div>
 
+<!-- Upload -->
+<div id="dlg_upload" class="easyui-dialog" title="Upload Data" data-options="closed: true,modal:true" style="width: 400px; padding:10px; top: 20px;">
+    <form id="frm_upload" method="post" enctype="multipart/form-data" novalidate>
+        <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
+            <legend><b>Form Data</b></legend>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">File Upload</span>
+                <input name="file_upload" style="width: 60%;" required="" accept=".xls" id="file_excel" class="easyui-filebox">
+            </div>
+        </fieldset>
+    </form>
+    <div id="p_upload" class="easyui-progressbar" style="width:100%; margin-top: 10px;"></div>
+    <center><b id="p_start">0</b> Of <b id="p_finish">0</b></center>
+    <div id="p_remarks" class="easyui-panel" style="width:100%; height:200px; padding:10px; margin-top: 10px;">
+        <p>History Upload</p>
+        <ul id="remarks">
+
+        </ul>
+    </div>
+</div>
+
 <!-- PDF -->
 <iframe id="printout" src="" style="width: 100%;" hidden></iframe>
 
@@ -159,11 +180,21 @@
     }
 
     //INSERT ADD ROW
-    function addTable() {
+    function addTable(urlGet = "") {
         var lastIndex;
         var dg = $('#dg2').datagrid({
+            url: urlGet,
             columns: [
                 [{
+                    field: 'id',
+                    width: 200,
+                    halign: 'center',
+                    title: "ID",
+                    hidden: true,
+                    editor: {
+                        type: 'textbox'
+                    }
+                },{
                     field: 'item_npd_id',
                     width: 200,
                     halign: 'center',
@@ -235,7 +266,7 @@
                         type: 'combobox',
                         options: {
                             url: '<?php echo base_url('planning/mst_item/readUom'); ?>',
-                            valueField: 'number',
+                            valueField: 'name',
                             textField: 'name',
                             prompt: 'Select Unit of Measure',
                             required: true,
@@ -302,7 +333,19 @@
     }
 
     function update() {
-        toastr.info("Not Ready this Function");
+        var row = $('#dg').datagrid('getSelected');
+        if (row) {
+            if (row.total_status == 1) {
+                $('#dlg_insert').dialog('open');
+                $('#frm_insert').form('load', row);
+                
+                addTable('<?= base_url('planning/request_npd/datatableUpdates?request_no=') ?>' + window.btoa(row.request_no));
+            }else{
+                toastr.warning("Cannot Update because status already close");
+            }
+        } else {
+            toastr.warning("Please select one of the data in the table first!", "Information");
+        }
     }
 
     function details(request_no) {
@@ -422,6 +465,15 @@
         }
     }
 
+    //Upload Data
+    function upload() {
+        $('#dlg_upload').dialog('open');
+    }
+
+    function download_excel() {
+        window.location.assign('<?= base_url('template/tmp_request_npd.xls') ?>');
+    }
+
     function reload() {
         window.location.reload();
     }
@@ -459,6 +511,7 @@
                                         request_by: request_by,
                                         category: category,
                                         request_reason: request_reason,
+                                        id: rows[i].id,
                                         item_npd_id: rows[i].item_npd_id,
                                         item_npd_name: rows[i].item_npd_name,
                                         product_family: rows[i].product_family,
@@ -482,6 +535,111 @@
                         $('#dg').datagrid('reload');
                         $('#dlg_insert').dialog('close');
                     }
+                }
+            }]
+        });
+
+        //Upload Data
+        $('#dlg_upload').dialog({
+            buttons: [{
+                text: 'List Failed',
+                handler: function() {
+                    window.open('<?= base_url('planning/request_npd/uploadDownloadFailed') ?>', '_blank');
+                }
+            }, {
+                text: 'Upload',
+                iconCls: 'icon-ok',
+                handler: function() {
+                    $('#frm_upload').form('submit', {
+                        url: '<?= base_url('planning/request_npd/upload') ?>',
+                        onSubmit: function() {
+                            if ($(this).form('validate') == false) {
+                                return $(this).form('validate');
+                            } else {
+                                $.messager.progress({
+                                    title: 'Please Wait',
+                                    msg: 'Importing Excel to Database'
+                                });
+                            }
+                        },
+                        success: function(result) {
+                            $.messager.progress('close');
+                            // $('#dlg_upload').dialog('close');
+                            //Clear File
+                            $.ajax({
+                                url: "<?= base_url('planning/request_npd/uploadclearFailed') ?>"
+                            });
+
+                            var json = eval('(' + result + ')');
+                            requestData(json.total, json);
+
+                            function requestData(total, json, number = 1, value = 0, success = 1, failed = 1) {
+                                if (value < 100) {
+                                    value = Math.floor((number / total) * 100);
+                                    $('#p_upload').progressbar('setValue', value);
+                                    $('#p_start').html(number);
+                                    $('#p_finish').html(total);
+
+                                    $.ajax({
+                                        type: "POST",
+                                        async: true,
+                                        url: "<?= base_url('planning/request_npd/uploadCreate') ?>",
+                                        data: {
+                                            "data": json[number - 1]
+                                        },
+                                        cache: false,
+                                        dataType: "json",
+                                        success: function(result) {
+                                            if (result.theme == "success") {
+                                                Swal.close();
+                                                $('#p_success').html(success);
+                                                var title = "<b style='color: green;'>" + result.title + "</b> | " + result.message;
+                                                requestData(total, json, number + 1, value, success + 1, failed + 0);
+                                            } else {
+                                                $('#p_failed').html(failed);
+                                                var title = "<b style='color: red;'>" + result.title + "</b> | " + result.message;
+
+                                                //Json Failed
+                                                $.ajax({
+                                                    type: "POST",
+                                                    async: true,
+                                                    url: "<?= base_url('planning/request_npd/uploadcreateFailed') ?>",
+                                                    data: {
+                                                        data: json[number - 1],
+                                                        message: result.message
+                                                    },
+                                                    cache: false
+                                                });
+
+                                                requestData(total, json, number + 1, value, success + 0, failed + 1);
+                                            }
+
+                                            if (value == 100) {
+                                                $.messager.alert('Done', 'Data upload is complete', 'info');
+                                            }
+
+                                            $("#p_remarks").append(title + "<br>");
+                                        },
+                                        error: function(jqXHR, textStatus) {
+                                            if (textStatus == "error") {
+                                                Swal.fire({
+                                                    title: 'Connection Time Out, Check Your Connection',
+                                                    showConfirmButton: false,
+                                                    allowOutsideClick: false,
+                                                    allowEscapeKey: false,
+                                                    didOpen: () => {
+                                                        Swal.showLoading();
+                                                    },
+                                                });
+
+                                                requestData(total, json, number, value, success + 0, failed + 0);
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    });
                 }
             }]
         });
@@ -525,16 +683,20 @@
     function cellStyler(value, row, index) {
         if (row.total_status == 0) {
             return 'background: #FF5F5F; color:white;';
-        } else {
+        } else if (row.total_status == 1) {
             return 'background: #53D636; color:white;';
+        } else {
+            return 'background: #FF5F5F; color:white;';
         }
     }
 
     function cellFormatter(val, row) {
         if (row.total_status == 0) {
             return 'CLOSE';
-        } else {
+        } else if (row.total_status == 1) {
             return 'OPEN';
+        } else {
+            return 'CANCEL';
         }
     };
 

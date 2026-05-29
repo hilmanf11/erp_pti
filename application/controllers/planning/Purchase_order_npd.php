@@ -301,7 +301,7 @@ class Purchase_order_npd extends CI_Controller
             $this->db->join('mst_item_family b', 'a.product_family = b.name');
             $this->db->join('mst_item_raw c', 'a.part_no = c.item_id');
             $this->db->join('uom d', 'c.um_id = d.number', 'left');
-            $this->db->join('supplier_items e', "c.item_id = e.item_id and a.supplier_id = e.supplier_id and e.share_order > 0", 'left');
+            $this->db->join('supplier_items e', "c.item_id = e.item_id and a.supplier_id = e.supplier_id", 'left');
             $this->db->join('suppliers f', 'a.supplier_id = f.id');
             $this->db->join("(SELECT supplier_item_id, price, currency, valid_date FROM supplier_item_prices WHERE (supplier_item_id, valid_date) IN (SELECT supplier_item_id, MAX(valid_date) FROM supplier_item_prices where start_date <= '$start_date' and valid_date >= '$start_date' GROUP BY supplier_item_id)) g", 'e.id = g.supplier_item_id', 'left');
             // $this->db->join('notification f', "a.id = f.table_id and f.table_name = 'purchase_requests'", 'left');
@@ -334,7 +334,7 @@ class Purchase_order_npd extends CI_Controller
                     $purchase_order_no = $end_purchase_order_no;
                     $no = 2;
                 }else{
-                    $purchase_order_no = $this->purchaseOrderNo("PONPD-IND".@trim($supplier_no).$period. "-" .trim($purchase_request['pfm_number']));
+                    $purchase_order_no = $this->purchaseOrderNo("NPD-MC-IND".@trim($supplier_no).$period. "-" .trim($purchase_request['pfm_number']));
                     $no = 1;
                 }
 
@@ -1055,7 +1055,7 @@ class Purchase_order_npd extends CI_Controller
                         <table style="width:100%; font-size:12px; margin-top:20px;">
                             <tr>
                                 <td width="20">1.</td>
-                                <td>Please Acknowledge us in one week of time upon Receipt of PO <br>email to : takao.masahiko@tb-banshu.com, procurement01@banshu-ind.com, procurement02@banshu-ind.com</td>
+                                <td>Please Acknowledge us in one week of time upon Receipt of PO <br>email to :  marui.tatsuhiko@tb-banshu.com, procurement01@banshu-ind.com, procurement02@banshu-ind.com</td>
                             </tr>
                             <tr>
                                 <td width="20">2.</td>
@@ -1374,7 +1374,7 @@ class Purchase_order_npd extends CI_Controller
         $this->db->from('purchase_orders a');
         $this->db->join('mst_item_raw b', 'a.item_id = b.item_id');
         $this->db->join('suppliers c', 'a.supplier_id = c.id');
-        $this->db->join('supplier_items d', 'a.supplier_id = d.supplier_id and a.item_id = d.item_id');
+        $this->db->join('supplier_items d', 'a.supplier_id = d.supplier_id and a.item_id = d.item_id and d.share_order > 0', 'left');
         $this->db->join('mst_maker e', 'd.maker_code = e.number', 'left');
         $this->db->where('a.type', "NPD");
         $this->db->like('a.p_month', $filter_month);

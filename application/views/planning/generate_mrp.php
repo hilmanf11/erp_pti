@@ -64,7 +64,55 @@
             </fieldset>
         </div>
         <?= $button ?>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="plain:true" onclick="exceptions()"><i class="fa fa-file"></i> Exception Report</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="plain:true" onclick="lttp()"><i class="fa fa-file"></i> No LTTP Report</a>
     </div>
+</div>
+
+<div id="toolbar">
+    <a href="javascript:;" class="easyui-linkbutton" data-options="plain:true" onclick="excel_exception()"><i class="fa fa-file"></i> Export Excel</a>
+    <i style="color:red;">*/ Part No di bawah adalah part no yang sudah ke generate MRP tapi MPQ/MOQ/Leadtime/Share Order nya masih 0</i>
+</div>
+
+<div id="toolbar2">
+    <a href="javascript:;" class="easyui-linkbutton" data-options="plain:true" onclick="excel_nolttp()"><i class="fa fa-file"></i> Export Excel</a>
+    <i style="color:red;">*/ Part No di bawah adalah part no yang tidak masuk ke generate MRP</i>
+</div>
+
+<!-- EXCEPTION REPORT -->
+<div id="dlg_exception" class="easyui-dialog" title="Exception Report" data-options="closed: true,modal:true" style="width: 80%; height: 550px; top: 20px;">
+    <table id="dg_exception" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar">
+        <thead>
+            <tr>
+                <th data-options="field:'part_no',width:200,halign:'center'">Part No</th>
+                <th data-options="field:'item_supplier',width:200,halign:'center'">Part No Vendor</th>
+                <th data-options="field:'part_name',width:150,halign:'center'">Description</th>
+                <th data-options="field:'mpq',width:80,align:'center', styler:numberStyle">MPQ</th>
+                <th data-options="field:'moq',width:80,align:'center', styler:numberStyle">MOQ</th>
+                <th data-options="field:'leadtime',width:80,align:'center', styler:numberStyle">Leadtime <br>(Days)</th>
+                <th data-options="field:'share_order',width:80,align:'center', styler:numberStyle">Share Order %</th>
+                <th data-options="field:'total_need',width:80,align:'center', styler:numberStyle">Total Need</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
+<!-- NO LTTP REPORT -->
+<div id="dlg_nolttp" class="easyui-dialog" title="Exception Report" data-options="closed: true,modal:true" style="width: 80%; height: 550px; top: 20px;">
+    <table id="dg_nolttp" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar2">
+        <thead>
+            <tr>
+                <th data-options="field:'item_id',width:200,halign:'center'">Part No</th>
+                <th data-options="field:'item_supplier',width:200,halign:'center'">Part No Vendor</th>
+                <th data-options="field:'item_name',width:150,halign:'center'">Description</th>
+                <th data-options="field:'whs',width:80,align:'center', styler:numberStyle">WHS</th>
+                <th data-options="field:'ospo',width:80,align:'center', styler:numberStyle">OS PO</th>
+                <th data-options="field:'os_wip',width:80,align:'center', styler:numberStyle">WIP</th>
+                <th data-options="field:'os_supply',width:80,align:'center', styler:numberStyle">OS Supply</th>
+                <th data-options="field:'os_wo',width:80,align:'center', styler:numberStyle">OS WO</th>
+            </tr>
+        </thead>
+    </table>
 </div>
 
 <div id="p" class="easyui-panel" title="Print Preview" style="width:100%;" data-options="fit:true">
@@ -397,6 +445,62 @@
         });
     }
 
+    function exceptions(){
+        var filter_month = $("#filter_month").combobox('getValue');
+        var filter_year = $("#filter_year").combobox('getValue');
+        var filter_revision = $("#filter_revision").combobox('getValue');
+
+        if(filter_month == "" || filter_year == "" || filter_revision == ""){
+            toastr.warning("Please Choose Filter Date, Revision and Plant!");
+            return false;
+        }
+
+        $('#dlg_exception').dialog('open');
+        $('#dg_exception').datagrid('loading');
+        
+        $.ajax({
+            url: "<?= base_url('planning/generate_mrp/datatableException') ?>",
+            type: 'POST',
+            data: {
+                filter_month: filter_month,
+                filter_year: filter_year,
+                filter_revision: filter_revision
+            },
+            dataType: 'json',
+            success: function(result) {
+                $('#dg_exception').datagrid('loadData', result).datagrid('loaded');
+            }
+        });
+    }
+
+    function lttp(){
+        var filter_month = $("#filter_month").combobox('getValue');
+        var filter_year = $("#filter_year").combobox('getValue');
+        var filter_revision = $("#filter_revision").combobox('getValue');
+
+        if(filter_month == "" || filter_year == "" || filter_revision == ""){
+            toastr.warning("Please Choose Filter Date, Revision and Plant!");
+            return false;
+        }
+
+        $('#dlg_nolttp').dialog('open');
+        $('#dg_nolttp').datagrid('loading');
+        
+        $.ajax({
+            url: "<?= base_url('planning/generate_mrp/datatableNoLttp') ?>",
+            type: 'POST',
+            data: {
+                filter_month: filter_month,
+                filter_year: filter_year,
+                filter_revision: filter_revision
+            },
+            dataType: 'json',
+            success: function(result) {
+                $('#dg_nolttp').datagrid('loadData', result).datagrid('loaded');
+            }
+        });
+    }
+
     function filter() {
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").combobox('getValue');
@@ -440,6 +544,14 @@
         } else {
             window.location.assign('<?= base_url('planning/generate_mrp/print/excel') ?>' + url);
         }
+    }
+
+    function excel_exception() {
+        $('#dg_exception').datagrid('toExcel', 'report_exceptions<?= time() ?>.xls');
+    }
+
+    function excel_nolttp() {
+        $('#dg_nolttp').datagrid('toExcel', 'report_nolttp<?= time() ?>.xls');
     }
 
     function reload() {
@@ -599,6 +711,14 @@
             return new Date(y, m - 1, d);
         } else {
             return new Date();
+        }
+    }
+
+    function numberStyle(value, row, index) {
+        if (value == 0) {
+            return 'background-color:#FFC8C8;';
+        } else {
+            return 'background-color:#C8FFCC;';
         }
     }
 </script>

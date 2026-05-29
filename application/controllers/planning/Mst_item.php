@@ -303,6 +303,7 @@ class Mst_item extends CI_Controller
                 <th>Product Family</th>
                 <th>Unit of Measure</th>
                 <th>Total Assy</th>
+                <th>Remarks</th>
             </tr>';
         $no = 1;
         foreach ($records as $data) {
@@ -315,6 +316,7 @@ class Mst_item extends CI_Controller
                             <td>' . $data['product_family'] . '</td>
                             <td>' . $data['uom'] . '</td>
                             <td>' . $data['total_assy'] . '</td>
+                            <td>' . $data['remarks'] . '</td>
                         </tr>';
             $no++;
         }

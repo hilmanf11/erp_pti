@@ -1676,7 +1676,7 @@ class Forecast_supplier extends CI_Controller
             // ===== FOOTER (hanya di halaman terakhir) =====
             if ($page + 1 == $pageCount) {
                 $html .= '<br><span style="font-size:12px"><b>Note :</b><br>
-                            1. Angka pada kolom forecast merupakan estimasi quantity open PO oleh BEI pada bulan tersebut <i>(The number in the forecast column is the estimated quantity of open PO by BEI in that month).</i><br>
+                            1. Angka pada kolom forecast merupakan estimasi quantity kebutuhan BEI pada bulan tersebut <i>(The numbers in the forecast column are estimates of the BEI quantity needed for that month).</i><br>
                             2. Data Forecast berdasarkan hasil dari Generate MRP bulan berjalan <i>(Forecast data is based on the results of the current month\'s MRP Generate).</i><br>
                             </span>';
                 $html .= '<br><center><table width="85%" border="0" style="font-size:12px;">
@@ -1894,7 +1894,7 @@ class Forecast_supplier extends CI_Controller
         }
         $html .= '</table>';
         $html .= '<br><span style="font-size:12px"><b>Note :</b><br>
-                            1. Angka pada kolom forecast merupakan estimasi quantity open PO oleh BEI pada bulan tersebut <i>(The number in the forecast column is the estimated quantity of open PO by BEI in that month).</i><br>
+                            1. Angka pada kolom forecast merupakan estimasi quantity kebutuhan BEI pada bulan tersebut <i>(The numbers in the forecast column are estimates of the BEI quantity needed for that month).</i><br>
                             2. Data Forecast berdasarkan hasil dari Generate MRP bulan berjalan <i>(Forecast data is based on the results of the current month\'s MRP Generate).</i><br>
                             </span>';
         $html .= '<br><center><table width="85%" border="0" style="font-size:12px;">

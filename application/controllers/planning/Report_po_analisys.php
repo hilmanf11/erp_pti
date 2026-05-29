@@ -32,7 +32,7 @@ class Report_po_analisys extends CI_Controller
         if ($option == "excel") {
             $format  = date("Ymd");
             header("Content-type: application/vnd-ms-excel");
-            header("Content-Disposition: attachment; filename=report_os_supply_$format.xls");
+            header("Content-Disposition: attachment; filename=report_po_analysis_$format.xls");
         }
 
 
@@ -157,7 +157,7 @@ class Report_po_analisys extends CI_Controller
                 // Your further processing (e.g., calculating and displaying the results)
                 $item_id = $record['item_id'];
 
-                $query2 = $this->db->query("SELECT part_no, reason, COALESCE(SUM(purchase_request), 0) as total_pr FROM purchase_requests WHERE part_no = '$item_id' and p_month = '$filter_month' and p_year='$filter_year' GROUP BY part_no");
+                $query2 = $this->db->query("SELECT part_no, reason, COALESCE(SUM(purchase_request), 0) as total_pr FROM purchase_requests WHERE part_no = '$item_id' and p_month = '$filter_month' and p_year='$filter_year' order by revision desc");
                 $record2 = $query2->row();
 
 
@@ -199,7 +199,7 @@ class Report_po_analisys extends CI_Controller
                 <td>' . htmlspecialchars($record['item_name']) . '</td>
                 <td>' . htmlspecialchars($record['qty3']) . '</td>
                 <td>' . htmlspecialchars($record['qty2']) . '</td> 
-                <td>' . htmlspecialchars($record['qty1']) . 'PPPPPP</td>
+                <td>' . htmlspecialchars($record['qty1']) . '</td>
                 <td>' . htmlspecialchars(round($xbar)) . '</td>
                 <td>' . $record['qty'] . '</td>
                 <td style="background-color:' . ($deviation > 20 ? 'red' : 'transparent') . '; color:' . ($deviation > 20 ? 'white' : 'black') . ';">

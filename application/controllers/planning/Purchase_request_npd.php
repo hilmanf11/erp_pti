@@ -109,7 +109,7 @@ class Purchase_request_npd extends CI_Controller
             $this->db->select('c.mpq, c.moq, c.leadtime, a.request_no, a.request_date, a.request_reason, a.requirement_date, a.qty, b.item_id, b.item_name, b.pfm_id, d.name as prodfam, c.share_order, c.supplier_id, e.number as supplier_no');
             $this->db->from('request_npd a');
             $this->db->join('mst_item_raw b', 'a.item_id = b.item_id');
-            $this->db->join('supplier_items c', 'a.item_id = c.item_id and a.supplier_id = c.supplier_id and c.share_order > 0');
+            $this->db->join('supplier_items c', 'a.item_id = c.item_id and a.supplier_id = c.supplier_id');
             $this->db->join('mst_item_family d', 'b.pfm_id = d.number');
             $this->db->join('suppliers e', 'c.supplier_id = e.id');
             $this->db->where('a.status', 0);
@@ -148,8 +148,8 @@ class Purchase_request_npd extends CI_Controller
                 }
 
                 $arr[] = array(
-                    "p_month" => date("m", strtotime($request_date)),
-                    "p_year" => date("Y", strtotime($request_date)),
+                    "p_month" => date("m"),
+                    "p_year" => date("Y"),
                     "request_npd" => $generate['request_no'],
                     "purchase_request_no" => $purchase_request_no,
                     "purchase_request_date" => date("Y-m-d"),
@@ -338,6 +338,10 @@ class Purchase_request_npd extends CI_Controller
     {
         $data = $this->input->post();
         $send = $this->api->delete('purchase_requests', $data);
+        $purchase_requests = $this->api->reads('purchase_requests', [], $data);
+        foreach ($purchase_requests as $pr) {
+            $this->db->update('request_npd', ["status" => 0], ["request_no" => @$pr->request_npd, "item_id" => $pr->part_no]);
+        }
         echo $send;
     }
 

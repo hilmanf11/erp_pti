@@ -109,6 +109,10 @@
             </div>
             <div style="width: 50%; float: left;">
                 <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Vendor Name</span>
+                    <input style="width:60%;" id="filter_supplier_id" class="easyui-combobox">
+                </div>
+                <div class="fitem">
                     <span style="width:35%; display:inline-block;">Product Family</span>
                     <input style="width:60%;" id="filter_product_family" class="easyui-combobox">
                 </div>
@@ -456,7 +460,7 @@
 
                                 $(ed6.target).numberbox({
                                     onChange: function(val){
-                                        var hasil = (Math.ceil(val / rows.mpq) * rows.mpq);
+                                        var hasil = (Math.ceil(val / rows.moq) * rows.moq);
                                         $(ed6.target).numberbox('setValue', hasil);
                                     }
                                 });
@@ -645,12 +649,14 @@
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").combobox('getValue');
         var filter_revision = $("#filter_revision").combobox('getValue');
+        var filter_supplier_id = $("#filter_supplier_id").combobox('getValue');
         var filter_product_family = $("#filter_product_family").combobox('getValue');
         var filter_part_no = $("#filter_part_no").combogrid('getValue');
 
         var url = "?filter_month=" + window.btoa(filter_month) +
             "&filter_year=" + window.btoa(filter_year) +
             "&filter_revision=" + window.btoa(filter_revision) +
+            "&filter_supplier_id=" + window.btoa(filter_supplier_id) +
             "&filter_product_family=" + window.btoa(filter_product_family) +
             "&filter_part_no=" + window.btoa(filter_part_no);
 
@@ -674,12 +680,14 @@
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").combobox('getValue');
         var filter_revision = $("#filter_revision").combobox('getValue');
+        var filter_supplier_id = $("#filter_supplier_id").combobox('getValue');
         var filter_product_family = $("#filter_product_family").combobox('getValue');
         var filter_part_no = $("#filter_part_no").combogrid('getValue');
 
         var url = "?filter_month=" + window.btoa(filter_month) +
             "&filter_year=" + window.btoa(filter_year) +
             "&filter_revision=" + window.btoa(filter_revision) +
+            "&filter_supplier_id=" + window.btoa(filter_supplier_id) +
             "&filter_product_family=" + window.btoa(filter_product_family) +
             "&filter_part_no=" + window.btoa(filter_part_no);
 
@@ -697,9 +705,14 @@
     function detailEdit(){
         var row = $('#dg_purchase_request').datagrid('getSelected');
         if (row) {
-            $('#dlg_update').dialog('open');
             $('#frm_update').form('load', row);
 
+            if(row.approved_to == ""){
+                toastr.info("Sorry, you cannot edit the data as the status is already approved");
+                return false;
+            }
+            
+            $('#dlg_update').dialog('open');
             $('#update_purchase_request_no').combogrid({
                 url: '<?= base_url('planning/purchase_request/readPr/') ?>' + btoa(row.supplier_id) + '/' + btoa(row.product_family),
                 panelWidth: 500,
@@ -777,10 +790,12 @@
             data: "month=" + filter_month + "&year=" + filter_year,
             dataType: "json",
             success: function(monthName) {
+                $('#dg_purchase_request').datagrid('disableFilter');
+
                 $('#dg_purchase_request').datagrid({
                     url: '<?= base_url('planning/purchase_request/datatableDetails/') ?>' + btoa(purchase_request_no) + "/" + revision + "?filter_part_no=" + btoa(filter_part_no) + "&filter_month=" + btoa(filter_month) + "&filter_year=" + btoa(filter_year),
                     clientPaging: false,
-                    remoteFilter: true,
+                    // remoteFilter: true,
                     rownumbers: true,
                     singleSelect: false,
                     fit:true,
@@ -788,6 +803,14 @@
                         [{
                             field: 'ck',
                             checkbox: true,
+                            rowspan: 2
+                        }, {
+                            field: 'approved_to',
+                            title: 'Status',
+                            width: 80,
+                            align: 'center',
+                            styler:cellStylerApproval, 
+                            formatter:cellFormatterApproval,
                             rowspan: 2
                         }, {
                             field: 'part_no',
@@ -986,6 +1009,8 @@
                         }]
                     ]
                 });
+
+                $('#dg_purchase_request').treegrid('enableFilter');
             }
         });
     }
@@ -1300,6 +1325,13 @@
                     $(e.data.target).combobox('clear').combobox('textbox').focus();
                 }
             }],
+        });
+
+        $('#filter_supplier_id').combobox({
+            url: '<?php echo base_url('planning/purchase_request/readSupplier'); ?>',
+            valueField: 'supplier_id',
+            textField: 'supplier_name',
+            prompt: 'Select Vendor Name',
         });
 
         $('#filter_product_family').combobox({

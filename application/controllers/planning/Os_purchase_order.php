@@ -473,34 +473,86 @@ class Os_purchase_order extends CI_Controller
                 <th>Receive Qty</th>
                 <th>On The Way</th>
                 <th>Outstanding</th>
-                <th>Status</th>
-            </tr>';
+                <th>Status</th>';
+        if ($option == "excel") {
+            $html .= '<th>Receive Date</th>';
+            $html .= '<th>Receive By</th>';
+            $html .= '<th>Purchase Order</th>';
+            $html .= '<th>Part No</th>';
+            $html .= '<th>Part Name</th>';
+            $html .= '<th>Document No</th>';
+            $html .= '<th>Invoice No</th>';
+            $html .= '<th>Qty</th>';
+        }
+        $html .= '</tr>';
+
         $no = 1;
         foreach ($records as $data) {
             $mst_item_raw = $this->api->read('mst_item_raw', [], ["item_id" => trim($data['item_id'])]);
             $purchase_confirm = $this->api->query("SELECT item_id, po_no, SUM(delivery) as qty FROM purchase_confirm WHERE item_id = '" . trim($data['item_id']) . "' and po_no = '" . trim($data['poc_id']) . "'");
+
+            $rowspan = '';
+            if ($option == "excel") {
+                $this->dummy->select("a.*, b.item_id, b.item_name, d.full_name")
+                ->from('por a')
+                ->join('mst_item b', "a.item_id = b.item_id")
+                ->join('tbn_users c', "a.por_emp = c.username", 'left')
+                ->join('tbn_man_power d', "c.nik = d.nik", 'left')
+                ->where('a.por_pocid', $data['poc_id'])
+                ->where('a.item_id', $data['item_id'])
+                ->order_by('a.item_id', 'asc');
+                $detail = $this->dummy->get()->result();
+                if (count($detail) == 0) {
+                    $detail = [(object) [
+                        'por_date' => '',
+                        'full_name' => '',
+                        'por_pocid' => '',
+                        'item_id' => '',
+                        'item_name' => '',
+                        'por_docno' => '',
+                        'por_invno' => '',
+                        'por_receiveqty' => ''
+                    ]];
+                }
+                if (count($detail) >= 2) { $rowspan = ' rowspan="'.count($detail).'"'; }
+            }
+
             // if (!empty($purchase_confirm)) {
             //     $bal_otw = 0;
             // } else {
             $bal_otw = $purchase_confirm[0]->qty;
             // }
             $html .= '  <tr>
-                            <td>' . $no . '</td>
-                            <td>' . @$data['ven_name'] . '</td>
-                            <td style="mso-number-format:\@;">' . @$data['item_id'] . '</td>
-                            <td style="mso-number-format:\@;">' . @$mst_item_raw->item_supplier . '</td>
-                            <td>' . @$data['item_name'] . '</td>
-                            <td>' . @$data['pfm_name'] . '</td>
-                            <td>' . @$data['um_id'] . '</td>
-                            <td>' . @$data['poc_id'] . '</td>
-                            <td>' . @$data['poc_date'] . '</td>
-                            <td>' . @$data['poc_reqdate'] . '</td>
-                            <td>' . @$data['poc_reqqty'] . '</td>
-                            <td>' . @$data['por_receiveqty'] . '</td>
-                            <td>' . $bal_otw . '</td>
-                            <td>' . @$data['outstanding'] . '</td>
-                            <td>' . @$data['status'] . '</td>
-                        </tr>';
+                            <td'.$rowspan.'>' . $no . '</td>
+                            <td'.$rowspan.'>' . @$data['ven_name'] . '</td>
+                            <td'.$rowspan.' style="mso-number-format:\@;">' . @$data['item_id'] . '</td>
+                            <td'.$rowspan.' style="mso-number-format:\@;">' . @$mst_item_raw->item_supplier . '</td>
+                            <td'.$rowspan.'>' . @$data['item_name'] . '</td>
+                            <td'.$rowspan.'>' . @$data['pfm_name'] . '</td>
+                            <td'.$rowspan.'>' . @$data['um_id'] . '</td>
+                            <td'.$rowspan.'>' . @$data['poc_id'] . '</td>
+                            <td'.$rowspan.'>' . @$data['poc_date'] . '</td>
+                            <td'.$rowspan.'>' . @$data['poc_reqdate'] . '</td>
+                            <td'.$rowspan.'>' . @$data['poc_reqqty'] . '</td>
+                            <td'.$rowspan.'>' . @$data['por_receiveqty'] . '</td>
+                            <td'.$rowspan.'>' . $bal_otw . '</td>
+                            <td'.$rowspan.'>' . @$data['outstanding'] . '</td>
+                            <td'.$rowspan.'>' . @$data['status'] . '</td>';
+            if ($option == 'excel') {
+                foreach ($detail as $index => $row) {
+                    if ($index != 0) { $html .= '<tr>'; }
+                    $html .= '<td>'.$row->por_date.'</td>';
+                    $html .= '<td>'.$row->full_name.'</td>';
+                    $html .= '<td>'.$row->por_pocid.'</td>';
+                    $html .= '<td style="mso-number-format:\@;">'.$row->item_id.'</td>';
+                    $html .= '<td>'.$row->item_name.'</td>';
+                    $html .= '<td>'.$row->por_docno.'</td>';
+                    $html .= '<td>'.$row->por_invno.'</td>';
+                    $html .= '<td>'.$row->por_receiveqty.'</td>';
+                    $html .= '</tr>';
+                }
+            }
+            // $html .= '</tr>';
             $no++;
         }
         $html .= '</table></body></html>';

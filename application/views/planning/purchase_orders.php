@@ -43,6 +43,7 @@
             <th colspan="2" data-options="field:'Send_mail',width:100,halign:'center'">Receipt Confirmation</th>
             <th colspan="3" data-options="field:'Send_mail',width:100,halign:'center'">Approved</th>
             <th colspan="2" data-options="field:'Send_mail',width:100,halign:'center'">Created</th>
+            <th colspan="2" data-options="field:'Send_mail',width:100,halign:'center'">Updated</th>
         </tr>
         <tr>
             <th data-options="field:'create_sd',width:80,halign:'center',formatter:BtnCreateSd">Create</th>
@@ -57,6 +58,8 @@
             <th data-options="field:'approved_date',width:120,align:'center'">Date</th>
             <th data-options="field:'created_by',width:80,align:'center'">By</th>
             <th data-options="field:'created_date',width:120,align:'center'">Date</th>
+            <th data-options="field:'updated_by',width:80,align:'center'">By</th>
+            <th data-options="field:'updated_date',width:120,align:'center'">Date</th>
         </tr>
     </thead>
 </table>

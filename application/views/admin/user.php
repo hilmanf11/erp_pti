@@ -8,6 +8,8 @@
             <th data-options="field:'email',width:200">Email</th>
             <th data-options="field:'phone',width:150">Phone</th>
             <th data-options="field:'position',width:200">Position</th>
+            <th data-options="field:'supp_code',width:100">Vendor Code</th>
+            <th data-options="field:'supp_name',width:200">Vendor Name</th>
             <th data-options="field:'role',width:100">Role</th>
             <th data-options="field:'avatar',width:200">File Foto</th>
             <th data-options="field:'actived_is',width:150, styler:cellStyler, formatter:cellFormatter">Status</th>
@@ -42,6 +44,10 @@
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Position</span>
                 <input style="width:60%;" name="position" id="position" required="true" data-options="prompt:'Staff Production'" class="easyui-textbox">
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Vendor</span>
+                <input style="width:60%;" name="supplier_id" id="supplier_id" required="true" class="easyui-combogrid">
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Role</span>
@@ -176,6 +182,23 @@
                     });
                 }
             }]
+        });
+
+        $('#supplier_id').combogrid({
+            prompt: 'Vendor',
+            url: '<?= base_url('admin/user/readSupplier') ?>',
+            clientPaging: false,
+            remoteFilter: true,
+            pagination: false,
+            rownumbers: true,
+            panelWidth: 550,
+            mode: 'remote',
+            idField: 'id',
+            textField: 'name',
+            columns: [[
+                {field: 'code', title: 'Vendor Code', halign: 'center', align: 'center'},
+                {field: 'name', title: 'Vendor Name', halign: 'center'}
+            ]]
         });
     });
 

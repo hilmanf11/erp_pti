@@ -52,4 +52,21 @@ class Auth extends CI_Controller
             show_error("Cannot Process your Request");
         }
     }
+
+    function updateTokenId()
+    {
+        $post = $this->input->post();
+        $username = $post['username'];
+        $tokenId = $post['token_id'];
+
+        $values = array("token_id" => $tokenId);
+
+        $update = $this->db->update('user', $values, ['username' => $username]);
+
+        if ($update) {
+            echo json_encode(array("title" => "Success", "message" => "Update token Id Successfully", "theme" => "success"));
+        } else {
+            echo log_message('error', 'There is an error in your system or data');
+        }
+    }
 }

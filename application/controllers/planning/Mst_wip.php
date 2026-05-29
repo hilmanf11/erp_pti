@@ -52,7 +52,20 @@ class Mst_wip extends CI_Controller
             $filter_month = base64_decode($this->input->get('filter_month'));
             $filter_year = base64_decode($this->input->get('filter_year'));
             $filter_revision = base64_decode($this->input->get('filter_revision'));
+            $filter_customer = base64_decode($this->input->get('filter_customer'));
             $filter_product_no = trim(base64_decode($this->input->get('filter_product_no')));
+
+            $customers = [];
+            if (empty($filter_customer)) {
+                $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+                $this->db->distinct()->select("customer")->from("setting_customer")->where(["user_id" => $nik]);
+                $wheres = explode(',', $this->db->get()->row()->customer);
+                $this->db->distinct()->select("TRIM(b.number) AS number")
+                ->from("mst_line a")->join("mst_customer b", "a.customer_code = b.nickname")
+                ->where_in("a.line_no", $wheres);
+                foreach ($this->db->get()->result() as $index => $row)
+                    { array_push($customers, $row->number); }
+            }
 
             //Select Query
             $this->db->select('a.item_id, a.item_name, b.*, c.circuit_no, (b.pp + b.plant_1 + b.plant_2 + b.plant_3 + b.plant_4 + b.plant_5 + b.plant_6 + b.plant_7 + b.plant_8 + b.plant_9 + b.plant_10 + b.rqa + b.hav) as total_wip, d.name as created_name, e.name as updated_name');
@@ -61,9 +74,8 @@ class Mst_wip extends CI_Controller
             $this->db->join('wip_mst_wos_cct c', 'a.item_id = c.mstwos_assyno', 'left');
             $this->db->join('user d', 'b.created_by = d.username', 'left');
             $this->db->join('user e', 'b.updated_by = e.username', 'left');
-            if ($filter_product_no != "") {
-                $this->db->where('a.item_id', $filter_product_no);
-            }
+            if ($filter_product_no != "") { $this->db->where('a.item_id', $filter_product_no); }
+            if (!empty($customers)) { $this->db->where_in('a.id_customer', $customers); }
             $this->db->where('a.stscode_id', '01');
             $this->db->where('a.pfm_id', '06');
 
@@ -96,8 +108,18 @@ class Mst_wip extends CI_Controller
                     "product_no" => $post['product_no']
                 ]);
 
+                $customer = $this->api->read('mst_customer', [], ['number' => trim($item->id_customer)]);
+                $nik = $this->api->read('user', [], ['id' => $this->session->id])->number;
+                $this->db->distinct()->select("TRIM(b.customer_code) AS nick")
+                ->from("setting_customer a")->join("mst_line b", "FIND_IN_SET(b.line_no, a.customer)")
+                ->where(["user_id" => $nik])->order_by("nick");
+                $nicks = [];
+                foreach ($this->db->get()->result() as $index => $row) { array_push($nicks, $row->nick); }
+                // die(var_dump($customer->nickname));
                 if (count($wip) > 0) {
                     echo json_encode(array("title" => "Available", "message" => "Stock WIP in Product No " . $post['product_no'] . " is duplicate", "theme" => "error"));
+                } elseif (!in_array($customer->nickname, $nicks)) {
+                    echo json_encode(array("title" => "Failed", "message" => "You Not Allowed to Entry This Customer", "theme" => "error"));
                 } else {
                     $dataFinal = array_merge($post, array(
                         "product_name" => @$item->item_name,
@@ -186,32 +208,46 @@ class Mst_wip extends CI_Controller
             //Cek Items
             $item = $this->api->read('mst_item', [], ["item_id" => $data['product_no']]);
 
-            //Get CCT
-            $items = $this->api->read("wip_mst_wos_cct", [], ["mstwos_assyno" => $data['product_no']]);
-            $wip = $this->api->reads('mst_wip', [], [
-                "p_month" => $data['p_month'],
-                "p_year" => $data['p_year'],
-                "revision" => $data['revision'],
-                "product_no" => $data['product_no']
-            ]);
-
-            if (count($wip) > 0) {
-                $send = $this->api->update('mst_wip', [
+            if (empty($item)) {
+                echo json_encode(array("title" => "Failed", "message" => "Product No not Found", "theme" => "error"));
+            } else {
+                //Get CCT
+                $items = $this->api->read("wip_mst_wos_cct", [], ["mstwos_assyno" => $data['product_no']]);
+                $wip = $this->api->reads('mst_wip', [], [
                     "p_month" => $data['p_month'],
                     "p_year" => $data['p_year'],
                     "revision" => $data['revision'],
-                    "product_no" => $data['product_no']], $data);
+                    "product_no" => $data['product_no']
+                ]);
 
-                echo json_encode(array("title" => "Good Job", "message" => "Product No" . $data['product_no'] . " Update Successfully", "theme" => "success"));
-            } elseif ($data['p_month'] == "" || $data['p_year'] == "" || $data['revision'] == "") {
-                echo json_encode(array("title" => "Empty", "message" => "Period or Revision Cannot Empty", "theme" => "error"));
-            } else {
-                $dataFinal = array_merge($data, array(
-                    "product_name" => @$item->item_name,
-                    "circuit_no" => @$items->circuit_no
-                ));
-                $send   = $this->api->create('mst_wip', $dataFinal, "WIP", "WIP");
-                echo json_encode(array("title" => "Good Job", "message" => "Product No" . $data['product_no'] . " Saved Successfully", "theme" => "success"));
+                $customer = $this->api->read('mst_customer', [], ['number' => $item->id_customer]);
+                $nik = $this->api->read('user', [], ['id' => $this->session->id])->number;
+                $this->db->distinct()->select("TRIM(b.customer_code) AS nick")
+                ->from("setting_customer a")->join("mst_line b", "FIND_IN_SET(b.line_no, a.customer)")
+                ->where(["user_id" => $nik])->order_by("nick");
+                $nicks = [];
+                foreach ($this->db->get()->result() as $index => $row) { array_push($nicks, $row->nick); }
+                // die(var_dump($customer->nickname));
+                if (!in_array($customer->nickname, $nicks)) {
+                    echo json_encode(array("title" => "Failed", "message" => "You Not Allowed to Entry This Customer, ".$customer->name, "theme" => "error"));
+                } elseif (count($wip) > 0) {
+                    $send = $this->api->update('mst_wip', [
+                        "p_month" => $data['p_month'],
+                        "p_year" => $data['p_year'],
+                        "revision" => $data['revision'],
+                        "product_no" => $data['product_no']], $data);
+
+                    echo json_encode(array("title" => "Good Job", "message" => "Product No" . $data['product_no'] . " Update Successfully", "theme" => "success"));
+                } elseif ($data['p_month'] == "" || $data['p_year'] == "" || $data['revision'] == "") {
+                    echo json_encode(array("title" => "Empty", "message" => "Period or Revision Cannot Empty", "theme" => "error"));
+                } else {
+                    $dataFinal = array_merge($data, array(
+                        "product_name" => @$item->item_name,
+                        "circuit_no" => @$items->circuit_no
+                    ));
+                    $send   = $this->api->create('mst_wip', $dataFinal, "WIP", "WIP");
+                    echo json_encode(array("title" => "Good Job", "message" => "Product No" . $data['product_no'] . " Saved Successfully", "theme" => "success"));
+                }
             }
         }
     }
@@ -264,7 +300,20 @@ class Mst_wip extends CI_Controller
             $filter_month = base64_decode($this->input->get('filter_month'));
             $filter_year = base64_decode($this->input->get('filter_year'));
             $filter_revision = base64_decode($this->input->get('filter_revision'));
+            $filter_customer = base64_decode($this->input->get('filter_customer'));
             $filter_product_no = trim(base64_decode($this->input->get('filter_product_no')));
+
+            $customers = [];
+            if (empty($filter_customer)) {
+                $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+                $this->db->distinct()->select("customer")->from("setting_customer")->where(["user_id" => $nik]);
+                $wheres = explode(',', $this->db->get()->row()->customer);
+                $this->db->distinct()->select("TRIM(b.number) AS number")
+                ->from("mst_line a")->join("mst_customer b", "a.customer_code = b.nickname")
+                ->where_in("a.line_no", $wheres);
+                foreach ($this->db->get()->result() as $index => $row)
+                    { array_push($customers, $row->number); }
+            }
 
             //Select Query
             $this->db->select('d.item_id, d.item_name, a.*, e.circuit_no, (a.pp + a.plant_1 + a.plant_2 + a.plant_3 + a.plant_4 + a.plant_5 + a.plant_6 + a.plant_7 + a.plant_8 + a.plant_9 + a.plant_10 + a.rqa + a.hav) as total_wip, b.name as created_name, c.name as updated_name');
@@ -273,9 +322,8 @@ class Mst_wip extends CI_Controller
             $this->db->join('user b', 'a.created_by = b.username', 'left');
             $this->db->join('user c', 'a.updated_by = c.username', 'left');
             $this->db->join('wip_mst_wos_cct e', 'e.mstwos_assyno = d.item_id', 'left');
-            if ($filter_product_no != "") {
-                $this->db->where('d.item_id', $filter_product_no);
-            }
+            if ($filter_product_no != "") { $this->db->where('d.item_id', $filter_product_no); }
+            if (!empty($customers)) { $this->db->where_in('d.id_customer', $customers); }
             $this->db->where('d.stscode_id', '01');
             $this->db->where('d.pfm_id', '06');
             $records = $this->db->get()->result_array();

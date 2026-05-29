@@ -143,7 +143,7 @@ class Where_used extends CI_Controller
         $no = 1;
         foreach ($records as $record) {
             $product_no = $record['item_id'];
-            $query2 = $this->db->query("SELECT prod_plan FROM generate_mps_detail WHERE product_no='$product_no' and p_month='$filter_month' and p_year='$filter_year' and revision = '$filter_revision' ORDER BY ltpp_month2 ASC");
+            $query2 = $this->db->query("SELECT prod_plan FROM generate_mps_detail WHERE product_no='$product_no' and p_month='$filter_month' and p_year='$filter_year' and revision = '$filter_revision'");
             $mps = $query2->result_array();
 
             if(@$mps[0]['prod_plan'] > 0){ $prod_plan_1 = @$mps[0]['prod_plan']; }else{ $prod_plan_1 = 0; }
@@ -159,7 +159,7 @@ class Where_used extends CI_Controller
                         <td>' . $record['component_name'] . '</td>
                         <td style="mso-number-format:\@;">' . $record['item_id'] . '</td>
                         <td>' . $record['item_name'] . '</td>
-                        <td>' . round($record['qty'], 2) . '</td>
+                        <td>' . round($record['qty'], 4) . '</td>
                         <td>' . $record['customer_name'] . '</td>
                         <td>' . $filter_year.$filter_month . '</td>
                         <td>' . $prod_plan_1. '</td>

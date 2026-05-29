@@ -61,6 +61,13 @@ class Generate_mps extends CI_Controller
             $filter_product_no = base64_decode($this->input->get('filter_product_no'));
             $filter_revision = base64_decode($this->input->get('filter_revision'));
 
+            $lines = [];
+            if (empty($filter_line_no)) {
+                $nik = $this->api->read('user', [], ["id" => $this->session->id])->number;
+                $this->db->distinct()->select("customer")->from("setting_customer")->where(["user_id" => $nik]);
+                $lines = explode(',', $this->db->get()->row()->customer);
+            }
+
             $monthBack = date('F Y', strtotime('-1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
             $varBackYear = date('Y', strtotime('+1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
             $varBackMonth = date('m', strtotime('+1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
@@ -70,8 +77,32 @@ class Generate_mps extends CI_Controller
             $this->db->from("planning_config");
             $config = $this->db->get()->row();
 
+            if($filter_line_no != "" && $filter_product_no == ""){
+                $whereAr = ["p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision, "line_no" => $filter_line_no];
+            }elseif($filter_line_no != "" && $filter_product_no != ""){
+                $whereAr = ["p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision, "line_no" => $filter_line_no, "product_no" => $filter_product_no];
+            }elseif($filter_line_no == "" && $filter_product_no == ""){
+                $whereAr = ["p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision];
+            }
+
+            if (!empty($lines)) {
+                foreach ($lines as $key => $value) {
+                    $this->db->delete("generate_mps", array_merge($whereAr, ["line_no" => $value]));
+                    $this->db->delete("generate_mps_detail", array_merge($whereAr, ["line_no" => $value]));
+                }
+            } else {
+                $this->db->delete("generate_mps", $whereAr);
+                $this->db->delete("generate_mps_detail", $whereAr);
+            }
+
             //Select Query
-            $this->db->select('a.item_id, a.item_name, a.item_manldtm, d.customer_id, c.circuit_no, a.st_sparepart,
+            $this->db->select('a.item_id,
+                a.item_name,
+                a.item_manldtm,
+                COALESCE(d.customer_id, a.id_customer) AS customer_id,
+                c.circuit_no,
+                a.st_sparepart,
+                TRIM(b.line_no) AS line_no,
                 COALESCE(c.pp, 0) as pp, 
                 COALESCE(c.plant_1, 0) as plant_1, 
                 COALESCE(c.plant_2, 0) as plant_2, 
@@ -89,23 +120,99 @@ class Generate_mps extends CI_Controller
                 COALESCE(c.pp + c.plant_1 + c.plant_2 + c.plant_3 + c.plant_4 + c.plant_5 + c.plant_6 + c.plant_7 + c.plant_8 + c.plant_9 + c.plant_10 + c.rqa + c.hav + c.pgd, 0) as total_wip, 
                 COALESCE(d.qty, 0) as fg, 
                 COALESCE(e.os_mpp, 0) as os_mpp, 
-                COALESCE(f.qty, 0) as os_sales_order');
+                COALESCE(f.qty, 0) as os_sales_order,
+                h.month_1,
+                h.month_2,
+                h.month_3,
+                h.month_4,
+                h.month_5,
+                h.month_6,
+                h.month_7,
+                i.circuit_no as circuit');
             $this->db->from('mst_item a');
             $this->db->join('mst_item_line b', 'a.item_id = b.item_id');
-            $this->db->join('mst_wip c', "a.item_id = c.product_no and c.p_month = '" . $filter_month . "' and c.p_year = '" . $filter_year . "' and c.revision = '" . $filter_revision . "'", "left");
-            $this->db->join('fg_stock d', "a.item_id = d.product_no and d.p_month = '" . $filter_month . "' and d.p_year = '" . $filter_year . "' and d.revision = '" . $filter_revision . "'", "left");
-            $this->db->join('mpp_os e', "a.item_id = e.product_no and e.p_month = '" . $filter_month . "' and e.p_year = '" . $filter_year . "' and e.revision = '" . $filter_revision . "'", "left");
-            $this->db->join('sales_order_os f', "a.item_id = f.product_no and f.p_month = '" . $filter_month . "' and f.p_year = '" . $filter_year . "' and f.revision = '" . $filter_revision . "'", "left");
-            if ($filter_line_no != "") {
-                $this->db->where('b.line_no', $filter_line_no);
-            }
+            $this->db->join("(select * from mst_wip WHERE p_month = '$filter_month' and p_year = '$filter_year' and revision = '$filter_revision') c", "a.item_id = c.product_no", "left");
+            $this->db->join("(select * from fg_stock WHERE p_month = '$filter_month' and p_year = '$filter_year' and revision = '$filter_revision') d", "a.item_id = d.product_no", "left");
+            $this->db->join("(select * from mpp_os WHERE p_month = '$filter_month' and p_year = '$filter_year' and revision = '$filter_revision') e", "a.item_id = e.product_no", "left");
+            $this->db->join("(select * from sales_order_os WHERE p_month = '$filter_month' and p_year = '$filter_year' and revision = '$filter_revision') f", "a.item_id = f.product_no", "left");
+            // $this->db->join("mst_item_line g", "a.item_id = g.item_id", "left");
+            $this->db->join("(select * from mst_forecast WHERE p_month = '$filter_month' and p_year = '$filter_year' and revision = '$filter_revision') h", "a.item_id = h.product_no", "left");
+            $this->db->join("wip_mst_wos_cct i", "a.item_id = i.mstwos_assyno", "left");
+            if (empty($lines)) { $this->db->where('TRIM(b.line_no)', $filter_line_no); }
+            else { $this->db->where_in("TRIM(b.line_no)", $lines); }
             if ($filter_product_no != "") {
                 $this->db->where('a.item_id', $filter_product_no);
             }
             $this->db->where('a.pfm_id', '06');
             $this->db->where('a.stscode_id', '01');
             $this->db->order_by('a.item_id', 'asc');
+            // die($this->db->get_compiled_select());
             $records = $this->db->get()->result_array();
+
+            $monthStart = strtotime($filter_year . "-" . $filter_month . "-01");
+            $monthEnd =  strtotime(date('Y-m-d', strtotime('+5 month', strtotime($varBackYear . "-" . $varBackMonth . "-01"))));
+            $hkw = [];
+            $hkw2 = [];
+
+            while ($monthStart < $monthEnd) {
+                $monthName = date('F Y', $monthStart);
+                $monthName2 = date('Y-m-01', $monthStart);
+                $find_start = date('Y-m-01', $monthStart);
+                $find_finish = date('Y-m-t', $monthStart);
+                $start = strtotime($find_start);
+                $finish = strtotime($find_finish);
+
+                $this->db->select('remarks');
+                $this->db->from('working_calendar');
+                $this->db->where("working_date between '$find_start' and '$find_finish'");
+                $this->db->where("remarks != ''");
+                $this->db->where("remarks != 'LIBUR'");
+                // die($this->db->get_compiled_select());
+                $holiday = $this->db->get()->result_array();
+                $holidayTotal = count($holiday);
+
+                $ahkw = 0;
+                for ($z = $start; $z <= $finish; $z += (60 * 60 * 24)) {
+                    if (date('w', $z) !== '0' && date('w', $z) !== '6') {
+                        $ahkw += 1;
+                    } else {
+                        $ahkw += 0;
+                    }
+                }
+
+                $hkw[] = ($ahkw - $holidayTotal);
+                // if (is_null($hkw)) { $hkw = ($ahkw - $holidayTotal); }
+
+                $find_start = date('Y-m-01', strtotime('+1 month', $monthStart));
+                $find_finish = date('Y-m-t', strtotime('+1 month', $monthStart));
+                $start2 = strtotime($find_start);
+                $finish2 = strtotime($find_finish);
+
+                $this->db->select('remarks');
+                $this->db->from('working_calendar');
+                $this->db->where("working_date between '$find_start' and '$find_finish'");
+                $this->db->where("remarks != ''");
+                // $this->db->where("remarks != 'LIBUR'");
+                // die($this->db->get_compiled_select());
+                $holiday = $this->db->get()->result_array();
+                $holidayTotal = count($holiday);
+
+                //HKW 2
+                $ahkw2 = 0;
+                for ($x = $start2; $x <= $finish2; $x += (60 * 60 * 24)) {
+
+                    if (date('w', $x) !== '0') {
+                        $ahkw2 += 1;
+                    } else {
+                        $ahkw2 += 0;
+                    }
+                }
+
+                $hkw2[] = ($ahkw2 - $holidayTotal);
+                $monthStart = strtotime("+1 month", $monthStart);
+            }
+            // die(var_dump($hkw));
+            // die(json_encode($arrCct));
 
             foreach ($records as $data) {
                 $totalStock = ($data['total_wip'] + $data['fg'] + $data['os_mpp']);
@@ -127,11 +234,316 @@ class Generate_mps extends CI_Controller
                 $monthStart = strtotime($filter_year . "-" . $filter_month . "-01");
                 $monthEnd =  strtotime(date('Y-m-d', strtotime('+5 month', strtotime($varBackYear . "-" . $varBackMonth . "-01"))));
 
-                $dataForecast = $this->api->read('mst_forecast', [], ["product_no" => $data['item_id'], "p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision]);
-                $lines = $this->api->read('mst_item_line', [], ["item_id" => $data['item_id']]);
+                while ($monthStart < $monthEnd) {
+                    $monthName = date('F Y', $monthStart);
+                    $monthName2 = date('Y-m-01', $monthStart);
 
-                $this->db->where('mstwos_assyno', $data['item_id']);
-                $circuits = $this->db->count_all_results('wip_mst_wos');
+                    //Bulan Pertama - Keenam
+                    if ($i == 1) {
+                        $beginBalance = $totalStock - $data['os_sales_order'];
+                        $forecast = @round($data['month_1']);
+                        $deliveryRate = @round($forecast / $hkw[0]);
+                        $ito = @round($beginBalance / $deliveryRate);
+
+                        if($data['st_sparepart'] == "t"){
+                            $safetyStock = 0;
+                        }else{
+                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss)) * ($data['month_2'] / $hkw2[0]));
+                            // $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $data['month_2']);
+                            // die('(('.@$data['item_manldtm'].' + '.$config->fg_ss.')) * ('.$data['month_2'].' / '.$hkw2.')');
+                        }
+                        
+                        $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
+                    } else if ($i == 2) {
+                        $beginBalance = (($prodPlan + $beginBalance) - $forecast);
+                        $forecast = @round($data['month_2']);
+                        $deliveryRate = @round($forecast / $hkw[1]);
+                        $ito = @round($beginBalance / $deliveryRate);
+
+                        if($data['st_sparepart'] == "t"){
+                            $safetyStock = 0;
+                        }else{
+                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss)) * ($data['month_3'] / $hkw2[1]));
+                            // $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $data['month_3']);
+                        }
+
+                        $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
+                    } elseif ($i == 3) {
+                        $beginBalance = (($prodPlan + $beginBalance) - $forecast);
+                        $forecast = @round($data['month_3']);
+                        $deliveryRate = @round($forecast / $hkw[2]);
+                        $ito = @round($beginBalance / $deliveryRate);
+
+                        if($data['st_sparepart'] == "t"){
+                            $safetyStock = 0;
+                        }else{
+                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss)) * ($data['month_4'] / $hkw2[2]));
+                            // $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $data['month_4']);
+                        }
+
+                        $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
+                    } elseif ($i == 4) {
+                        $beginBalance = (($prodPlan + $beginBalance) - $forecast);
+                        $forecast = @round($data['month_4']);
+                        $deliveryRate = @round($forecast / $hkw[3]);
+                        $ito = @round($beginBalance / $deliveryRate);
+
+                        if($data['st_sparepart'] == "t"){
+                            $safetyStock = 0;
+                        }else{
+                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss)) * ($data['month_5'] / $hkw2[3]));
+                            // $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $data['month_5']);
+                        }
+
+                        $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
+                    } elseif ($i == 5) {
+                        $beginBalance = (($prodPlan + $beginBalance) - $forecast);
+                        $forecast = @round($data['month_5']);
+                        $deliveryRate = @round($forecast / $hkw[4]);
+                        $ito = @round($beginBalance / $deliveryRate);
+
+                        if($data['st_sparepart'] == "t"){
+                            $safetyStock = 0;
+                        }else{
+                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss)) * ($data['month_6'] / $hkw2[4]));
+                            // $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $data['month_6']);
+                        }
+
+                        $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
+                    } elseif ($i == 6) {
+                        $beginBalance = (($prodPlan + $beginBalance) - $forecast);
+                        $forecast = @round($data['month_6']);
+                        $deliveryRate = @round($forecast / $hkw[5]);
+                        $ito = @round($beginBalance / $deliveryRate);
+
+                        if($data['st_sparepart'] == "t"){
+                            $safetyStock = 0;
+                        }else{
+                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss)) * ($data['month_7'] / $hkw2[5]));
+                            // $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $data['month_7']);
+                        }
+
+                        $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
+                    }
+
+                    if ($prodPlan <= 0) {
+                        $prodPlanFinal = 0;
+                    } else {
+                        $prodPlanFinal = $prodPlan;
+                    }
+
+                    $arrMonth[] = array(
+                        "p_month" => $filter_month,
+                        "p_year" => $filter_year,
+                        "revision" => $filter_revision,
+                        "line_no" => $data['line_no'],
+                        "customer_id" => $data['customer_id'],
+                        "product_no" => $data['item_id'],
+                        "product_name" => $data['item_name'],
+                        "circuit_no" => $data['circuit'],
+                        "ltpp_month" => strtoupper($monthName),
+                        "ltpp_month2" => $monthName2,
+                        "hkw" => "$hkw2[5]",
+                        "begin_balance" => "$beginBalance",
+                        "ito" => "$ito",
+                        "forecast" => "$forecast",
+                        "delivery_rate" => "$deliveryRate",
+                        "safety_stock" => "$safetyStock",
+                        "prod_plan" => "$prodPlanFinal"
+
+                    );
+
+                    $monthStart = strtotime("+1 month", $monthStart);
+                    $i++;
+
+                    $beginBalance = $beginBalance;
+                    $forecast = $forecast;
+                    $deliveryRate = $deliveryRate;
+                    $ito = $ito;
+                    $safetyStock = $safetyStock;
+                    $prodPlan = $prodPlanFinal;
+                    $balance = (($prodPlan + $beginBalance) - $forecast);
+                }
+
+                $arr[] = array(
+                    "p_month" => $filter_month,
+                    "p_year" => $filter_year,
+                    "revision" => $filter_revision,
+                    "line_no" => $data['line_no'],
+                    "customer_id" => $data['customer_id'],
+                    "product_no" => $data['item_id'],
+                    "product_name" => $data['item_name'],
+                    "circuit_no" => $data['circuit'],
+                    "wip_month" => strtoupper($monthBack),
+                    "pp" => $data['pp'],
+                    "plant_1" => $data['plant_1'],
+                    "plant_2" => $data['plant_2'],
+                    "plant_3" => $data['plant_3'],
+                    "plant_4" => $data['plant_4'],
+                    "plant_5" => $data['plant_5'],
+                    "plant_6" => $data['plant_6'],
+                    "plant_7" => $data['plant_7'],
+                    "plant_8" => $data['plant_8'],
+                    "plant_9" => $data['plant_9'],
+                    "plant_10" => $data['plant_10'],
+                    "rqa" => $data['rqa'],
+                    "hav" => $data['hav'],
+                    "fg" => $fg,
+                    "os_mpp" => $data['os_mpp'],
+                    "total_stock" => "$totalStock",
+                    "os_sales_order" => $data['os_sales_order'],
+                    "balance" => "$balance",
+                    "details" => $arrMonth
+                );
+            }
+
+            $arr['total'] = @count($arr);
+            die(json_encode($arr));
+        } else {
+            show_error("Cannot Process your request");
+        }
+    }
+
+    public function getdatacopy(){
+        $filter_month = base64_decode($this->input->get('filter_month'));
+        $filter_year = base64_decode($this->input->get('filter_year'));
+        $filter_line_no = base64_decode($this->input->get('filter_line_no'));
+        $filter_customer_id = base64_decode($this->input->get('filter_customer_id'));
+        $filter_product_no = base64_decode($this->input->get('filter_product_no'));
+        $filter_revision = base64_decode($this->input->get('filter_revision'));
+
+        $monthBack = date('F Y', strtotime('-1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
+        $varBackYear = date('Y', strtotime('+1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
+        $varBackMonth = date('m', strtotime('+1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
+
+        //Configuration Planning
+        $this->db->select('*');
+        $this->db->from("planning_config");
+        $config = $this->db->get()->row();
+
+        $lines = [];
+        if (empty($filter_line_no)) {
+            $nik = $this->api->read('user', [], ["id" => $this->session->id])->number;
+            $this->db->distinct()->select("customer")->from("setting_customer")->where(["user_id" => $nik]);
+            // die($this->db->get_compiled_select());
+            $lines = explode(',', $this->db->get()->row()->customer);
+        }
+
+
+        if($filter_line_no != "" && $filter_product_no == ""){
+            $whereAr = ["p_month" => $filter_month, "p_year" => $filter_year, "revision" => (intval($filter_revision) + 1), "line_no" => $filter_line_no];
+        }elseif($filter_line_no != "" && $filter_product_no != ""){
+            $whereAr = ["p_month" => $filter_month, "p_year" => $filter_year, "revision" => (intval($filter_revision) + 1), "line_no" => $filter_line_no, "product_no" => $filter_product_no];
+        }elseif($filter_line_no == "" && $filter_product_no == ""){
+            $whereAr = ["p_month" => $filter_month, "p_year" => $filter_year, "revision" => (intval($filter_revision) + 1)];
+        }
+
+        if (!empty($lines)) {
+            foreach ($lines as $key => $value) {
+                $this->db->delete("generate_mps", array_merge($whereAr, ["line_no" => $value]));
+                $this->db->delete("generate_mps_detail", array_merge($whereAr, ["line_no" => $value]));
+            }
+        } else {
+            $this->db->delete("generate_mps", $whereAr);
+            $this->db->delete("generate_mps_detail", $whereAr);
+        }
+
+        // $maxRev = $this->api->query("SELECT max(revision) as revision 
+        //     FROM generate_mps 
+        //     WHERE p_month = '$filter_month' 
+        //     and p_year = '$filter_year'");
+        
+        $revision = ($filter_revision + 1);
+
+        $generate_mps = $this->api->reads("generate_mps", [
+            "line_no" => $filter_line_no,
+            "product_no" => $filter_product_no
+        ], [
+            "p_month" => $filter_month, 
+            "p_year" => $filter_year, 
+            "revision" => $filter_revision
+        ]);
+
+        $arr = array();
+        foreach ($generate_mps as $mps) {
+            $where = (empty($filter_line_no)) ? in_array(trim($mps->line_no), $lines) : true;
+            if ($where) {
+                $mst_wip = $this->api->read("mst_wip", [], ["product_no" => $mps->product_no, "p_month" => $filter_month, "p_year" => $filter_year, "revision" => $revision]);
+                $fg_stock = $this->api->read("fg_stock", [], ["product_no" => $mps->product_no, "p_month" => $filter_month, "p_year" => $filter_year, "revision" => $revision]);
+                $mpp_os = $this->api->read("mpp_os", [], ["product_no" => $mps->product_no, "p_month" => $filter_month, "p_year" => $filter_year, "revision" => $revision]);
+                $sales_order_os = $this->api->read("sales_order_os", [], ["product_no" => $mps->product_no, "p_month" => $filter_month, "p_year" => $filter_year, "revision" => $revision]);
+                $forecast_data = $this->api->read("mst_forecast", [], ["product_no" => $mps->product_no, "p_month" => $filter_month, "p_year" => $filter_year, "revision" => $revision]);
+                if(empty($forecast_data)){
+                    $dataForecast = $this->api->read("mst_forecast", [], ["product_no" => $mps->product_no, "p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision]);
+                }else{
+                    $dataForecast = $forecast_data;
+                }
+                
+                $mst_item = $this->api->read("mst_item", [], ["item_id" => $mps->product_no]);
+
+                if(empty($mst_wip)){
+                    $pp = $mps->pp;
+                    $plant_1 = $mps->plant_1;
+                    $plant_2 = $mps->plant_2;
+                    $plant_3 = $mps->plant_3;
+                    $plant_4 = $mps->plant_4;
+                    $plant_5 = $mps->plant_5;
+                    $plant_6 = $mps->plant_6;
+                    $plant_7 = $mps->plant_7;
+                    $plant_8 = $mps->plant_8;
+                    $plant_9 = $mps->plant_9;
+                    $plant_10 = $mps->plant_10;
+                    $rqa = $mps->rqa;
+                    $hav = $mps->hav;
+                    $pgd = 0;
+                }else{
+                    $pp = @$mst_wip->pp;
+                    $plant_1 = @$mst_wip->plant_1;
+                    $plant_2 = @$mst_wip->plant_2;
+                    $plant_3 = @$mst_wip->plant_3;
+                    $plant_4 = @$mst_wip->plant_4;
+                    $plant_5 = @$mst_wip->plant_5;
+                    $plant_6 = @$mst_wip->plant_6;
+                    $plant_7 = @$mst_wip->plant_7;
+                    $plant_8 = @$mst_wip->plant_8;
+                    $plant_9 = @$mst_wip->plant_9;
+                    $plant_10 = @$mst_wip->plant_10;
+                    $rqa = @$mst_wip->rqa;
+                    $hav = @$mst_wip->hav;
+                    $pgd = @$mst_wip->pgd;
+                }
+
+                if(empty($fg_stock)){
+                    $fg = $mps->fg;
+                }else{
+                    $fg = $fg_stock->qty;
+                }
+
+                if(empty($mpp_os)){
+                    $os_mpp = $mps->os_mpp;
+                }else{
+                    $os_mpp = $mst_wip->os_mpp;
+                }
+
+                if(empty($sales_order_os)){
+                    $os_sales_order = $mps->os_sales_order;
+                }else{
+                    $os_sales_order = $sales_order_os->qty;
+                }
+
+                $total_wip = ($pp + $plant_1 + $plant_2 + $plant_3 + $plant_4 + $plant_5 + $plant_6 + $plant_7 + $plant_8 + $plant_9 + $plant_10 + $rqa + $hav + $pgd);
+                $totalStock = ($total_wip + $fg + $os_mpp);
+                $monthStart = strtotime($filter_year . "-" . $filter_month . "-01");
+                $monthEnd =  strtotime(date('Y-m-d', strtotime('+5 month', strtotime($varBackYear . "-" . $varBackMonth . "-01"))));
+
+                $i = 1;
+                $beginBalance = 0;
+                $forecast = 0;
+                $deliveryRate = 0;
+                $ito = 0;
+                $safetyStock = 0;
+                $prodPlan = 0;
+                $arrMonth = array();
 
                 while ($monthStart < $monthEnd) {
                     $monthName = date('F Y', $monthStart);
@@ -187,17 +599,17 @@ class Generate_mps extends CI_Controller
 
                     //Bulan Pertama - Keenam
                     if ($i == 1) {
-                        $beginBalance = $totalStock - $data['os_sales_order'];
+                        $beginBalance = $totalStock - $os_sales_order;
                         $forecast = @round($dataForecast->month_1);
                         $deliveryRate = @round($forecast / $hkw);
                         $ito = @round($beginBalance / $deliveryRate);
 
-                        if($data['st_sparepart'] == "t"){
+                        if($mst_item->st_sparepart == "t"){
                             $safetyStock = 0;
                         }else{
-                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $dataForecast->month_2);
+                            $safetyStock = @round(((@$mst_item->item_manldtm + $config->fg_ss) / $hkw2) * $dataForecast->month_2);
                         }
-                        
+
                         $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
                     } else if ($i == 2) {
                         $beginBalance = (($prodPlan + $beginBalance) - $forecast);
@@ -205,10 +617,10 @@ class Generate_mps extends CI_Controller
                         $deliveryRate = @round($forecast / $hkw);
                         $ito = @round($beginBalance / $deliveryRate);
 
-                        if($data['st_sparepart'] == "t"){
+                        if($mst_item->st_sparepart == "t"){
                             $safetyStock = 0;
                         }else{
-                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $dataForecast->month_3);
+                            $safetyStock = @round(((@$mst_item->item_manldtm + $config->fg_ss) / $hkw2) * $dataForecast->month_3);
                         }
 
                         $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
@@ -218,10 +630,10 @@ class Generate_mps extends CI_Controller
                         $deliveryRate = @round($forecast / $hkw);
                         $ito = @round($beginBalance / $deliveryRate);
 
-                        if($data['st_sparepart'] == "t"){
+                        if($mst_item->st_sparepart == "t"){
                             $safetyStock = 0;
                         }else{
-                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $dataForecast->month_4);
+                            $safetyStock = @round(((@$mst_item->item_manldtm + $config->fg_ss) / $hkw2) * $dataForecast->month_4);
                         }
 
                         $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
@@ -231,10 +643,10 @@ class Generate_mps extends CI_Controller
                         $deliveryRate = @round($forecast / $hkw);
                         $ito = @round($beginBalance / $deliveryRate);
 
-                        if($data['st_sparepart'] == "t"){
+                        if($mst_item->st_sparepart == "t"){
                             $safetyStock = 0;
                         }else{
-                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $dataForecast->month_5);
+                            $safetyStock = @round(((@$mst_item->item_manldtm + $config->fg_ss) / $hkw2) * $dataForecast->month_5);
                         }
 
                         $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
@@ -244,10 +656,10 @@ class Generate_mps extends CI_Controller
                         $deliveryRate = @round($forecast / $hkw);
                         $ito = @round($beginBalance / $deliveryRate);
 
-                        if($data['st_sparepart'] == "t"){
+                        if($mst_item->st_sparepart == "t"){
                             $safetyStock = 0;
                         }else{
-                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $dataForecast->month_5);
+                            $safetyStock = @round(((@$mst_item->item_manldtm + $config->fg_ss) / $hkw2) * $dataForecast->month_6);
                         }
 
                         $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
@@ -257,10 +669,10 @@ class Generate_mps extends CI_Controller
                         $deliveryRate = @round($forecast / $hkw);
                         $ito = @round($beginBalance / $deliveryRate);
 
-                        if($data['st_sparepart'] == "t"){
+                        if($mst_item->st_sparepart == "t"){
                             $safetyStock = 0;
                         }else{
-                            $safetyStock = @round(((@$data['item_manldtm'] + $config->fg_ss) / $hkw2) * $dataForecast->month_7);
+                            $safetyStock = @round(((@$mst_item->item_manldtm + $config->fg_ss) / $hkw2) * $dataForecast->month_7);
                         }
 
                         $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
@@ -275,12 +687,12 @@ class Generate_mps extends CI_Controller
                     $arrMonth[] = array(
                         "p_month" => $filter_month,
                         "p_year" => $filter_year,
-                        "revision" => $filter_revision,
-                        "line_no" => @$lines->line_no,
-                        "customer_id" => $data['customer_id'],
-                        "product_no" => $data['item_id'],
-                        "product_name" => $data['item_name'],
-                        "circuit_no" => $circuits,
+                        "revision" => $revision,
+                        "line_no" => $mps->line_no,
+                        "customer_id" => $mps->customer_id,
+                        "product_no" => $mps->product_no,
+                        "product_name" => $mps->product_name,
+                        "circuit_no" => $mps->circuit_no,
                         "ltpp_month" => strtoupper($monthName),
                         "ltpp_month2" => $monthName2,
                         "hkw" => "$hkw2",
@@ -304,298 +716,8 @@ class Generate_mps extends CI_Controller
                     $prodPlan = $prodPlanFinal;
                     $balance = (($prodPlan + $beginBalance) - $forecast);
                 }
-
+                
                 $arr[] = array(
-                    "p_month" => $filter_month,
-                    "p_year" => $filter_year,
-                    "revision" => $filter_revision,
-                    "line_no" => @$lines->line_no,
-                    "customer_id" => $data['customer_id'],
-                    "product_no" => $data['item_id'],
-                    "product_name" => $data['item_name'],
-                    "circuit_no" => $circuits,
-                    "wip_month" => strtoupper($monthBack),
-                    "pp" => $data['pp'],
-                    "plant_1" => $data['plant_1'],
-                    "plant_2" => $data['plant_2'],
-                    "plant_3" => $data['plant_3'],
-                    "plant_4" => $data['plant_4'],
-                    "plant_5" => $data['plant_5'],
-                    "plant_6" => $data['plant_6'],
-                    "plant_7" => $data['plant_7'],
-                    "plant_8" => $data['plant_8'],
-                    "plant_9" => $data['plant_9'],
-                    "plant_10" => $data['plant_10'],
-                    "rqa" => $data['rqa'],
-                    "hav" => $data['hav'],
-                    "fg" => $fg,
-                    "os_mpp" => $data['os_mpp'],
-                    "total_stock" => "$totalStock",
-                    "os_sales_order" => $data['os_sales_order'],
-                    "balance" => "$balance",
-                    "details" => $arrMonth
-                );
-            }
-
-            $arr['total'] = @count($arr);
-            die(json_encode($arr));
-        } else {
-            show_error("Cannot Process your request");
-        }
-    }
-
-    public function getdatacopy(){
-        $filter_month = base64_decode($this->input->get('filter_month'));
-        $filter_year = base64_decode($this->input->get('filter_year'));
-        $filter_line_no = base64_decode($this->input->get('filter_line_no'));
-        $filter_customer_id = base64_decode($this->input->get('filter_customer_id'));
-        $filter_product_no = base64_decode($this->input->get('filter_product_no'));
-        $filter_revision = base64_decode($this->input->get('filter_revision'));
-
-        $monthBack = date('F Y', strtotime('-1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
-        $varBackYear = date('Y', strtotime('+1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
-        $varBackMonth = date('m', strtotime('+1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
-
-        //Configuration Planning
-        $this->db->select('*');
-        $this->db->from("planning_config");
-        $config = $this->db->get()->row();
-
-        // $maxRev = $this->api->query("SELECT max(revision) as revision 
-        //     FROM generate_mps 
-        //     WHERE p_month = '$filter_month' 
-        //     and p_year = '$filter_year'");
-        
-        $revision = ($filter_revision + 1);
-
-        $generate_mps = $this->api->reads("generate_mps", [
-            "line_no" => $filter_line_no,
-            "product_no" => $filter_product_no
-        ], [
-            "p_month" => $filter_month, 
-            "p_year" => $filter_year, 
-            "revision" => $filter_revision
-        ]);
-
-        $arr = array();
-        foreach ($generate_mps as $mps) {
-            $mst_wip = $this->api->read("mst_wip", [], ["product_no" => $mps->product_no, "p_month" => $filter_month, "p_year" => $filter_year, "revision" => $revision]);
-            $fg_stock = $this->api->read("fg_stock", [], ["product_no" => $mps->product_no, "p_month" => $filter_month, "p_year" => $filter_year, "revision" => $revision]);
-            $mpp_os = $this->api->read("mpp_os", [], ["product_no" => $mps->product_no, "p_month" => $filter_month, "p_year" => $filter_year, "revision" => $revision]);
-            $sales_order_os = $this->api->read("sales_order_os", [], ["product_no" => $mps->product_no, "p_month" => $filter_month, "p_year" => $filter_year, "revision" => $revision]);
-            $forecast_data = $this->api->read("mst_forecast", [], ["product_no" => $mps->product_no, "p_month" => $filter_month, "p_year" => $filter_year, "revision" => $revision]);
-            if(empty($forecast_data)){
-                $dataForecast = $this->api->read("mst_forecast", [], ["product_no" => $mps->product_no, "p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision]);
-            }else{
-                $dataForecast = $forecast_data;
-            }
-            
-            $mst_item = $this->api->read("mst_item", [], ["item_id" => $mps->product_no]);
-
-            if(empty($mst_wip)){
-                $pp = $mps->pp;
-                $plant_1 = $mps->plant_1;
-                $plant_2 = $mps->plant_2;
-                $plant_3 = $mps->plant_3;
-                $plant_4 = $mps->plant_4;
-                $plant_5 = $mps->plant_5;
-                $plant_6 = $mps->plant_6;
-                $plant_7 = $mps->plant_7;
-                $plant_8 = $mps->plant_8;
-                $plant_9 = $mps->plant_9;
-                $plant_10 = $mps->plant_10;
-                $rqa = $mps->rqa;
-                $hav = $mps->hav;
-                $pgd = 0;
-            }else{
-                $pp = @$mst_wip->pp;
-                $plant_1 = @$mst_wip->plant_1;
-                $plant_2 = @$mst_wip->plant_2;
-                $plant_3 = @$mst_wip->plant_3;
-                $plant_4 = @$mst_wip->plant_4;
-                $plant_5 = @$mst_wip->plant_5;
-                $plant_6 = @$mst_wip->plant_6;
-                $plant_7 = @$mst_wip->plant_7;
-                $plant_8 = @$mst_wip->plant_8;
-                $plant_9 = @$mst_wip->plant_9;
-                $plant_10 = @$mst_wip->plant_10;
-                $rqa = @$mst_wip->rqa;
-                $hav = @$mst_wip->hav;
-                $pgd = @$mst_wip->pgd;
-            }
-
-            if(empty($fg_stock)){
-                $fg = $mps->fg;
-            }else{
-                $fg = $fg_stock->qty;
-            }
-
-            if(empty($mpp_os)){
-                $os_mpp = $mps->os_mpp;
-            }else{
-                $os_mpp = $mst_wip->os_mpp;
-            }
-
-            if(empty($sales_order_os)){
-                $os_sales_order = $mps->os_sales_order;
-            }else{
-                $os_sales_order = $sales_order_os->qty;
-            }
-
-            $total_wip = ($pp + $plant_1 + $plant_2 + $plant_3 + $plant_4 + $plant_5 + $plant_6 + $plant_7 + $plant_8 + $plant_9 + $plant_10 + $rqa + $hav + $pgd);
-            $totalStock = ($total_wip + $fg + $os_mpp);
-            $monthStart = strtotime($filter_year . "-" . $filter_month . "-01");
-            $monthEnd =  strtotime(date('Y-m-d', strtotime('+5 month', strtotime($varBackYear . "-" . $varBackMonth . "-01"))));
-
-            $i = 1;
-            $beginBalance = 0;
-            $forecast = 0;
-            $deliveryRate = 0;
-            $ito = 0;
-            $safetyStock = 0;
-            $prodPlan = 0;
-            $arrMonth = array();
-
-            while ($monthStart < $monthEnd) {
-                $monthName = date('F Y', $monthStart);
-                $monthName2 = date('Y-m-01', $monthStart);
-                // $monthsPlus = strtolower(date('F', strtotime('+1 month', $monthStart)));
-                $start = strtotime(date('Y-m-01', $monthStart));
-                $finish = strtotime(date('Y-m-t', $monthStart));
-
-                $start2 = strtotime(date('Y-m-01', strtotime('+1 month', $monthStart)));
-                $finish2 = strtotime(date('Y-m-t', strtotime('+1 month', $monthStart)));
-
-                //HKW 1
-                $hkw = 0;
-                for ($z = $start; $z <= $finish; $z += (60 * 60 * 24)) {
-                    $working_date = date('Y-m-d', $z);
-
-                    $this->db->select('remarks');
-                    $this->db->from('working_calendar');
-                    $this->db->where('working_date', $working_date);
-                    $holiday = $this->db->get()->row();
-
-                    if (date('w', $z) !== '0' && date('w', $z) !== '6') {
-                        if (@$holiday->remarks != null or @$holiday->remarks != "") {
-                            $hkw += 0;
-                        } else {
-                            $hkw += 1;
-                        }
-                    } else {
-                        $hkw += 0;
-                    }
-                }
-
-                //HKW 2
-                $hkw2 = 0;
-                for ($x = $start2; $x <= $finish2; $x += (60 * 60 * 24)) {
-                    $working_date2 = date('Y-m-d', $x);
-
-                    $this->db->select('remarks');
-                    $this->db->from('working_calendar');
-                    $this->db->where('working_date', $working_date2);
-                    $holiday2 = $this->db->get()->row();
-
-                    if (date('w', $x) !== '0') {
-                        if (@$holiday2->remarks != null or @$holiday2->remarks != "") {
-                            $hkw2 += 0;
-                        } else {
-                            $hkw2 += 1;
-                        }
-                    } else {
-                        $hkw2 += 0;
-                    }
-                }
-
-                //Bulan Pertama - Keenam
-                if ($i == 1) {
-                    $beginBalance = $totalStock - $os_sales_order;
-                    $forecast = @round($dataForecast->month_1);
-                    $deliveryRate = @round($forecast / $hkw);
-                    $ito = @round($beginBalance / $deliveryRate);
-
-                    if($mst_item->st_sparepart == "t"){
-                        $safetyStock = 0;
-                    }else{
-                        $safetyStock = @round(((@$mst_item->item_manldtm + $config->fg_ss) / $hkw2) * $dataForecast->month_2);
-                    }
-
-                    $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
-                } else if ($i == 2) {
-                    $beginBalance = (($prodPlan + $beginBalance) - $forecast);
-                    $forecast = @round($dataForecast->month_2);
-                    $deliveryRate = @round($forecast / $hkw);
-                    $ito = @round($beginBalance / $deliveryRate);
-
-                    if($mst_item->st_sparepart == "t"){
-                        $safetyStock = 0;
-                    }else{
-                        $safetyStock = @round(((@$mst_item->item_manldtm + $config->fg_ss) / $hkw2) * $dataForecast->month_3);
-                    }
-
-                    $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
-                } elseif ($i == 3) {
-                    $beginBalance = (($prodPlan + $beginBalance) - $forecast);
-                    $forecast = @round($dataForecast->month_3);
-                    $deliveryRate = @round($forecast / $hkw);
-                    $ito = @round($beginBalance / $deliveryRate);
-
-                    if($mst_item->st_sparepart == "t"){
-                        $safetyStock = 0;
-                    }else{
-                        $safetyStock = @round(((@$mst_item->item_manldtm + $config->fg_ss) / $hkw2) * $dataForecast->month_4);
-                    }
-
-                    $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
-                } elseif ($i == 4) {
-                    $beginBalance = (($prodPlan + $beginBalance) - $forecast);
-                    $forecast = @round($dataForecast->month_4);
-                    $deliveryRate = @round($forecast / $hkw);
-                    $ito = @round($beginBalance / $deliveryRate);
-
-                    if($mst_item->st_sparepart == "t"){
-                        $safetyStock = 0;
-                    }else{
-                        $safetyStock = @round(((@$mst_item->item_manldtm + $config->fg_ss) / $hkw2) * $dataForecast->month_5);
-                    }
-
-                    $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
-                } elseif ($i == 5) {
-                    $beginBalance = (($prodPlan + $beginBalance) - $forecast);
-                    $forecast = @round($dataForecast->month_5);
-                    $deliveryRate = @round($forecast / $hkw);
-                    $ito = @round($beginBalance / $deliveryRate);
-
-                    if($mst_item->st_sparepart == "t"){
-                        $safetyStock = 0;
-                    }else{
-                        $safetyStock = @round(((@$mst_item->item_manldtm + $config->fg_ss) / $hkw2) * $dataForecast->month_6);
-                    }
-
-                    $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
-                } elseif ($i == 6) {
-                    $beginBalance = (($prodPlan + $beginBalance) - $forecast);
-                    $forecast = @round($dataForecast->month_6);
-                    $deliveryRate = @round($forecast / $hkw);
-                    $ito = @round($beginBalance / $deliveryRate);
-
-                    if($mst_item->st_sparepart == "t"){
-                        $safetyStock = 0;
-                    }else{
-                        $safetyStock = @round(((@$mst_item->item_manldtm + $config->fg_ss) / $hkw2) * $dataForecast->month_7);
-                    }
-
-                    $prodPlan = @round(($forecast + $safetyStock) - $beginBalance);
-                }
-
-                if ($prodPlan <= 0) {
-                    $prodPlanFinal = 0;
-                } else {
-                    $prodPlanFinal = $prodPlan;
-                }
-
-                $arrMonth[] = array(
                     "p_month" => $filter_month,
                     "p_year" => $filter_year,
                     "revision" => $revision,
@@ -604,60 +726,28 @@ class Generate_mps extends CI_Controller
                     "product_no" => $mps->product_no,
                     "product_name" => $mps->product_name,
                     "circuit_no" => $mps->circuit_no,
-                    "ltpp_month" => strtoupper($monthName),
-                    "ltpp_month2" => $monthName2,
-                    "hkw" => "$hkw2",
-                    "begin_balance" => "$beginBalance",
-                    "ito" => "$ito",
-                    "forecast" => "$forecast",
-                    "delivery_rate" => "$deliveryRate",
-                    "safety_stock" => "$safetyStock",
-                    "prod_plan" => "$prodPlanFinal"
-
+                    "wip_month" => $mps->wip_month,
+                    "pp" => $pp,
+                    "plant_1" => $plant_1,
+                    "plant_2" => $plant_2,
+                    "plant_3" => $plant_3,
+                    "plant_4" => $plant_4,
+                    "plant_5" => $plant_5,
+                    "plant_6" => $plant_6,
+                    "plant_7" => $plant_7,
+                    "plant_8" => $plant_8,
+                    "plant_9" => $plant_9,
+                    "plant_10" => $plant_10,
+                    "rqa" => $rqa,
+                    "hav" => $hav,
+                    "fg" => $fg,
+                    "os_mpp" => $os_mpp,
+                    "total_stock" => $totalStock,
+                    "os_sales_order" => $os_sales_order,
+                    "balance" => $balance,
+                    "details" => $arrMonth
                 );
-
-                $monthStart = strtotime("+1 month", $monthStart);
-                $i++;
-
-                $beginBalance = $beginBalance;
-                $forecast = $forecast;
-                $deliveryRate = $deliveryRate;
-                $ito = $ito;
-                $safetyStock = $safetyStock;
-                $prodPlan = $prodPlanFinal;
-                $balance = (($prodPlan + $beginBalance) - $forecast);
             }
-            
-            $arr[] = array(
-                "p_month" => $filter_month,
-                "p_year" => $filter_year,
-                "revision" => $revision,
-                "line_no" => $mps->line_no,
-                "customer_id" => $mps->customer_id,
-                "product_no" => $mps->product_no,
-                "product_name" => $mps->product_name,
-                "circuit_no" => $mps->circuit_no,
-                "wip_month" => $mps->wip_month,
-                "pp" => $pp,
-                "plant_1" => $plant_1,
-                "plant_2" => $plant_2,
-                "plant_3" => $plant_3,
-                "plant_4" => $plant_4,
-                "plant_5" => $plant_5,
-                "plant_6" => $plant_6,
-                "plant_7" => $plant_7,
-                "plant_8" => $plant_8,
-                "plant_9" => $plant_9,
-                "plant_10" => $plant_10,
-                "rqa" => $rqa,
-                "hav" => $hav,
-                "fg" => $fg,
-                "os_mpp" => $os_mpp,
-                "total_stock" => $totalStock,
-                "os_sales_order" => $os_sales_order,
-                "balance" => $balance,
-                "details" => $arrMonth
-            );
         }
 
         $arr['total'] = @count($arr);
@@ -882,113 +972,82 @@ class Generate_mps extends CI_Controller
         if ($this->input->post()) {
             $post = $this->input->post('data');
             $postDetails = $post['details'];
-
-            $items = $this->api->read("mst_item", [], ["item_id" => $post['product_no']]);
-            if(@$items->lot == 0){
-                $lot = 1;
-            }else{
-                $lot = @$items->lot;
-            }
+            $stop = false;
+            $cust_name = '';
 
             foreach ($postDetails as $postDetail) {
-                $generateMpsDetails = $this->api->reads('generate_mps_detail', [], [
-                    "p_month" => $postDetail['p_month'],
-                    "p_year" => $postDetail['p_year'],
-                    "revision" => $postDetail['revision'],
-                    "product_no" => $postDetail['product_no'],
-                    "ltpp_month" => $postDetail['ltpp_month']
-                ]);
-
-                $postFinalDetail = array(
-                    "p_month" => $postDetail['p_month'],
-                    "p_year" => $postDetail['p_year'],
-                    "revision" => $postDetail['revision'],
-                    "line_no" => $postDetail['line_no'],
-                    "customer_id" => $postDetail['customer_id'],
-                    "product_no" => $postDetail['product_no'],
-                    "product_name" => $postDetail['product_name'],
-                    "circuit_no" => $postDetail['circuit_no'],
-                    "ltpp_month" => $postDetail['ltpp_month'],
-                    "ltpp_month2" => $postDetail['ltpp_month2'],
-                    "hkw" => $postDetail['hkw'],
-                    "begin_balance" => $postDetail['begin_balance'],
-                    "ito" => $postDetail['ito'],
-                    "forecast" => $postDetail['forecast'],
-                    "delivery_rate" => $postDetail['delivery_rate'],
-                    "safety_stock" => $postDetail['safety_stock'],
-                    "need" => $postDetail['prod_plan'],
-                    "prod_plan" => $postDetail['prod_plan'],
-                    // "prod_plan" => (ceil($postDetail['prod_plan'] / @$lot) * @$lot)
-                );
-
-                if (count($generateMpsDetails) > 0) {
-                    $send = $this->api->update('generate_mps_detail', [
+                $code = '';
+                $cust = $this->api->read('mst_customer', [], ["number" => $postDetail['customer_id']]);
+                if (!empty($cust)) {
+                    $get = $this->api->read('mst_line', [], ["customer_code" => $cust->nickname]);
+                    if (!empty($get)) { $code = $get->customer_code; }
+                }
+                if (!empty($code)) {
+                    $postFinalDetail = array(
                         "p_month" => $postDetail['p_month'],
                         "p_year" => $postDetail['p_year'],
                         "revision" => $postDetail['revision'],
+                        "line_no" => $postDetail['line_no'],
+                        "customer_id" => $postDetail['customer_id'],
                         "product_no" => $postDetail['product_no'],
-                        "ltpp_month" => $postDetail['ltpp_month']
-                    ], $postFinalDetail);
+                        "product_name" => $postDetail['product_name'],
+                        "circuit_no" => $postDetail['circuit_no'],
+                        "ltpp_month" => $postDetail['ltpp_month'],
+                        "ltpp_month2" => $postDetail['ltpp_month2'],
+                        "hkw" => $postDetail['hkw'],
+                        "begin_balance" => $postDetail['begin_balance'],
+                        "ito" => $postDetail['ito'],
+                        "forecast" => $postDetail['forecast'],
+                        "delivery_rate" => $postDetail['delivery_rate'],
+                        "safety_stock" => $postDetail['safety_stock'],
+                        "need" => $postDetail['prod_plan'],
+                        "prod_plan" => $postDetail['prod_plan'],
+                        // "prod_plan" => (ceil($postDetail['prod_plan'] / @$lot) * @$lot)
+                    );
+                    
+                    $this->api->create('generate_mps_detail', $postFinalDetail, $code.$postDetail['revision'], "generate_mps_detail", "log");
                 } else {
-                    $this->api->create('generate_mps_detail', $postFinalDetail, "MPSD", "generate_mps");
+                    $cust_name = $cust->name.' | '.$postDetail['product_no'];
+                    $stop = true;
+                    break;
                 }
             }
 
-            $generateMps = $this->api->reads('generate_mps', [], [
-                "p_month" => $post['p_month'],
-                "p_year" => $post['p_year'],
-                "revision" => $post['revision'],
-                "product_no" => $post['product_no'],
-                "wip_month" => $post['wip_month']
-            ]);
-
-            $postFinal = array(
-                "p_month" => $post['p_month'],
-                "p_year" => $post['p_year'],
-                "revision" => $post['revision'],
-                "line_no" => $post['line_no'],
-                "customer_id" => $post['customer_id'],
-                "product_no" => $post['product_no'],
-                "product_name" => $post['product_name'],
-                "circuit_no" => $post['circuit_no'],
-                "wip_month" => $post['wip_month'],
-                "pp" => $post['pp'],
-                "plant_1" => $post['plant_1'],
-                "plant_2" => $post['plant_2'],
-                "plant_3" => $post['plant_3'],
-                "plant_4" => $post['plant_4'],
-                "plant_5" => $post['plant_5'],
-                "plant_6" => $post['plant_6'],
-                "plant_7" => $post['plant_7'],
-                "plant_8" => $post['plant_8'],
-                "plant_9" => $post['plant_9'],
-                "plant_10" => $post['plant_10'],
-                "rqa" => $post['rqa'],
-                "hav" => $post['hav'],
-                "fg" => $post['fg'],
-                "os_mpp" => $post['os_mpp'],
-                "os_sales_order" => $post['os_sales_order'],
-                "total_stock" => $post['total_stock'],
-                "balance" => $post['balance']
-            );
-
-            if (count($generateMps) > 0) {
-                $send   = $this->api->update('generate_mps', [
+            if (!$stop) {
+                $code = 'MPS';
+                $cust = $this->api->read('mst_customer', [], ["number" => $post['customer_id']]);
+                if (!empty($cust)) { $code = $this->api->read('mst_line', [], ["customer_code" => $cust->nickname])->customer_code; }
+                $postFinal = array(
                     "p_month" => $post['p_month'],
                     "p_year" => $post['p_year'],
                     "revision" => $post['revision'],
+                    "line_no" => $post['line_no'],
+                    "customer_id" => $post['customer_id'],
                     "product_no" => $post['product_no'],
-                    "wip_month" => $post['wip_month']
-                ], $postFinal);
-                $result = json_decode($send);
+                    "product_name" => $post['product_name'],
+                    "circuit_no" => $post['circuit_no'],
+                    "wip_month" => $post['wip_month'],
+                    "pp" => $post['pp'],
+                    "plant_1" => $post['plant_1'],
+                    "plant_2" => $post['plant_2'],
+                    "plant_3" => $post['plant_3'],
+                    "plant_4" => $post['plant_4'],
+                    "plant_5" => $post['plant_5'],
+                    "plant_6" => $post['plant_6'],
+                    "plant_7" => $post['plant_7'],
+                    "plant_8" => $post['plant_8'],
+                    "plant_9" => $post['plant_9'],
+                    "plant_10" => $post['plant_10'],
+                    "rqa" => $post['rqa'],
+                    "hav" => $post['hav'],
+                    "fg" => $post['fg'],
+                    "os_mpp" => $post['os_mpp'],
+                    "os_sales_order" => $post['os_sales_order'],
+                    "total_stock" => $post['total_stock'],
+                    "balance" => $post['balance']
+                );
 
-                if ($result->theme == "success") {
-                    echo json_encode(array("title" => "Good Job", "message" => $post['product_no'] . " | " . $post['product_name'] . " | Data Updated Successfully", "theme" => "success"));
-                } else {
-                    echo json_encode(array("title" => "Error", "message" => $post['product_no'] . " | " . $post['product_name'] . " | Data Unupdate", "theme" => "error"));
-                }
-            } else {
-                $send = $this->api->create('generate_mps', $postFinal, "MPS", "generate_mps");
+                $send = $this->api->create('generate_mps', $postFinal, $code.$post['revision'], "generate_mps", "log");
                 $result = json_decode($send);
 
                 if ($result->theme == "success") {
@@ -996,6 +1055,8 @@ class Generate_mps extends CI_Controller
                 } else {
                     echo json_encode(array("title" => "Error", "message" => $post['product_no'] . " | " . $post['product_name'] . " | Data Unsaved", "theme" => "error"));
                 }
+            } else {
+                echo json_encode(array("title" => "Error", "message" => "This Customer undefined, ".$cust_name, "theme" => "error"));
             }
         }
     }
@@ -1062,26 +1123,22 @@ class Generate_mps extends CI_Controller
     	//Filter Data
         $filter_month = base64_decode($this->input->get('filter_month'));
         $filter_year = base64_decode($this->input->get('filter_year'));
-        $filter_line_no = base64_decode($this->input->get('filter_line_no'));
-        $filter_customer_id = base64_decode($this->input->get('filter_customer_id'));
-        $filter_product_no = base64_decode($this->input->get('filter_product_no'));
         $filter_revision = base64_decode($this->input->get('filter_revision'));
 
+        $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+        $this->db->distinct()->select("TRIM(customer) AS line")
+        ->from("setting_customer")->where(["user_id" => $nik]);
+        // die($this->db->get_compiled_select());
+        $lines = explode(',', $this->db->get()->row()->line);
+
         //Select Line No
-        $this->db->select('*');
-        $this->db->from('generate_mps');
+        $this->db->distinct()->select('*')->from('generate_mps')->where('deleted_is', 0);
         if ($filter_month != "" or $filter_year != "") {
             $this->db->where('p_month', $filter_month);
             $this->db->where('p_year', $filter_year);
         }
-        if($filter_line_no != ""){
-            $this->db->where('line_no', $filter_line_no);
-        }
-        $this->db->like('customer_id', $filter_customer_id);
-        $this->db->like('revision', $filter_revision);
-        $this->db->like('product_no', $filter_product_no);
-        $this->db->where('deleted_is', 0);
-        $records = $this->db->get()->result_array();
+        $this->db->like('revision', $filter_revision)->where_in('line_no', $lines);
+        $records = $this->db->get()->result();
 
         if(count($records) > 0){
         	echo json_encode(array("title" => "Success", "message" => "Data Already", "theme" => "success"));
@@ -1191,6 +1248,12 @@ class Generate_mps extends CI_Controller
             $filter_product_no = base64_decode($this->input->get('filter_product_no'));
             $filter_revision = base64_decode($this->input->get('filter_revision'));
 
+            $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+            $this->db->distinct()->select("TRIM(customer) AS line")
+            ->from("setting_customer")->where(["user_id" => $nik]);
+            // die($this->db->get_compiled_select());
+            $lines = explode(',', $this->db->get()->row()->line);
+
             $this->db->select('a.*');
             $this->db->from('generate_mps a');
             $this->db->join('generate_mps_detail b', 'a.p_month = b.p_month and a.p_year = b.p_year and a.revision = b.revision and a.product_no = b.product_no');
@@ -1200,9 +1263,8 @@ class Generate_mps extends CI_Controller
             }
             $this->db->where("(a.pp > 0 or a.plant_1 > 0 or a.plant_2 > 0 or a.plant_3 > 0 or a.plant_4 > 0 or a.plant_5 > 0 or a.plant_6 > 0 or a.plant_7 > 0 or a.plant_8 > 0 or a.plant_9 > 0 or a.plant_10 > 0 or a.rqa > 0 or a.hav > 0 or a.fg > 0 or a.os_mpp > 0 or a.os_sales_order > 0 or a.total_stock > 0 or a.balance > 0 or b.begin_balance > 0 or b.ito > 0 or b.forecast > 0 or b.delivery_rate > 0 or b.safety_stock > 0 or b.prod_plan > 0)");
             $this->db->where('a.deleted_is', 0);
-            if($filter_line_no != ""){
-                $this->db->where('a.line_no', $filter_line_no);
-            }
+            if ($filter_line_no != "") { $this->db->where('a.line_no', $filter_line_no); }
+            else { $this->db->where_in('a.line_no', $lines); }
             $this->db->like('a.customer_id', $filter_customer_id);
             $this->db->like('a.revision', $filter_revision);
             $this->db->like('a.product_no', $filter_product_no);
@@ -1600,55 +1662,61 @@ class Generate_mps extends CI_Controller
         $filter_product_no = base64_decode($this->input->get('filter_product_no'));
         $filter_revision = base64_decode($this->input->get('filter_revision'));
 
+        $lines = [];
+        if (empty($filter_line_no)) {
+            $nik = $this->api->read('user', [], ["id" => $this->session->id])->number;
+            $this->db->distinct()->select("customer")->from("setting_customer")->where(["user_id" => $nik]);
+            $lines = explode(',', $this->db->get()->row()->customer);
+        }
+
         //Select Line No
         $this->db->select('a.line_no, b.remarks');
         $this->db->from('generate_mps a');
-        $this->db->join('mst_line b', 'a.line_no = b.line_no', 'left');
+        $this->db->join('mst_line b', 'TRIM(a.line_no) = TRIM(b.line_no)', 'left');
         if ($filter_month != "" or $filter_year != "") {
             $this->db->where('a.p_month', $filter_month);
             $this->db->where('a.p_year', $filter_year);
         }
-        if($filter_line_no != ""){
-            $this->db->where('a.line_no', $filter_line_no);
+        if($filter_line_no != "all"){
+            if (!empty($lines)) { $this->db->where_in("TRIM(a.line_no)", $lines); }
+            else { $this->db->where('TRIM(a.line_no)', $filter_line_no); }
         }
         $this->db->like('a.customer_id', $filter_customer_id);
         $this->db->like('a.revision', $filter_revision);
         $this->db->like('a.product_no', $filter_product_no);
-        $this->db->where('a.deleted_is', 0);
         $this->db->group_by('a.line_no');
         $this->db->order_by('a.line_no', 'desc');
+        // die($this->db->get_compiled_select());
         $lines = $this->db->get()->result_array();
 
         //Select Full
-        $this->db->select('*');
-        $this->db->from('generate_mps');
-        if ($filter_month != "" or $filter_year != "") {
-            $this->db->where('p_month', $filter_month);
-            $this->db->where('p_year', $filter_year);
-        }
-        if($filter_line_no != ""){
-            $this->db->where('line_no', $filter_line_no);
-        }
-        $this->db->like('customer_id', $filter_customer_id);
-        $this->db->like('revision', $filter_revision);
-        $this->db->like('product_no', $filter_product_no);
-        $this->db->where('deleted_is', 0);
-        $headers = $this->db->get()->result_array();
+        // $this->db->select('*');
+        // $this->db->from('generate_mps');
+        // if ($filter_month != "" or $filter_year != "") {
+        //     $this->db->where('p_month', $filter_month);
+        //     $this->db->where('p_year', $filter_year);
+        // }
+        // if($filter_line_no != ""){
+        //     $this->db->where('line_no', $filter_line_no);
+        // }
+        // $this->db->like('customer_id', $filter_customer_id);
+        // $this->db->like('revision', $filter_revision);
+        // $this->db->like('product_no', $filter_product_no);
+        // $this->db->where('deleted_is', 0);
+        // $headers = $this->db->get()->result_array();
 
-        $header = "";
-        $headerDetails = "";
+        // $header = "";
+        // $headerDetails = "";
 
-        foreach ($headers as $record) {
+        // foreach ($headers as $record) {
             $this->db->select('ltpp_month');
             $this->db->from('generate_mps_detail');
-            $this->db->where('p_month', $record['p_month']);
-            $this->db->where('p_year', $record['p_year']);
-            $this->db->where('revision', $record['revision']);
-            $this->db->where('line_no', $record['line_no']);
-            $this->db->where('product_no', $record['product_no']);
-            $this->db->where('deleted_is', 0);
+            $this->db->where('p_month', $filter_month);
+            $this->db->where('p_year', $filter_year);
+            $this->db->where('revision', $filter_revision);
             $this->db->group_by('ltpp_month');
             $this->db->order_by('id');
+            // die($this->db->get_compiled_select());
             $details = $this->db->get()->result_array();
 
             $header = "";
@@ -1673,7 +1741,7 @@ class Generate_mps extends CI_Controller
                                     <th style="text-align:center;" rowspan="2">PROD <br> PLAN</th>';
                 $no++;
             }
-        }
+        // }
 
         $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
         <table style="width: 100%;">
@@ -1793,14 +1861,14 @@ class Generate_mps extends CI_Controller
                             <th colspan="100" style="text-align:left;"><b>' . $line_name . '</b></th>
                         </tr>';
             //Select Full
-            $this->db->select('a.*');
+            $this->db->select('a.*, COALESCE(c.circuit_no, a.circuit_no) AS circuit_no');
             $this->db->from('generate_mps a');
             $this->db->join('generate_mps_detail b', 'a.p_month = b.p_month and a.p_year = b.p_year and a.revision = b.revision and a.product_no = b.product_no');
+            $this->db->join('wip_mst_wos_cct c', 'a.product_no = c.mstwos_assyno', "LEFT");
             if ($filter_month != "" or $filter_year != "") {
                 $this->db->where('a.p_month', $filter_month);
                 $this->db->where('a.p_year', $filter_year);
             }
-            $this->db->where('a.deleted_is', 0);
             $this->db->where('a.line_no', $line['line_no']);
             $this->db->where("(a.pp > 0 or a.plant_1 > 0 or a.plant_2 > 0 or a.plant_3 > 0 or a.plant_4 > 0 or a.plant_5 > 0 or a.plant_6 > 0 or a.plant_7 > 0 or a.plant_8 > 0 or a.plant_9 > 0 or a.plant_10 > 0 or a.rqa > 0 or a.hav > 0 or a.fg > 0 or a.os_mpp > 0 or a.os_sales_order > 0 or a.total_stock > 0 or a.balance > 0 or b.begin_balance > 0 or b.ito > 0 or b.forecast > 0 or b.delivery_rate > 0 or b.safety_stock > 0 or b.prod_plan > 0)");
             $this->db->like('a.customer_id', $filter_customer_id);
@@ -1809,16 +1877,53 @@ class Generate_mps extends CI_Controller
             $this->db->group_by('a.product_no');
             $records = $this->db->get()->result_array();
 
+            $this->db->select('a.*, b.xbar, c.st_sparepart');
+            $this->db->from('generate_mps_detail a');
+            $this->db->join('sales_order b', 'a.p_month = b.p_month and a.p_year = b.p_year and a.revision = b.revision and a.product_no = b.product_no', 'left');
+            $this->db->join('mst_item c', 'a.product_no = c.item_id');
+            $this->db->where('a.p_month', $filter_month);
+            $this->db->where('a.p_year', $filter_year);
+            $this->db->where('a.revision', $filter_revision);
+            $this->db->where('a.line_no', $line['line_no']);
+            $this->db->group_by('a.product_no');
+            $this->db->group_by('a.ltpp_month');
+            $this->db->order_by('a.id');
+            $details2 = $this->db->get()->result_array();
+
+            // $nodetail = 1;
+            $arrDetails = [];
+            foreach ($details2 as $detail2) {
+                if ($detail2['st_sparepart'] == "t") {
+                    $safety_stock = 0;
+                } else {
+                    $safety_stock = $detail2['safety_stock'];
+                }
+
+                $arrDetails[$detail2['product_no']][] = array(
+                    "ltpp_month" => $detail2['ltpp_month'],
+                    "begin_balance" => $detail2['begin_balance'],
+                    "ito" => $detail2['ito'],
+                    "xbar" => $detail2['xbar'],
+                    "forecast" => $detail2['forecast'],
+                    "delivery_rate" => $detail2['delivery_rate'],
+                    "safety_stock" => $safety_stock,
+                    "need" => $detail2['need'],
+                    "prod_plan" => $detail2['prod_plan'],
+                );
+            }
+
+            // die(json_encode($arrDetails));
+
             $no = 1;
             foreach ($records as $data) {
 
-                $cct = $this->api->read('wip_mst_wos_cct', [], ["mstwos_assyno" => $data['product_no']]);
+                // $cct = $this->api->read('wip_mst_wos_cct', [], ["mstwos_assyno" => $data['product_no']]);
 
                 $html .= '  <tr>
                             <td style="text-align:center;">' . $no . '</td>
                             <td style="mso-number-format:\@;">' . $data['product_no'] . '</td>
                             <td>' . $data['product_name'] . '</td>
-                            <td style="text-align:center;">' . @$cct->circuit_no . '</td>
+                            <td style="text-align:center;">' . $data['circuit_no'] . '</td>
                             <td style="text-align:center;">' . $data['pp'] . '</td>
                             <td style="text-align:center;">' . ($data['plant_1'] + $data['plant_2'] + $data['plant_3'] + $data['plant_4'] + $data['plant_5'] + $data['plant_6'] + $data['plant_7'] + $data['plant_8'] + $data['plant_9'] + $data['plant_10']) . '</td>
                             <td style="text-align:center;">' . $data['rqa'] . '</td>
@@ -1827,50 +1932,30 @@ class Generate_mps extends CI_Controller
                             <td style="text-align:center;">' . $data['os_mpp'] . '</td>
                             <td style="text-align:center;">' . $data['total_stock'] . '</td>
                             <td style="text-align:center;">' . $data['os_sales_order'] . '</td>';
-
-                $this->db->select('a.*, b.xbar, c.st_sparepart');
-                $this->db->from('generate_mps_detail a');
-                $this->db->join('sales_order b', 'a.p_month = b.p_month and a.p_year = b.p_year and a.revision = b.revision and a.product_no = b.product_no', 'left');
-                $this->db->join('mst_item c', 'a.product_no = c.item_id');
-                $this->db->where('a.p_month', $data['p_month']);
-                $this->db->where('a.p_year', $data['p_year']);
-                $this->db->where('a.revision', $data['revision']);
-                $this->db->where('a.line_no', $data['line_no']);
-                $this->db->where('a.product_no', $data['product_no']);
-                $this->db->where('a.deleted_is', 0);
-                $this->db->group_by('a.ltpp_month');
-                $this->db->order_by('a.id');
-                $details2 = $this->db->get()->result_array();
-
                 $nodetail = 1;
-                foreach ($details2 as $detail2) {
+                foreach ($arrDetails[$data['product_no']] as $arrDetail) {
                     if ($nodetail == 1) {
-                        if ($detail2['xbar'] == "") {
+                        if ($arrDetail['xbar'] == "") {
                             $xbarQty = 0;
                         } else {
-                            $xbarQty = $detail2['xbar'];
+                            $xbarQty = $arrDetail['xbar'];
                         }
                         $xbar2 = '<td style="text-align:center;">' . $xbarQty . '</td>';
                     } else {
                         $xbar2 = "";
                     }
 
-                    if ($detail2['st_sparepart'] == "t") {
-                        $safety_stock = 0;
-                    } else {
-                        $safety_stock = $detail2['safety_stock'];
-                    }
-
-                    $html .= '  <td style="text-align:center;">' . $detail2['begin_balance'] . '</td>
-                            <td style="text-align:center;">' . $detail2['ito'] . '</td>
+                    $html .= '  <td style="text-align:center;">' . $arrDetail['begin_balance'] . '</td>
+                            <td style="text-align:center;">' . $arrDetail['ito'] . '</td>
                             ' . $xbar2 . '
-                            <td style="text-align:center;">' . $detail2['forecast'] . '</td>
-                            <td style="text-align:center;">' . $detail2['delivery_rate'] . '</td>
-                            <td style="text-align:center;">' . $safety_stock . '</td>
-                            <td style="text-align:center;">' . $detail2['need'] . '</td>
-                            <td style="text-align:center;">' . $detail2['prod_plan'] . '</td>';
+                            <td style="text-align:center;">' . $arrDetail['forecast'] . '</td>
+                            <td style="text-align:center;">' . $arrDetail['delivery_rate'] . '</td>
+                            <td style="text-align:center;">' . $arrDetail['safety_stock'] . '</td>
+                            <td style="text-align:center;">' . $arrDetail['need'] . '</td>
+                            <td style="text-align:center;">' . $arrDetail['prod_plan'] . '</td>';
                     $nodetail++;
                 }
+                
                 $html .= '<td style="text-align:center;">' . $data['balance'] . '</td>
             </tr>';
                 $no++;

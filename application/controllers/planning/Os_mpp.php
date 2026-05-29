@@ -118,26 +118,35 @@ class Os_mpp extends CI_Controller
             HAVING SUM(x.os_wo) > 0
             ");
             $items = $itemq->result_array();
-            $arr = array();
 
+            $os_mpp = $this->api->reads('os_mpp', [], [
+                "p_month" => $filter_month,
+                "p_year" => $filter_year,
+                "revision" => $filter_revision
+            ]);
+
+            foreach ($os_mpp as $mpp) {
+                $osVenId[$mpp->product_no] = $mpp->id;
+                $osVenQty[$mpp->product_no] = $mpp->actual;
+                $osVenCreatedby[$mpp->product_no] = $mpp->created_by;
+                $osVenCreateddate[$mpp->product_no] = $mpp->created_date;
+                $osVenUpdatedby[$mpp->product_no] = $mpp->updated_by;
+                $osVenUpdateddate[$mpp->product_no] = $mpp->updated_date;
+                $osVenStatus[$mpp->product_no] = $mpp->status;
+            }
+
+            $arr = array();
             foreach ($items as $item) {
                 $item_id = trim($item['bom_com_item']);
                 $item_name = $item['item_name'];
                 $pfm_name = $item['pfm_name'];
                 $qty = abs($item['total']);
 
-                $os_mpp = $this->api->read('os_mpp', [], [
-                    "product_no" => $item_id,
-                    "p_month" => $filter_month,
-                    "p_year" => $filter_year,
-                    "revision" => $filter_revision
-                ]);
-
-                if ($os_mpp) {
-                    if($os_mpp->status == "EMPTY"){
+                if (!empty($osVenId[$item_id])) {
+                    if($osVenStatus[$item_id] == "EMPTY"){
                         $status = "GENERATE";
                     }else{
-                        $status = $os_mpp->status;
+                        $status = $osVenStatus[$item_id];
                     }
 
                     $arr[] = array(
@@ -149,12 +158,12 @@ class Os_mpp extends CI_Controller
                         "product_name" => $item_name,
                         "product_family" => $pfm_name,
                         "qty" => round($qty),
-                        "actual" => round($os_mpp->actual),
+                        "actual" => round($osVenQty[$item_id]),
                         "status" => $status,
-                        "created_by" => $os_mpp->created_by,
-                        "created_date" => $os_mpp->created_date,
-                        "updated_by" => $os_mpp->updated_by,
-                        "updated_date" => $os_mpp->updated_date,
+                        "created_by" => $osVenCreatedby[$item_id],
+                        "created_date" => $osVenCreateddate[$item_id],
+                        "updated_by" => $osVenUpdatedby[$item_id],
+                        "updated_date" => $osVenUpdateddate[$item_id],
                     );
                 } else {
                     $arr[] = array(

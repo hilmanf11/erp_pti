@@ -8,6 +8,7 @@
             <th rowspan="2" data-options="field:'line_no',width:100,align:'center'">Customer ID</th>
             <th rowspan="2" data-options="field:'customer_nick',width:200,halign:'center'">Customer Nick</th>
             <th rowspan="2" data-options="field:'remarks',width:200,halign:'center'">Customer Name</th>
+            <th rowspan="2" data-options="field:'customer_code',width:200,halign:'center'">Customer Code</th>
             <th rowspan="2" data-options="field:'line_position',width:100,halign:'center'">Line Position</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
@@ -40,7 +41,7 @@
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Customer ID</span>
-                <input style="width:30%;" name="line_nick" required="" class="easyui-textbox">
+                <input style="width:30%;" name="line_no" required="" class="easyui-textbox">
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Line Name</span>
@@ -53,6 +54,10 @@
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Customer Name</span>
                 <input style="width:60%;" name="remarks" class="easyui-textbox">
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Customer Code</span>
+                <input style="width:60%;" name="customer_code" required="" class="easyui-textbox">
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Line Position</span>

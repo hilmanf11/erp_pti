@@ -234,9 +234,9 @@
 	$(function() {
 		var isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-		if (isMobile) {
-			window.location.assign('home/device');
-		}
+		// if (isMobile) {
+		// 	window.location.assign('home/device');
+		// }
 
 		//Deteksi Internet
 		window.addEventListener('load', function(event) {
@@ -458,6 +458,9 @@
 		} else {
 			var outputString = table.replace(/_/g, ' ');
 			var header_approval = outputString.toUpperCase();
+
+			if (table == 'temp_vendor_contract') { header_approval = "VMS - PRICE QUOTATION"; }
+
 			$("#header_approval").html("APPROVAL " + header_approval);
 
 			$('#dlg_approval_detail').window('open');

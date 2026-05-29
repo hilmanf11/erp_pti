@@ -371,7 +371,7 @@ class balance_wip extends CI_Controller
                 "product_name" => $item['product_name'],
                 "product_family" => $item['product_family'],
                 "qty" => $item['qty'],
-                "status" => $item['status'],
+                "status" => "GENERATE",
             );
         }
 

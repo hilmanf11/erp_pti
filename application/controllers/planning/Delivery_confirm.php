@@ -53,7 +53,7 @@ class Delivery_confirm extends CI_Controller
     {
         $post = isset($_POST['q']) ? $_POST['q'] : "";
         $po_no = base64_decode($po_no);
-        $data = $this->api->query("SELECT a.*, COALESCE(SUM(b.delivery), 0) as delivery FROM purchase_orders a LEFT JOIN purchase_confirm b ON a.item_id = b.item_id and a.purchase_order_no = b.po_no WHERE a.purchase_order_no = '$po_no' and a.status = 0 and a.item_id LIKE '%$post%' GROUP BY a.item_id ORDER BY a.item_id asc");
+        $data = $this->api->query("SELECT a.*, COALESCE(SUM(b.delivery), 0) as delivery FROM purchase_orders a LEFT JOIN purchase_confirm b ON a.item_id = b.item_id and a.purchase_order_no = b.po_no WHERE a.purchase_order_no = '$po_no' and a.item_id LIKE '%$post%' GROUP BY a.item_id ORDER BY a.item_id asc");
         echo json_encode($data);
     }
     public function readFilterPo($supplier_id, $product_family)
@@ -74,6 +74,8 @@ class Delivery_confirm extends CI_Controller
             $filter_po_no = base64_decode($this->input->get('filter_po_no'));
             $filter_product_family = base64_decode($this->input->get('filter_product_family'));
             $filter_item_id = base64_decode($this->input->get('filter_item_id'));
+            $filter_document = base64_decode($this->input->get('filter_document'));
+
             $page = $this->input->post('page');
             $rows = $this->input->post('rows');
             //Pagination 1-10
@@ -89,6 +91,7 @@ class Delivery_confirm extends CI_Controller
             $this->db->like('a.po_no', $filter_po_no);
             $this->db->like('a.product_family', $filter_product_family);
             $this->db->like('a.item_id', $filter_item_id);
+            $this->db->like('a.document_no', $filter_document);
             if ($filter_from != "" or $filter_to != "") {
                 $this->db->where('a.eta >=', $filter_from);
                 $this->db->where('a.eta <=', $filter_to);
@@ -166,6 +169,16 @@ class Delivery_confirm extends CI_Controller
         $this->db->update('purchase_orders', ["status" => 0], ["purchase_order_no" => $data['po_no'], "item_id" => $data['item_id']]);
         echo $send;
     }
+
+    function validasiTanggal($tanggal) {
+        $format = 'Y-m-d';
+        $d = DateTime::createFromFormat($format, $tanggal);
+        
+        // Cek apakah parsing berhasil dan hasilnya sesuai format
+        return $d && $d->format($format) === $tanggal;
+    }
+
+
     public function upload()
     {
         error_reporting(0);
@@ -228,7 +241,21 @@ class Delivery_confirm extends CI_Controller
             $po_no = $data['po_no'];
             $purchase_orders = $this->api->read("purchase_orders", [], ["item_id" => $item_id, "purchase_order_no" => $po_no]);
             $purchase_confirm = $this->api->query("SELECT item_id, po_no, SUM(delivery) as delivery FROM purchase_confirm WHERE item_id = '$item_id' and po_no = '$po_no'");
-            $purchase_confirm2 = $this->api->reads("purchase_confirm", [], ["item_id" => $item_id, "po_no" => $po_no, "etd" => $data['etd']]);
+            $purchase_confirm2 = $this->api->reads("purchase_confirm", [], ["item_id" => $item_id, "po_no" => $po_no, "etd" => $data['etd'], "document_no" => $data['document_no']]);
+
+            if ($this->validasiTanggal($data['eta'])) {
+                //
+            }else{
+                die(json_encode(array("title" => "Error", "message" => "Cannot save because Part No " . $item_id . " Format ETA is wrong", "theme" => "error")));
+            }
+
+            if ($this->validasiTanggal($data['etd'])) {
+                //
+            }else{
+                die(json_encode(array("title" => "Error", "message" => "Cannot save because Part No " . $item_id . " Format ETD is wrong", "theme" => "error")));
+            }
+
+
             if (!empty($purchase_orders)) {
                 if (count($purchase_confirm2) > 0) {
                     echo json_encode(array("title" => "Duplicate", "message" => "Duplicate Data, Part No " . $item_id . " ETD must be different", "theme" => "error"));
@@ -312,6 +339,8 @@ class Delivery_confirm extends CI_Controller
         $filter_po_no = base64_decode($this->input->get('filter_po_no'));
         $filter_product_family = base64_decode($this->input->get('filter_product_family'));
         $filter_item_id = base64_decode($this->input->get('filter_item_id'));
+        $filter_document = base64_decode($this->input->get('filter_document'));
+        
         $this->db->select('a.*, b.name as supplier_name');
         $this->db->from('purchase_confirm a');
         $this->db->join('suppliers b', 'a.supplier_id = b.id');
@@ -319,6 +348,7 @@ class Delivery_confirm extends CI_Controller
         $this->db->like('a.po_no', $filter_po_no);
         $this->db->like('a.product_family', $filter_product_family);
         $this->db->like('a.item_id', $filter_item_id);
+        $this->db->like('a.document_no', $filter_document);
         if ($filter_from != "" or $filter_to != "") {
             $this->db->where('a.eta >=', $filter_from);
             $this->db->where('a.eta <=', $filter_to);
@@ -365,6 +395,10 @@ class Delivery_confirm extends CI_Controller
                 <th>AWB</th>
                 <th>Receive</th>
                 <th>Balance</th>
+                <th>Create By</th>
+                <th>Create Date</th>
+                <th>Update By</th>
+                <th>Update Date</th>
             </tr>';
         $no = 1;
         foreach ($records as $data) {
@@ -393,6 +427,10 @@ class Delivery_confirm extends CI_Controller
                             <td>' . $data['awb'] . '</td>
                             <td>' . $receive . '</td>
                             <td>' . $balance . '</td>
+                            <td>' . $data['created_by'] . '</td>
+                            <td>' . $data['created_date'] . '</td>
+                            <td>' . $data['updated_by'] . '</td>
+                            <td>' . $data['updated_date'] . '</td>
                         </tr>';
             $no++;
         }

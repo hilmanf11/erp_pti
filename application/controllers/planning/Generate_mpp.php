@@ -21,6 +21,15 @@ class Generate_mpp extends CI_Controller{
             redirect('error_session');
         } elseif ($this->checkuserAccess($this->id_menu()) > 0) {
             $data['button'] = $this->getbutton($this->id_menu());
+            $data['total_mpp'] = 0;
+            // $month = base64_decode($this->input->get('filter_month'));
+            // $year = base64_decode($this->input->get('filter_year'));
+            // $revision = base64_decode($this->input->get('filter_revision'));
+            // if ($month != '' && $year != '' && $revision != '') {
+            //     $this->db->where(["p_month" => $month, "p_year" => $year, "revision" => $revision]);
+            //     $data['total_mpp'] = $this->db->count_all_results("generate_mpp");
+            // }
+
             $this->load->view('template/header', $data);
             $this->load->view('planning/generate_mpp');
         } else {
@@ -35,9 +44,16 @@ class Generate_mpp extends CI_Controller{
         $this->db->where('p_year', $year);
         $this->db->group_by('revision');
         $this->db->order_by('revision', 'desc');
-        $revisions = $this->db->get()->row();
+        $get = $this->db->get()->row();
+        $revision = (!empty($get)) ? $get->revision : null;
+        $total_mpp = 0;
 
-        die(json_encode($revisions));
+        // if (!empty($get)) {
+        //     $this->db->where(["p_month" => $month, "p_year" => $year, "revision" => $revision]);
+        //     $total_mpp = $this->db->count_all_results("generate_mpp");
+        // }
+
+        die(json_encode(["revision" => $revision, "total_mpp" => $total_mpp]));
     }
 
     public function datatableNotMps(){
@@ -105,25 +121,32 @@ class Generate_mpp extends CI_Controller{
         $offset = ($page - 1) * $rows;
         $result = array();
 
+        $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+        $this->db->distinct()->select("TRIM(customer) AS line")
+        ->from("setting_customer")->where(["user_id" => $nik]);
+        // die($this->db->get_compiled_select());
+        $lines = explode(',', $this->db->get()->row()->line);
+
+        $w_line = ($filter_line_no != '') ? "AND line_no = '$filter_line_no'" : "";
         //Select Query
         $this->db->select('a.*, e.item_alias, e.capacity, e.lot, (a.date_1 + a.date_2 + a.date_3 + a.date_4 + a.date_5 + a.date_6 + a.date_7 + a.date_8 + a.date_9 + a.date_10 + a.date_11 + a.date_12 + a.date_13 + a.date_14 + a.date_15 + a.date_16 + a.date_17 + a.date_18 + a.date_19 + a.date_20 + a.date_21 + a.date_22 + a.date_23 + a.date_24 + a.date_25 + a.date_26 + a.date_27 + a.date_28 + a.date_29 + a.date_30 + a.date_31) as floating,  b.name as customer_name, d.prod_plan as mpsprod, f.circuit_no as cct');
         $this->db->from('generate_mpp a');
         $this->db->join('mst_customer b', 'a.customer_id = b.number');
         $this->db->join('generate_mps c', "a.p_month = c.p_month AND a.p_year = c.p_year AND c.revision = '$filter_revision' AND a.product_no = c.product_no");
-        $this->db->join("(SELECT * FROM generate_mps_detail ORDER BY ltpp_month2 ASC) d", "d.p_month = '$filter_month' AND d.p_year = '$filter_year' AND d.revision = '$filter_revision' AND a.product_no = d.product_no");
+        $this->db->join("(SELECT * FROM generate_mps_detail WHERE p_month = '$filter_month' AND p_year = '$filter_year' AND revision = '$filter_revision' $w_line ORDER BY ltpp_month2 ASC) d", "a.product_no = d.product_no");
         $this->db->join("mst_item e", "a.product_no = e.item_id");
         $this->db->join("wip_mst_wos_cct f", "e.item_id = f.mstwos_assyno", "left");
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
         $this->db->where('a.revision', $revisions->revision);
-        if($filter_line_no != ""){
-            $this->db->where('a.line_no', $filter_line_no);
-        }
+        if ($filter_line_no != "") { $this->db->where('a.line_no', $filter_line_no); }
+        else { $this->db->where_in('a.line_no', $lines); }
         if($filter_product_no != ""){
             $this->db->where('a.product_no', $filter_product_no);
         }
         $this->db->group_by('a.product_no');
         $this->db->order_by('a.product_no', 'ASC');
+        // die($this->db->get_compiled_select());
         //Total Data
         $totalRows = $this->db->count_all_results('', false);
         //Limit 1 - 10
@@ -213,6 +236,10 @@ class Generate_mpp extends CI_Controller{
             }
         }
 
+        $nik = $this->api->read('user', [], ["id" => $this->session->id])->number;
+        $this->db->distinct()->select("customer")->from("setting_customer")->where(["user_id" => $nik]);
+        $lines = explode(',', $this->db->get()->row()->customer);
+
         $this->db->select("a.product_no, a.product_name, a.circuit_no, a.prod_plan, a.line_no, b.lot, b.id_customer");
         $this->db->from('generate_mps_detail a');
         $this->db->join('mst_item b', 'a.product_no = b.item_id');
@@ -221,10 +248,13 @@ class Generate_mpp extends CI_Controller{
         $this->db->where('a.revision', $filter_revision);
         $this->db->where('a.ltpp_month2', $ltppMonth);
         $this->db->where('a.prod_plan > 0');
-        $this->db->like('a.line_no', $filter_line_no);
+        if (!empty($filter_line_no)) { $this->db->where('a.line_no', $filter_line_no); }
+        else { $this->db->where_in("a.line_no", $lines); }
+        // $this->db->like('a.line_no', $filter_line_no);
         $this->db->like('a.product_no', $filter_product_no);
         $this->db->group_by("a.product_no");
         $this->db->order_by("a.product_no", "asc");
+        // die($this->db->get_compiled_select());
         $recordDetails = $this->db->get()->result_array();
 
         $mpp = array();
@@ -298,20 +328,25 @@ class Generate_mpp extends CI_Controller{
 
         $filter_revision = $revisions->revision;
 
+        $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+        $this->db->distinct()->select("TRIM(customer) AS line")->from("setting_customer")->where(["user_id" => $nik]);
+        // die($this->db->get_compiled_select());
+        $lines = explode(',', $this->db->get()->row()->line);
+
         $this->db->select('a.*, b.line_nick');
         $this->db->from('generate_mpp a');
         $this->db->join('mst_line b', 'a.line_no = b.line_no');
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
         //$this->db->where('a.revision', $filter_revision);
-        if($filter_line_no != ""){
-            $this->db->where('a.line_no', $filter_line_no);
-        }
+        if ($filter_line_no != "") { $this->db->where('a.line_no', $filter_line_no); }
+        else { $this->db->where_in('a.line_no', $lines); }
         if($filter_product_no != ""){
             $this->db->where('a.product_no', $filter_product_no);
         }
         $this->db->order_by('a.line_no', 'ASC');
         $this->db->order_by('a.product_no', 'ASC');
+        // die($this->db->get_compiled_select());
         $totalRows = $this->db->count_all_results('', false);
 
         $records = $this->db->get()->result_array();
@@ -319,6 +354,7 @@ class Generate_mpp extends CI_Controller{
         if(count($records) > 0){
             $this->dummy = $this->load->database('dummy', TRUE);
             $this->pg2 = $this->load->database('pg2', TRUE);
+            $rows = [];
 
             $periode = $filter_year . $filter_month;
 
@@ -759,7 +795,7 @@ class Generate_mpp extends CI_Controller{
                     $firstDate = date("Y-m-d", strtotime("+1 day", strtotime($firstDate)));
                     $no++;
                 }
-
+                // die(var_dump($row));
                 $last_assy_no = $assy_no;
                 $last_line_no = $line_no;
                 $pos_assy++;
@@ -794,14 +830,18 @@ class Generate_mpp extends CI_Controller{
         $revisions = $this->db->get()->row();
         $filter_revision = $revisions->revision;
 
+        $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+        $this->db->distinct()->select("TRIM(customer) AS line")->from("setting_customer")->where(["user_id" => $nik]);
+        // die($this->db->get_compiled_select());
+        $lines = explode(',', $this->db->get()->row()->line);
+
         $this->db->select('a.*');
         $this->db->from('(SELECT * FROM generate_mpp order by prod_plan desc) a');
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
         $this->db->where('a.revision', $filter_revision);
-        if($filter_line_no != ""){
-            $this->db->where('a.line_no', $filter_line_no);
-        }
+        if ($filter_line_no != "") { $this->db->where('a.line_no', $filter_line_no); }
+        else { $this->db->where_in('a.line_no', $lines); }
         if($filter_product_no != ""){
             $this->db->where('a.product_no', $filter_product_no);
         }
@@ -880,6 +920,11 @@ class Generate_mpp extends CI_Controller{
 
         $filter_revision = $revisions->revision;
 
+        $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+        $this->db->distinct()->select("TRIM(customer) AS line")->from("setting_customer")->where(["user_id" => $nik]);
+        // die($this->db->get_compiled_select());
+        $lines = explode(',', $this->db->get()->row()->line);
+
         $this->db->select('product_no, SUM(date_1 + date_2 + date_3 + date_4 + date_5 + date_6 + date_7 + date_8 + date_9 + date_10 + 
             date_11 + date_12 + date_13 + date_14 + date_15 + date_16 + date_17 + date_18 + date_19 + date_20 +
             date_21 + date_22 + date_23 + date_24 + date_25 + date_26 + date_27 + date_28 + date_29 + date_30 + date_31) as qty');
@@ -887,9 +932,8 @@ class Generate_mpp extends CI_Controller{
         $this->db->where('p_month', $filter_month);
         $this->db->where('p_year', $filter_year);
         $this->db->where('revision', $filter_revision);
-        if($filter_line_no != ""){
-            $this->db->where('line_no', $filter_line_no);
-        }
+        if ($filter_line_no != "") { $this->db->where('line_no', $filter_line_no); }
+        else { $this->db->where_in('line_no', $lines); }
         if($filter_product_no != ""){
             $this->db->where('product_no', $filter_product_no);
         }
@@ -942,14 +986,18 @@ class Generate_mpp extends CI_Controller{
 
         $filter_revision = $revisions->revision;
 
+        $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+        $this->db->distinct()->select("TRIM(customer) AS line")->from("setting_customer")->where(["user_id" => $nik]);
+        // die($this->db->get_compiled_select());
+        $lines = explode(',', $this->db->get()->row()->line);
+
         $this->db->select('a.*');
         $this->db->from('generate_mpp a');
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
         $this->db->where('a.revision', $filter_revision);
-        if($filter_line_no != ""){
-            $this->db->where('a.line_no', $filter_line_no);
-        }
+        if ($filter_line_no != "") { $this->db->where('a.line_no', $filter_line_no); }
+        else { $this->db->where_in('a.line_no', $lines); }
         if($filter_product_no != ""){
             $this->db->where('a.product_no', $filter_product_no);
         }
@@ -1164,16 +1212,21 @@ class Generate_mpp extends CI_Controller{
                 "revision" => $post['revision'],
                 "product_no" => $post['product_no']
             ]);
+            $nick = $this->api->read('mst_customer', [], ["number" => $post['customer_id']]);
 
-            if ($read) {
-                $send = $this->api->update('generate_mpp', [
-                    "p_month" => $post['p_month'],
-                    "p_year" => $post['p_year'],
-                    "revision" => $post['revision'],
-                    "product_no" => $post['product_no']
-                ], $post);
+            if (empty($nick)) {
+                $send = ["title" => "Error", "message" => "Customer undefined for this Product No, ".$post['product_no'], "theme" => "error"];
             } else {
-                $send = $this->api->create('generate_mpp', $post, "MPP", "MPP");
+                if ($read) {
+                    $send = $this->api->update('generate_mpp', [
+                        "p_month" => $post['p_month'],
+                        "p_year" => $post['p_year'],
+                        "revision" => $post['revision'],
+                        "product_no" => $post['product_no']
+                    ], $post);
+                } else {
+                    $send = $this->api->create('generate_mpp', $post, "MPP".$nick->nickname.$post['revision'], "MPP");
+                }
             }
 
             echo $send;
@@ -1255,6 +1308,11 @@ class Generate_mpp extends CI_Controller{
         $firstDate = date('Y-m-01', strtotime($filter_year . "-" . $filter_month . "-01"));
         $endDate = date('Y-m-t', strtotime($filter_year . "-" . $filter_month . "-01"));
 
+        $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+        $this->db->distinct()->select("TRIM(customer) AS line")->from("setting_customer")->where(["user_id" => $nik]);
+        // die($this->db->get_compiled_select());
+        $lines = explode(',', $this->db->get()->row()->line);
+
         //MPS
         $this->db->select("a.line_no, b.remarks");
         $this->db->from('generate_mpp a');
@@ -1262,9 +1320,8 @@ class Generate_mpp extends CI_Controller{
         $this->db->where('a.p_month', $filter_month);
         $this->db->where('a.p_year', $filter_year);
         $this->db->where('a.revision', $filter_revision);
-        if($filter_line_no != ""){
-            $this->db->where('a.line_no', $filter_line_no);
-        }
+        if ($filter_line_no != "") { $this->db->where('a.line_no', $filter_line_no); }
+        else { $this->db->where_in('a.line_no', $lines); }
         if($filter_product_no != ""){
             $this->db->where('a.product_no', $filter_product_no);
         }

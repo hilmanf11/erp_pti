@@ -78,7 +78,7 @@ class Supplier_items_log extends CI_Controller
         if ($option == "excel") {
             $format  = date("Ymd");
             header("Content-type: application/vnd-ms-excel");
-            header("Content-Disposition: attachment; filename=forecast_supplier_$format.xls");
+            header("Content-Disposition: attachment; filename=vendor_contract_historical_$format.xls");
         }
 
         //Config

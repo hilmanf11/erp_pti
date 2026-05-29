@@ -150,9 +150,9 @@
             "&filter_from=" + window.btoa(filter_from) +
             "&filter_to=" + window.btoa(filter_to);
 
-        if (vendor_id == "" && item_id == "" && product_family == "") {
-            toastr.info("Please Select Vendor, Product Family or Item ID");
-        } else {
+        // if (vendor_id == "" && item_id == "" && product_family == "") {
+            // toastr.info("Please Select Vendor, Product Family or Item ID");
+        // } else {
             $('#dg').datagrid({
                 url: '<?= base_url('planning/os_purchase_order/datatables') ?>' + url,
                 pagination: true,
@@ -237,7 +237,7 @@
                 // }
             });
             $("#printout").attr('src', '<?= base_url('planning/os_purchase_order/print') ?>' + url);
-        }
+        // }
     }
 
     function pdf() {

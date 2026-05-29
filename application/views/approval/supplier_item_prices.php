@@ -16,7 +16,32 @@
     }
 
     function export_excel() {
-		$('#dg').datagrid('toExcel', "approval_<?= $table ?>.xls");
+    	var tb = $('<table>'), dg = $('#dg');
+    	var columns = dg.datagrid('options').columns, new_column = [], idx = [];
+
+    	delete columns[0][0];
+    	columns[0].forEach(function (arr, index) {
+    		delete arr.rowspan;
+			if (arr.colspan == undefined) { new_column.push(arr); }
+			else {
+				for (var i = 0; i < arr.colspan; i++) {
+					idx.push(new_column.length);
+					new_column.push(arr);
+				}
+			}
+    	});
+    	columns[1].forEach(function (arr, index) {
+    		arr.title = new_column[idx[index]].title + ' ' + arr.title;
+			new_column[idx[index]] = arr;
+    	});
+
+    	tb.datagrid({
+	        data: dg.datagrid('getData').rows,
+	        columns: [new_column]
+	    });
+	    setTimeout(function () {
+	    	tb.datagrid('toExcel', "approval_<?= $table ?>.xls");
+	    },0);
 	}
 
 	function approve() {
@@ -116,8 +141,7 @@
 								url: '<?= base_url('approvals/disapprove') ?>',
 								data: {
 									id: row.id,
-									tablename: "<?= $table ?>",
-									message: message
+									tablename: "<?= $table ?>"
 								},
 								success: function(result) {
 									var result = eval('(' + result + ')');
@@ -170,6 +194,15 @@
         return "<b>" + formatter.format(value) + "</b>";
     }
 
+    function styleStatusPrice(value, row, index) {
+    	var style = "background-color: yellow;";
+    	if (parseFloat(row.balance_price) != 0) {
+    		if (parseFloat(row.balance_price) > 0) { style = 'background-color: red; color: white;'; }
+    		else { style = 'background-color: #34eb46;'; }
+    	}
+    	return style;
+    }
+
     $(function() {
         //SETTING DATAGRID EASYUI
         $('#dg').datagrid({
@@ -180,56 +213,96 @@
             remoteFilter: true,
             rownumbers: true,
             fit: true,
-            columns: [
-                [{
+            columns: [[
+            	{
 					field: 'ck',
 					checkbox: "true",
+					rowspan: 2
+				}, {
+					field: 'quotation_number',
+					halign: 'center',
+					title: "Quotation No",
+					rowspan: 2
+				}, {
+					field: 'quotation_date',
+					halign: 'center',
+					title: "Quotation Date",
+					rowspan: 2
 				}, {
 					field: 'item_id',
-					width: 200,
 					halign: 'center',
 					title: "Item No",
 					formatter: Itemid,
+					rowspan: 2
 				}, {
 					field: 'supplier_name',
-					width: 250,
 					halign: 'center',
 					title: "Vendor",
+					rowspan: 2
 				}, {
 					field: 'maker_name',
-					width: 150,
 					halign: 'center',
 					title: "Maker",
-				}, {
-					field: 'price',
-					width: 100,
-					halign: 'center',
-					title: "Price",
-					formatter: numberformat,
+					rowspan: 2
 				}, {
 					field: 'currency',
-					width: 80,
 					halign: 'center',
-					title: "Currency"
+					title: "Currency",
+					rowspan: 2
+				}, {
+					field: 'price_last',
+					halign: 'center',
+					title: "Last Price",
+					formatter: numberformat,
+					rowspan: 2
+				}, {
+					field: 'price',
+					halign: 'center',
+					title: "New Price",
+					formatter: numberformat,
+					rowspan: 2
+				}, {
+					field: 'balance_price',
+					halign: 'center',
+					title: "Balance Price",
+					formatter: numberformat,
+					rowspan: 2
+				}, {
+					field: 'status_price',
+					align: 'center',
+					halign: 'center',
+					title: "Price Status",
+					styler: styleStatusPrice,
+					rowspan: 2
 				}, {
 					field: 'start_date',
-					width: 100,
 					align: 'right',
 					halign: 'center',
 					title: "Start Date",
+					rowspan: 2
 				}, {
-					field: 'valid_date',
-					width: 100,
-					align: 'right',
 					halign: 'center',
 					title: "Valid Date",
+					colspan: 2
 				}, {
 					field: 'remarks',
-					width: 200,
 					halign: 'center',
 					title: "Remarks",
-				}]
-            ],
+					rowspan: 2
+				}
+			],[
+				{
+					field: 'valid_date_bf',
+					align: 'right',
+					halign: 'center',
+					title: "Before"
+				}, {
+					field: 'valid_date',
+					align: 'right',
+					halign: 'center',
+					title: "After"
+				}
+			]],
         }).datagrid('enableFilter');
     });
 </script>

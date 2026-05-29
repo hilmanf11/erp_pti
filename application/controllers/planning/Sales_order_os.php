@@ -22,6 +22,8 @@ class Sales_order_os extends CI_Controller
             redirect('error_session');
         } elseif ($this->checkuserAccess($this->id_menu()) > 0) {
             $data['button'] = $this->getbutton($this->id_menu());
+            $data['nik'] = $this->api->read('user', [], ['id' => $this->session->id])->number;
+
             $this->load->view('template/header', $data);
             $this->load->view('planning/sales_order_os');
         } else {
@@ -57,8 +59,24 @@ class Sales_order_os extends CI_Controller
                 $endMonth = date("Y-m-d", strtotime($filter_year . "-" . $filter_month . "-" . $planConfig->cutoff_day_to));
             }
 
-            $items = $this->api->reads("mst_item", ["item_id" => $filter_product_no, "id_customer" => $filter_customer], ["stscode_id" => "01", "pfm_id" => "06"]);
-            foreach ($items as $item) {
+            $customers = [];
+            if (empty($filter_customer_id)) {
+                $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+                $this->db->distinct()->select("customer")->from("setting_customer")->where(["user_id" => $nik]);
+                $wheres = explode(',', $this->db->get()->row()->customer);
+                $this->db->distinct()->select("TRIM(b.number) AS number")
+                ->from("mst_line a")->join("mst_customer b", "a.customer_code = b.nickname")
+                ->where_in("a.line_no", $wheres);
+                foreach ($this->db->get()->result() as $index => $row)
+                    { array_push($customers, $row->number); }
+            }
+
+            // $items = $this->api->reads("mst_item", ["item_id" => $filter_product_no, "id_customer" => $filter_customer], ["stscode_id" => "01", "pfm_id" => "06"]);
+            $this->db->distinct()->select("*")->from("mst_item")
+            ->like(["item_id" => $filter_product_no])
+            ->where(["stscode_id" => "01", "pfm_id" => "06"])
+            ->where_in("id_customer", $customers);
+            foreach ($this->db->get()->result() as $item) {
                 $item_id = $item->item_id;
                 $item_name = $item->item_name;
                 $cust_id = $item->id_customer;
@@ -131,6 +149,18 @@ class Sales_order_os extends CI_Controller
             $offset = ($page - 1) * $rows;
             $result = array();
 
+            $customers = [];
+            if (empty($filter_customer_id)) {
+                $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+                $this->db->distinct()->select("customer")->from("setting_customer")->where(["user_id" => $nik]);
+                $wheres = explode(',', $this->db->get()->row()->customer);
+                $this->db->distinct()->select("TRIM(b.number) AS number")
+                ->from("mst_line a")->join("mst_customer b", "a.customer_code = b.nickname")
+                ->where_in("a.line_no", $wheres);
+                foreach ($this->db->get()->result() as $index => $row)
+                    { array_push($customers, $row->number); }
+            }
+
             //Select Query
             $this->db->select('a.*');
             $this->db->from('sales_order_os a');
@@ -162,8 +192,10 @@ class Sales_order_os extends CI_Controller
             $this->db->like('a.revision', $filter_revision);
             $this->db->like('a.customer_id', $filter_customer);
             $this->db->like('a.product_no', $filter_product_no);
+            $this->db->where_in("a.customer_id", $customers);
             $this->db->group_by('a.id');
             $this->db->order_by('a.trans_date', 'desc');
+            // die($this->db->get_compiled_select());
 
             //Total Data
             $totalRows = $this->db->count_all_results('', false);
@@ -309,7 +341,17 @@ class Sales_order_os extends CI_Controller
             );
 
             if($post['item_id'] != ""){
-                if (count($salesOrder) > 0) {
+                $customer = $this->api->read('mst_customer', [], ['number' => $post['cust_id']]);
+                $nik = $this->api->read('user', [], ['id' => $this->session->id])->number;
+                $this->db->distinct()->select("TRIM(b.customer_code) AS nick")
+                ->from("setting_customer a")->join("mst_line b", "FIND_IN_SET(b.line_no, a.customer)")
+                ->where(["user_id" => $nik])->order_by("nick");
+                $nicks = [];
+                foreach ($this->db->get()->result() as $index => $row) { array_push($nicks, $row->nick); }
+                // die(var_dump($customer->nickname));
+                if (!in_array($customer->nickname, $nicks)) {
+                    echo json_encode(array("title" => "Failed", "message" => "You Not Allowed to Entry This Customer, ".$customer->name, "theme" => "error"));
+                } elseif (count($salesOrder) > 0) {
                     $this->api->update('sales_order_os', [
                         "p_month" => $post['p_month'],
                         "p_year" => $post['p_year'],
@@ -387,8 +429,25 @@ class Sales_order_os extends CI_Controller
             $endMonth = date("Y-m-d", strtotime($filter_year . "-" . $filter_month . "-" . $planConfig->cutoff_day_to));
         }
 
-        $items = $this->api->reads("mst_item", ["item_id" => $filter_product_no, "id_customer" => $filter_customer], ["stscode_id" => "01", "pfm_id" => "06"]);
-        foreach ($items as $item) {
+        $customers = [];
+        if (empty($filter_customer_id)) {
+            $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+            $this->db->distinct()->select("customer")->from("setting_customer")->where(["user_id" => $nik]);
+            $wheres = explode(',', $this->db->get()->row()->customer);
+            $this->db->distinct()->select("TRIM(b.number) AS number")
+            ->from("mst_line a")->join("mst_customer b", "a.customer_code = b.nickname")
+            ->where_in("a.line_no", $wheres);
+            foreach ($this->db->get()->result() as $index => $row)
+                { array_push($customers, $row->number); }
+        }
+
+        // $items = $this->api->reads("mst_item", ["item_id" => $filter_product_no, "id_customer" => $filter_customer], ["stscode_id" => "01", "pfm_id" => "06"]);
+        // foreach ($items as $item) {
+        $this->db->distinct()->select("*")->from("mst_item")
+        ->like(["item_id" => $filter_product_no])
+        ->where(["stscode_id" => "01", "pfm_id" => "06"])
+        ->where_in("id_customer", $customers);
+        foreach ($this->db->get()->result() as $item) {
             $item_id = $item->item_id;
             $item_name = $item->item_name;
             $cust_id = $item->id_customer;
@@ -501,19 +560,18 @@ class Sales_order_os extends CI_Controller
         $filter_product_no = trim(base64_decode($this->input->get('filter_product_no')));
 
         //Select Query
-        $this->db->select('a.*, c.name as approved_by, b.updated_date as approved_date');
-        $this->db->from('sales_order_os a');
-        $this->db->join('notification b', 'a.id = b.table_id', 'left');
-        $this->db->join('user c', 'b.id_user_from = c.username', 'left');
+        $this->db->select('*');
+        $this->db->from('sales_order_os');
         if ($filter_month != "" or $filter_year != "") {
-            $this->db->where('a.p_month', $filter_month);
-            $this->db->where('a.p_year', $filter_year);
+            $this->db->where('p_month', $filter_month);
+            $this->db->where('p_year', $filter_year);
         }
-        $this->db->like('a.revision', $filter_revision);
-        $this->db->like('a.customer_id', $filter_customer);
-        $this->db->like('a.product_no', $filter_product_no);
-        $this->db->group_by('a.id');
-        $this->db->order_by('a.trans_date', 'desc');
+        $this->db->like('revision', $filter_revision);
+        $this->db->like('customer_id', $filter_customer);
+        $this->db->like('product_no', $filter_product_no);
+        $this->db->group_by('id');
+        $this->db->order_by('trans_date', 'desc');
+        // die($this->db->get_compiled_select());
         $records = $this->db->get()->result_array();
 
         $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>

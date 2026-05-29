@@ -300,6 +300,7 @@ class Purchase_request extends CI_Controller
             $filter_month = base64_decode($this->input->get('filter_month'));
             $filter_year = base64_decode($this->input->get('filter_year'));
             $filter_revision = base64_decode($this->input->get('filter_revision'));
+            $filter_supplier_id = base64_decode($this->input->get('filter_supplier_id'));
             $filter_product_family = base64_decode($this->input->get('filter_product_family'));
             $filter_part_no = trim(base64_decode($this->input->get('filter_part_no')));
 
@@ -319,6 +320,7 @@ class Purchase_request extends CI_Controller
             $this->db->where('a.p_month', $filter_month);
             $this->db->where('a.p_year', $filter_year);
             $this->db->where('a.revision', $filter_revision);
+            $this->db->like('a.supplier_id', $filter_supplier_id);
             $this->db->like('a.product_family', $filter_product_family);
             $this->db->like('a.part_no', $filter_part_no);
             $this->db->group_by('a.purchase_request_no');
@@ -402,14 +404,8 @@ class Purchase_request extends CI_Controller
             $leadtime = date('Y-m-01', strtotime('+'.$data['leadtime'].' days', strtotime($ending)));
 
             //Purchase History
-            $qpo1 = $this->db->query("SELECT qty FROM purchase_orders WHERE `purchase_order_date` LIKE '%$po_date_1%' and item_id = '$item_id' and revision = '$revision' and p_month = '$filter_month' and p_year = '$filter_year'");
-            $rpo1 = $qpo1->row();
-
-            $qpo2 = $this->db->query("SELECT qty FROM purchase_orders WHERE `purchase_order_date` LIKE '%$po_date_2%' and item_id = '$item_id' and revision = '$revision' and p_month = '$filter_month' and p_year = '$filter_year'");
-            $rpo2 = $qpo2->row();
-
-            $qpo3 = $this->db->query("SELECT qty FROM purchase_orders WHERE `purchase_order_date` LIKE '%$po_date_3%' and item_id = '$item_id' and revision = '$revision' and p_month = '$filter_month' and p_year = '$filter_year'");
-            $rpo3 = $qpo3->row();
+            $qpo1 = $this->db->query("SELECT DATE_FORMAT(purchase_order_date, '%Y-%m') as period, SUM(qty) as qty FROM purchase_orders WHERE DATE_FORMAT(purchase_order_date, '%Y-%m') IN ('$po_date_1','$po_date_2','$po_date_3') and item_id = '$item_id' GROUP BY DATE_FORMAT(purchase_order_date, '%Y-%m') ORDER BY DATE_FORMAT(purchase_order_date, '%Y-%m') asc");
+            $rpo1 = $qpo1->result_array();
             
             $m1 = date('Y-m-01', strtotime($leadtime));
             $m2 = date('Y-m-01', strtotime('+1 month', strtotime($leadtime)));
@@ -418,31 +414,25 @@ class Purchase_request extends CI_Controller
             $m22 = "m".date('n', strtotime('+1 month', strtotime($leadtime)));
             $m33 = "m".date('n', strtotime('+2 month', strtotime($leadtime)));
 
-            $qmps1 = $this->db->query("SELECT qty FROM generate_mrp WHERE `period` = '$m1' and product_no = '$item_id' and revision = '$revision' and p_month = '$filter_month' and p_year = '$filter_year'");
-            $rpms1 = $qmps1->row();
-
-            $qmps2 = $this->db->query("SELECT qty FROM generate_mrp WHERE `period` = '$m2' and product_no = '$item_id' and revision = '$revision' and p_month = '$filter_month' and p_year = '$filter_year'");
-            $rpms2 = $qmps2->row();
-
-            $qmps3 = $this->db->query("SELECT qty FROM generate_mrp WHERE `period` = '$m3' and product_no = '$item_id' and revision = '$revision' and p_month = '$filter_month' and p_year = '$filter_year'");
-            $rpms3 = $qmps3->row();
+            $qmps1 = $this->db->query("SELECT `period`, SUM(qty) as qty FROM generate_mrp WHERE `period` IN ('$m1','$m2','$m3') and product_no = '$item_id' and revision = '$revision' and p_month = '$filter_month' and p_year = '$filter_year' GROUP BY `period` ORDER BY `period` ASC");
+            $rpms1 = $qmps1->result_array();
 
             $forecast = $this->forecast($item_id, $filter_month, $filter_year, @$revision);
 
-            if(@$rpms1->qty > 0){
-                $prod1 = @$rpms1->qty;
+            if(@$rpms1[0]['qty'] > 0){
+                $prod1 = @$rpms1[0]['qty'];
             }else{
                 $prod1 = @$forecast->$m11;
             }
 
-            if(@$rpms2->qty > 0){
-                $prod2 = @$rpms2->qty;
+            if(@$rpms1[1]['qty'] > 0){
+                $prod2 = @$rpms1[1]['qty'];
             }else{
                 $prod2 = @$forecast->$m22;
             }
 
-            if(@$rpms3->qty > 0){
-                $prod3 = @$rpms3->qty;
+            if(@$rpms1[2]['qty'] > 0){
+                $prod3 = @$rpms1[2]['qty'];
             }else{
                 $prod3 = @$forecast->$m33;
             }
@@ -450,20 +440,20 @@ class Purchase_request extends CI_Controller
             $class = ($productTotals[$data['part_no']] >= 100) ? 'red' : '';
             $finals[] = array_merge($data, [
                 "color" => $class,
-                "m1" => empty(@$rpo1->qty) ? 0 : @$rpo1->qty,
-                "m2" => empty(@$rpo2->qty) ? 0 : @$rpo2->qty,
-                "m3" => empty(@$rpo3->qty) ? 0 : @$rpo3->qty,
-                "avg" => empty((@$rpo1->qty + @$rpo2->qty + @$rpo3->qty)) ? 0 : ((@$rpo1->qty + @$rpo2->qty + @$rpo3->qty) / 3),
+                "m1" => empty(@$rpo1[0]['qty']) ? 0 : @$rpo1[0]['qty'],
+                "m2" => empty(@$rpo1[1]['qty']) ? 0 : @$rpo1[1]['qty'],
+                "m3" => empty(@$rpo1[2]['qty']) ? 0 : @$rpo1[2]['qty'],
+                "avg" => empty((@$rpo1[0]['qty'] + @$rpo1[1]['qty'] + @$rpo1[2]['qty'])) ? 0 : ((@$rpo1[0]['qty'] + @$rpo1[1]['qty'] + @$rpo1[2]['qty']) / 3),
                 "prodplan_1" => $prod1,
                 "prodplan_2" => $prod2,
                 "prodplan_3" => $prod3,
                 "avg_forecast" => round(($data['forecast_m1'] + $data['forecast_m2'] + $data['forecast_m3'] + $data['forecast_plus_1'] + $data['forecast_plus_2'] + $data['forecast_plus_3'] + $prod1 + $prod2 + $prod3) / 9)
             ]);
 
-            $total_m1 += empty(@$rpo1->qty) ? 0 : @$rpo1->qty;
-            $total_m2 += empty(@$rpo2->qty) ? 0 : @$rpo2->qty;
-            $total_m3 += empty(@$rpo3->qty) ? 0 : @$rpo3->qty;
-            $total_avg += empty((@$rpo1->qty + @$rpo2->qty + @$rpo3->qty)) ? 0 : ((@$rpo1->qty + @$rpo2->qty + @$rpo3->qty) / 3);
+            $total_m1 += empty(@$rpo1[0]['qty']) ? 0 : @$rpo1[0]['qty'];
+            $total_m2 += empty(@$rpo1[1]['qty']) ? 0 : @$rpo1[1]['qty'];
+            $total_m3 += empty(@$rpo1[2]['qty']) ? 0 : @$rpo1[2]['qty'];
+            $total_avg += empty((@$rpo1[0]['qty'] + @$rpo1[1]['qty'] + @$rpo1[2]['qty'])) ? 0 : ((@$rpo1[0]['qty'] + @$rpo1[1]['qty'] + @$rpo1[2]['qty']) / 3);
             $total_prodplan_1 += $prod1;
             $total_prodplan_2 += $prod2;
             $total_prodplan_3 += $prod3;
@@ -629,6 +619,7 @@ class Purchase_request extends CI_Controller
             $filter_month = base64_decode($this->input->get('filter_month'));
             $filter_year = base64_decode($this->input->get('filter_year'));
             $filter_revision = base64_decode($this->input->get('filter_revision'));
+            $filter_supplier_id = base64_decode($this->input->get('filter_supplier_id'));
             $filter_product_family = base64_decode($this->input->get('filter_product_family'));
             $filter_part_no = trim(base64_decode($this->input->get('filter_part_no')));
 
@@ -647,6 +638,7 @@ class Purchase_request extends CI_Controller
             $this->db->where('a.p_month', $filter_month);
             $this->db->where('a.p_year', $filter_year);
             $this->db->where('a.revision', $filter_revision);
+            $this->db->like('a.supplier_id', $filter_supplier_id);
             $this->db->like('a.product_family', $filter_product_family);
             $this->db->like('a.part_no', $filter_part_no);
             $this->db->order_by('a.part_no', 'ASC');

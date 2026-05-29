@@ -61,15 +61,29 @@ class Mst_data extends CI_Controller
     {
         $post = isset($_POST['q']) ? $_POST['q'] : "";
         $customer_id = $this->input->get('customer_id');
-        $items = $this->api->reads('mst_item', ["item_id" => $post, "id_customer" => $customer_id], ["pfm_id" => '06', "stscode_id" => "01"], "", "item_id", "asc", "", "item_id, item_name");
 
-        $arr = array();
-        foreach ($items as $item) {
-            $arr[] = array(
-                "item_id" => $item->item_id,
-                "item_name" => $item->item_name
-            );
-        }
+        // $items = $this->api->reads('mst_item', ["item_id" => $post, "id_customer" => $customer_id], ["pfm_id" => '06', "stscode_id" => "01"], "", "item_id", "asc", "", "item_id, item_name");
+
+        // $arr = array();
+        // foreach ($items as $item) {
+        //     $arr[] = array(
+        //         "item_id" => $item->item_id,
+        //         "item_name" => $item->item_name
+        //     );
+        // }
+
+        $this->db->distinct()->select(
+            "TRIM(a.item_id) AS product_no, ".
+            "TRIM(a.item_name) AS product_name, ".
+            "COALESCE(b.nickname, '') AS cust_nick, ".
+            "COALESCE(b.name, '') AS cust_name"
+        )->from("mst_item a")->join("mst_customer b", "a.id_customer = b.number", "LEFT")
+        ->like(["a.item_id" => $post, "a.id_customer" => $customer_id])
+        ->where(["a.pfm_id" => '06', "a.stscode_id" => "01"])
+        ->group_by("a.item_id, a.item_name")->order_by("item_id");
+        // die($this->db->get_compiled_select());
+        $arr = $this->db->get()->result();
+
         echo json_encode($arr);
     }
 
@@ -100,7 +114,19 @@ class Mst_data extends CI_Controller
     public function readCustomers()
     {
         $post = isset($_POST['q']) ? $_POST['q'] : "";
-        $customers = $this->api->reads('mst_customer', ["name" => "PT", "name" => $post], [], "", "name", "asc");
+        if (!empty($this->input->get('setting'))) {
+            $this->db->distinct()->select("c.*")
+            ->from("setting_customer a")
+            ->join("mst_line b", "FIND_IN_SET(b.line_no, a.customer)")
+            ->join("mst_customer c", "b.customer_code = c.nickname")
+            ->like(["c.name" => $post])
+            ->where(["a.user_id" => $this->input->get('setting')])
+            ->order_by("name");
+            // die($this->db->get_compiled_select());
+            $customers = $this->db->get()->result();
+        } else {
+            $customers = $this->api->reads('mst_customer', ["name" => "PT", "name" => $post], [], "", "name", "asc");
+        }
         echo json_encode($customers);
     }
     
@@ -112,9 +138,7 @@ class Mst_data extends CI_Controller
     }
 
     public function readUom(){
-        $query = $this->db->query("SELECT number, name FROM uom ORDER BY number ASC");
-        $records = $query->result_array();
-
-        echo json_encode($records);
+        $this->db->distinct()->select("*")->from("uom")->order_by("name");
+        echo json_encode($this->db->get()->result());
     }
 }

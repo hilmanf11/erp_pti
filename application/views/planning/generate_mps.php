@@ -1,31 +1,31 @@
 <div id="f" class="easyui-panel" style="width:100%; background: #F4F4F4; padding:10px;">
     <div style="width: 100%; display: grid; grid-template-columns: auto auto auto; grid-gap: 5px; display: flex;">
-        <fieldset style="width: 45%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
+        <fieldset style="width: 47%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
             <legend><b>Form Filter Data</b></legend>
             <div class="fitem">
-                <span style="width:35%; display:inline-block;">Period</span>
-                <input style="width:30%;" name="filter_month" id="filter_month" value="<?= date("m") ?>" class="easyui-combobox" data-options="prompt:'Month'">
-                <input style="width:30%;" name="filter_year" id="filter_year" value="<?= date("Y") ?>" class="easyui-combobox" data-options="prompt:'Year'">
+                <span style="width:20%; display:inline-block;">Period</span>
+                <input style="width:35%;" name="filter_month" id="filter_month" value="<?= date("m") ?>" class="easyui-combobox" data-options="prompt:'Month'">
+                <input style="width:35%;" name="filter_year" id="filter_year" value="<?= date("Y") ?>" class="easyui-combobox" data-options="prompt:'Year'">
             </div>
             <div class="fitem">
-                <span style="width:35%; display:inline-block;">Revision</span>
-                <input style="width:60%;" name="filter_revision" id="filter_revision" value="<?= "0" ?>" class="easyui-combobox" data-options="prompt:'Revision'" panelHeight="auto">
+                <span style="width:20%; display:inline-block;">Revision</span>
+                <input style="width:70%;" name="filter_revision" id="filter_revision" value="<?= "0" ?>" class="easyui-combobox" data-options="prompt:'Revision'" panelHeight="auto">
             </div>
             <div class="fitem">
-                <span style="width:35%; display:inline-block;">Customer Name</span>
-                <input style="width:60%;" id="filter_line_no" class="easyui-combobox">
+                <span style="width:20%; display:inline-block;">Customer Name</span>
+                <input style="width:70%;" id="filter_line_no" class="easyui-combobox">
             </div>
             <div class="fitem" hidden>
-                <span style="width:35%; display:inline-block;">Customer</span>
-                <input style="width:60%;" id="filter_customer_id" class="easyui-combobox">
+                <span style="width:20%; display:inline-block;">Customer</span>
+                <input style="width:70%;" id="filter_customer_id" class="easyui-combobox">
             </div>
             <div class="fitem">
-                <span style="width:35%; display:inline-block;">Product No</span>
-                <input style="width:60%;" name="filter_product_no" id="filter_product_no" class="easyui-combogrid">
+                <span style="width:20%; display:inline-block;">Product No</span>
+                <input style="width:70%;" name="filter_product_no" id="filter_product_no" class="easyui-combogrid">
             </div>
             <div class="fitem">
-                <span style="width:35%; display:inline-block;">Criteria</span>
-                <select style="width:60%;" id="filter_criteria" class="easyui-combobox" data-options="prompt:'Select Criteria'" panelHeight="auto">
+                <span style="width:20%; display:inline-block;">Criteria</span>
+                <select style="width:70%;" id="filter_criteria" class="easyui-combobox" data-options="prompt:'Select Criteria'" panelHeight="auto">
                     <option value="all">Select All</option>
                     <option value="fast">Fast</option>
                     <option value="medium">Medium</option>
@@ -33,14 +33,15 @@
                 </select>
             </div>
             <div class="fitem">
-                <span style="width:35%; display:inline-block;"></span>
+                <span style="width:20%; display:inline-block;"></span>
                 <a href="javascript:;" class="easyui-linkbutton" onclick="filter()"><i class="fa fa-search"></i> Filter Data</a>
                 <a href="javascript:;" class="easyui-linkbutton c2" onclick="formula()"><i class="fa fa-list"></i> Formula</a>
                 <a href="javascript:;" class="easyui-linkbutton c1" id="push_data" onclick="push_data()"><i class="fa fa-database"></i> Push Data</a>
                 <a href="javascript:;" class="easyui-linkbutton c6" id="push_revision" onclick="push_revision()"><i class="fa fa-copy"></i> Copy Rev</a>
+                <a href="javascript:;" class="easyui-linkbutton c5" id="push_revision" onclick="filter('display')"><i class="fa fa-search"></i> Display MPS</a>
             </div>
         </fieldset>
-        <fieldset style="width: 15%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
+        <fieldset style="width: 13.5%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
             <legend><b>Component Check</b></legend>
             <div style="margin:12px;">
                 <input class="easyui-checkbox" id="check_forecast" value="on" readonly="true"> &nbsp; Forecast
@@ -61,7 +62,7 @@
                 <input class="easyui-checkbox" id="check_ost_mpp" value="on" readonly="true"> &nbsp; OST MPP
             </div>
         </fieldset>
-        <fieldset style="width: 15%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
+        <fieldset style="width: 13%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
             <legend><b>Working Calendar</b></legend>
             <div id="showWorkingCalendar">
 
@@ -99,6 +100,7 @@
 <div id="p" class="easyui-panel" title="Print Preview" style="width:100%;">
     <iframe id="printout" src="" style="width: 100%; height: 450px; border: 0;"></iframe>
 </div>
+<div id="dlg_display_mps" class="easyui-window" style="width: 1200px; height: 550px;" data-options="{resizable:true}"><iframe id="printout_mps" src="" style="width: 100%; height: 100%; border: 0;"></iframe></div>
 <script>
     function formula() {
         $("#dlg-formula").dialog('open');
@@ -113,7 +115,7 @@
         var filter_product_no = $("#filter_product_no").combogrid('getValue');
 
         $.messager.prompt('Push Data MPS', 'Please input Password Push Data', function(r){
-            if (r == "TESTINGMPS123"){
+            if (r == "PUSHDATAMPS"){
                 Swal.fire({
                     title: 'Please Wait for Push Data',
                     showConfirmButton: false,
@@ -268,7 +270,7 @@
 
                     $.ajax({
                         type: "get",
-                        url: "<?= base_url('planning/generate_mps/getdata') ?>",
+                        url: "<?= base_url('planning/generate_mps/getData') ?>",
                         data: "filter_month=" + window.btoa(filter_month) +
                             "&filter_year=" + window.btoa(filter_year) +
                             "&filter_revision=" + window.btoa(filter_revision) +
@@ -337,6 +339,9 @@
                                     });
                                 }
                             }
+                        }, error: function(){
+                            Swal.close();
+                            Swal.fire('Failed!', 'Process Get Data Not Completed!', 'error');
                         }
                     });
                 }
@@ -449,7 +454,7 @@
         window.open('<?= base_url('planning/generate_mps/uploadDownloadFailed') ?>', '_blank');
     }
 
-    function filter() {
+    function filter(act = '') {
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").textbox('getValue');
         var filter_revision = $("#filter_revision").combobox('getValue');
@@ -458,19 +463,26 @@
         var filter_product_no = $("#filter_product_no").combogrid('getValue');
         var filter_criteria = $("#filter_criteria").combobox('getValue');
 
-        var url = "?filter_month=" + window.btoa(filter_month) +
-            "&filter_year=" + window.btoa(filter_year) +
-            "&filter_revision=" + window.btoa(filter_revision) +
-            "&filter_line_no=" + window.btoa(filter_line_no) +
-            "&filter_customer_id=" + window.btoa(filter_customer_id) +
-            "&filter_product_no=" + window.btoa(filter_product_no) +
-            "&filter_criteria=" + window.btoa(filter_criteria);
-
         if (filter_month == "" || filter_year == "") {
             toastr.warning("Please select Period!", "Information");
         } else {
-            $("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
-            $("#printout").attr('src', '<?= base_url('planning/generate_mps/print') ?>' + url);
+            var iframe = 'printout';
+            if (act == 'display') {
+                iframe += '_mps';
+
+                if (filter_line_no == '') { filter_line_no = 'all'; }
+
+                $('#dlg_display_mps').dialog('open');
+            }
+            $("#"+iframe).contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
+            $("#"+iframe).attr('src', "<?= base_url('planning/generate_mps/print') ?>"+
+                "?filter_month=" + window.btoa(filter_month) +
+                "&filter_year=" + window.btoa(filter_year) +
+                "&filter_revision=" + window.btoa(filter_revision) +
+                "&filter_line_no=" + window.btoa(filter_line_no) +
+                "&filter_customer_id=" + window.btoa(filter_customer_id) +
+                "&filter_product_no=" + window.btoa(filter_product_no) +
+                "&filter_criteria=" + window.btoa(filter_criteria));
         }
     }
 
@@ -672,6 +684,12 @@
             rownumbers: true
         });
 
+        $('#dlg_display_mps').window({
+            modal: true,
+            closed: true,
+            title: "Display MPS"
+        }).window('close');
+
         $('#filter_month').combobox({
             url: '<?php echo base_url('planning/mst_data/readMonths'); ?>',
             valueField: 'id',
@@ -751,7 +769,7 @@
         });
 
         $('#filter_line_no').combobox({
-            url: '<?php echo base_url('planning/mst_line/reads'); ?>',
+            url: '<?php echo base_url('planning/mst_line/reads/setting_customer'); ?>',
             valueField: 'line_no',
             textField: 'remarks',
             prompt: 'Select Customer Name',
@@ -779,8 +797,8 @@
         $('#filter_product_no').combogrid({
             url: '<?= base_url('planning/mst_data/readProducts') ?>',
             panelWidth: 400,
-            idField: 'item_id',
-            textField: 'item_id',
+            idField: 'product_no',
+            textField: 'product_no',
             mode: 'remote',
             fitColumns: true,
             prompt: "Select Product No",
@@ -792,11 +810,11 @@
             }],
             columns: [
                 [{
-                    field: 'item_id',
+                    field: 'product_no',
                     title: 'Item ID',
                     width: 200
                 }, {
-                    field: 'item_name',
+                    field: 'product_name',
                     title: 'Item Name',
                     width: 200
                 }]

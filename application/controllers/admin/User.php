@@ -11,13 +11,13 @@ class User extends CI_Controller
         $this->load->library('form_validation');
         $this->load->library('session');
         $this->load->model('api');
-        $this->load->model('emails');
+        // $this->load->model('emails');
 
         //Validasi Form
         $this->form_validation->set_rules('name', 'Name', 'required|min_length[5]|max_length[50]');
         $this->form_validation->set_rules('username', 'Username', 'required|min_length[5]|max_length[30]|is_unique[user.username]');
         $this->form_validation->set_rules('password', 'Password', 'required|min_length[5]|max_length[30]');
-        $this->form_validation->set_rules('email', 'Email', 'required|min_length[5]|max_length[30]|is_unique[user.email]|valid_email');
+        $this->form_validation->set_rules('email', 'Email', 'required|min_length[5]|max_length[100]|is_unique[user.email]|valid_email');
     }
 
     public function index()
@@ -36,8 +36,35 @@ class User extends CI_Controller
 
     public function reads()
     {
-        $send = $this->api->reads('user');
+        $post = $this->input->post();
+        $where = [];
+
+        if (!empty($post)) {
+            $where = ["deleted_is" => 0, "actived_is" => 0];
+            $this->session->set_userdata('username', $post['is_api']);
+            unset($post['is_api']);
+        }
+
+        $send = $this->api->reads('user', $post['post'] ?? [], $where);
         echo json_encode($send);
+    }
+
+    public function readSupplier()
+    {
+        $post = $this->input->post('q');
+        $this->db->distinct()->select(
+            "TRIM(id) AS id,".
+            "TRIM(number) AS code,".
+            "TRIM(name) AS name"
+        )->from("suppliers");
+        if (!empty($post)) {
+            $this->db->group_start()
+                ->like("number", $post)
+                ->or_like("name", $post)
+            ->group_end();
+        }
+
+        echo json_encode($this->db->order_by("name")->get()->result());
     }
 
     public function datatables()
@@ -52,13 +79,16 @@ class User extends CI_Controller
             $offset = ($page - 1) * $rows;
             $result = array();
             //Select Query
-            $this->db->select('*');
-            $this->db->from('user');
-            $this->db->where('deleted_is', 0);
+            $this->db->select("a.*, COALESCE(TRIM(b.number),'') AS supp_code, COALESCE(TRIM(b.name),'') AS supp_name")
+                ->from('user a')->join("suppliers b", "a.supplier_id = b.id", "LEFT")
+                ->where('a.deleted_is', 0);
             //Filter Automatic
             if (@count($filters) > 0) {
                 foreach ($filters as $filter) {
-                    $this->db->like($filter->field, $filter->value);
+                    $field = $filter->field;
+                    if (in_array($field, ['supp_code'])) { $field = 'b.number'; }
+                    if (in_array($field, ['name', 'number'])) { $field = 'a.'.$field; }
+                    $this->db->like($field, $filter->value);
                 }
             }
             $this->db->order_by('name', 'ASC');

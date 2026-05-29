@@ -37,6 +37,7 @@
                 <span style="width:35%; display:inline-block;"></span>
                 <a href="javascript:;" class="easyui-linkbutton" onclick="filter()"><i class="fa fa-search"></i> Filter Data</a>
                 <a href="javascript:;" class="easyui-linkbutton" onclick="dataUploaded()"><i class="fa fa-database"></i> View Uploaded</a>
+                <a href="javascript:;" class="easyui-linkbutton" onclick="filter('display')"><i class="fa fa-search"></i> Display Data</a>
             </div>
         </fieldset>
         <fieldset style="width: 40%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
@@ -130,6 +131,21 @@
 
 <!-- PDF -->
 <iframe id="printout" src="" style="width: 100%;" hidden></iframe>
+
+<div id="dlg_display" class="easyui-window" title="Display Data" data-options="closed: true,modal:true" style="width: 1200px; height: 550px;">
+    <table id="dg_display" class="easyui-datagrid" style="width: 100%; height: 100%;">
+        <thead>
+            <tr>
+                <th data-options="field:'cust_name',width:'24%',halign:'center'">Customer</th>
+                <th data-options="field:'item_id',width:'20%',halign:'center'">Product No</th>
+                <th data-options="field:'item_name',width:'24%',halign:'center'">Product Name</th>
+                <th data-options="field:'circuit_no',width:'15%',align:'center'">CCT</th>
+                <th data-options="field:'stock',width:'15%',halign:'center',align:'right',editor:'numberbox'">Stock</th>
+                <th hidden data-options="field:'status',align:'center', styler:cellStyler">Status</th>
+            </tr>
+        </thead>
+    </table>
+</div>
 
 <script>
     //Add Data
@@ -288,27 +304,34 @@
         }
     }
 
-    function filter() {
+    function filter(act='') {
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").textbox('getValue');
         var filter_revision = $("#filter_revision").combobox('getValue');
         var filter_customer_id = $("#filter_customer_id").combobox('getValue');
         var filter_product_no = $("#filter_product_no").combogrid('getValue');
-        var url = "?filter_month=" + window.btoa(filter_month) +
-            "&filter_year=" + window.btoa(filter_year) +
-            "&filter_revision=" + window.btoa(filter_revision) +
-            "&filter_product_no=" + window.btoa(filter_product_no) +
-            "&filter_customer_id=" + window.btoa(filter_customer_id);
 
         if (filter_month == "" && filter_year == "") {
             toastr.warning("Please select Period!", "Information");
         } else {
-            $('#dg').datagrid({
-                url: '<?= base_url('planning/fg_stock/datatables') ?>' + url
-            }).datagrid('enableCellEditing').datagrid('gotoCell', {
+            var dg = 'dg';
+            if (act == 'display') {
+                dg += '_display';
+                if (filter_customer_id == '') { filter_customer_id = 'all'; }
+                $('#dlg_display').window('open');
+            }
+            var url = "?filter_month=" + window.btoa(filter_month) +
+                "&filter_year=" + window.btoa(filter_year) +
+                "&filter_revision=" + window.btoa(filter_revision) +
+                "&filter_product_no=" + window.btoa(filter_product_no) +
+                "&filter_customer_id=" + window.btoa(filter_customer_id);
+            $('#'+dg).datagrid('reload', "<?= base_url('planning/fg_stock/datatables') ?>"+url);
+            if (act == '') { $("#"+dg).datagrid('enableCellEditing').datagrid('gotoCell', {
                 index: 0,
                 field: 'item_id'
-            });
+            }) }
+
+            $("#printout").attr('src', '<?= base_url('planning/fg_stock/print') ?>' + url);
         }
     }
 
@@ -370,10 +393,11 @@
 
     $(function() {
         $("#filter_month").combobox('setValue', '<?= date("m") ?>');
-        $('#dg').datagrid({
-            url: '<?= base_url('planning/fg_stock/datatables') ?>',
-            rownumbers: true
-        });
+        $('#dg').datagrid({rownumbers: true});
+        $('#dg_display').datagrid({
+            rownumbers: true,
+            pagination: true
+        }).datagrid('enableFilter');
 
         $('#dlg_insert').dialog({
             buttons: [{
@@ -570,8 +594,8 @@
         $('#filter_product_no').combogrid({
             url: '<?= base_url('planning/mst_data/readProducts') ?>',
             panelWidth: 400,
-            idField: 'item_id',
-            textField: 'item_id',
+            idField: 'product_no',
+            textField: 'product_no',
             mode: 'remote',
             fitColumns: true,
             prompt: "Select Product No",
@@ -583,11 +607,11 @@
             }],
             columns: [
                 [{
-                    field: 'item_id',
+                    field: 'product_no',
                     title: 'Item ID',
                     width: 200
                 }, {
-                    field: 'item_name',
+                    field: 'product_name',
                     title: 'Item Name',
                     width: 200
                 }]
@@ -595,7 +619,7 @@
         });
 
         $('#filter_customer_id').combobox({
-            url: '<?php echo base_url('planning/mst_data/readCustomers'); ?>',
+            url: "<?= base_url('planning/mst_data/readCustomers') ?>?setting=<?= $nik ?>",
             valueField: 'number',
             textField: 'name',
             prompt: 'Select Customer',
@@ -608,7 +632,7 @@
         });
 
         $('#customer_id').combobox({
-            url: '<?php echo base_url('planning/mst_data/readCustomers'); ?>',
+            url: "<?= base_url('planning/mst_data/readCustomers') ?>?setting=t",
             valueField: 'number',
             textField: 'name',
             prompt: 'Select Customer',

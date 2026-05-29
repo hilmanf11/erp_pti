@@ -233,12 +233,13 @@
             $("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
             $("#printout").attr('src', '<?= base_url('planning/rm_stock/print') ?>' + url);
 
+            $('#dg').datagrid('disableFilter');
             $('#dg').datagrid({
                 rownumbers: true,
                 url: '<?= base_url('planning/rm_stock/datatables') ?>' + url
-            }).datagrid('enableCellEditing').datagrid('gotoCell', {
-                index: 0,
-                field: 'product_no'
+            // }).datagrid('enableCellEditing').datagrid('gotoCell', {
+            //     index: 0,
+            //     field: 'product_no'
             }).datagrid('enableFilter');
         }
     }

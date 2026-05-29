@@ -136,11 +136,12 @@ class History_transaction_rm extends CI_Controller
                                     <th style="text-align:center;">Ending</th>
                                 </tr>';
 
-                $queryd = $this->dummy->query("SELECT a.item_id, a.item_name, b.ith_date, b.ith_form, b.ith_docno, b.ith_qtybf, b.ith_qty, b.ith_qtyend, b.employee, b.inv_no, d.pfm_name, e.um_name
+                $queryd = $this->dummy->query("SELECT a.item_id, a.item_name, b.ith_date, b.ith_form, b.ith_docno, coalesce(c.qty_begin, 0) as ith_qtybf, b.ith_qty, b.ith_qtyend, b.employee, b.inv_no, d.pfm_name, e.um_name
                 FROM mst_item a 
                 JOIN ith b ON a.item_id = b.ith_item_id
                 JOIN r_prodfam d ON a.pfm_id = d.pfm_id
                 LEFT JOIN r_unit_measure e ON a.um_id = e.um_id
+                LEFT JOIN (SELECT ith_item_id, SUM(ith_qty) as qty_begin FROM ith WHERE ith_date < '$filter_from' and (whs_id is null or whs_id = 'WHS001') GROUP BY ith_item_id) c ON a.item_id = c.ith_item_id
                 WHERE a.pfm_id like '%$filter_product_family%' $where_part and b.ith_date between '$filter_from' and '$filter_to' and (b.whs_id is null or b.whs_id = 'WHS001')
                 order by a.item_id, b.ith_date asc");
                 $details = $queryd->result_array();

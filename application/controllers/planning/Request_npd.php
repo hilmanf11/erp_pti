@@ -63,10 +63,16 @@ class request_npd extends CI_Controller
             $offset = ($page - 1) * $rows;
             $result = array();
             //Select Query
-            $this->db->select('a.*, SUM(a.qty) as total_qty, count(a.id) as total_data, count(b.id) as total_status, count(c.id) as total_confirm');
+            $this->db->select('a.*, SUM(a.qty) as total_qty, count(a.id) as total_data, 
+                (CASE WHEN count(a.id) = COUNT(d.id) THEN 2
+                      WHEN count(b.id) = 0 THEN 0
+                      ELSE 1
+                END) as total_status, 
+                count(c.id) as total_confirm');
             $this->db->from('request_npd a');
             $this->db->join("(select * from request_npd where status = 0) b", 'a.id = b.id', 'left');
             $this->db->join("(select * from request_npd where confirm != '') c", 'a.id = c.id', 'left');
+            $this->db->join("(select * from request_npd where confirm != '' and confirm != 'CONFIRMED') d", 'a.id = d.id', 'left');
             if ($filter_from != "" and $filter_to != "") {
                 $this->db->where("a.request_date >=", $filter_from);
                 $this->db->where("a.request_date <=", $filter_to);
@@ -125,11 +131,38 @@ class request_npd extends CI_Controller
         echo json_encode($result);
     }
 
+    public function datatableUpdates(){
+        $request_no = base64_decode($this->input->get('request_no'));
+
+        //Select Query
+        $this->db->select('a.*, b.name as supplier_name');
+        $this->db->from('request_npd a');
+        $this->db->join('suppliers b', 'a.supplier_id = b.id', 'left');
+        $this->db->where('a.request_no', $request_no);
+        $this->db->where("a.id IN (select id from request_npd where (confirm is null or confirm = ''))");
+        $this->db->order_by('a.item_npd_id');
+        //Total Data
+        $totalRows = $this->db->count_all_results('', false);
+        //Get Data Array
+        $records = $this->db->get()->result_array();
+
+        //Mapping Data
+        $result['total'] = $totalRows;
+        $result = array_merge($result, ['rows' => $records]);
+        echo json_encode($result);
+    }
+
     public function create()
     {
         if ($this->input->post()) {
             $post = $this->input->post();
-            $send = $this->api->create('request_npd', $post, "PO", "JUTA");
+            
+            if(empty(($post['id']))){
+                $send = $this->api->create('request_npd', $post, "PO", "JUTA");
+            }else{
+                $send = $this->api->update('request_npd', ["id" => $post['id']], $post);   
+            }
+            
             echo $send;
         }
     }
@@ -139,6 +172,93 @@ class request_npd extends CI_Controller
         $data = $this->input->post();
         $send = $this->api->delete('request_npd', $data);
         echo $send;
+    }
+
+    public function upload()
+    {
+        error_reporting(0);
+        require_once 'assets/vendors/excel_reader2.php';
+        $target = basename($_FILES['file_upload']['name']);
+        move_uploaded_file($_FILES['file_upload']['tmp_name'], $target);
+        chmod($_FILES['file_upload']['name'], 0777);
+        $file = $_FILES['file_upload']['name'];
+        $data = new Spreadsheet_Excel_Reader($file, false);
+        $total_row = $data->rowcount($sheet_index = 0);
+
+        $code       = "NPD-".date("Ym");
+        $sqlGetID	= $this->db->query("SELECT max(request_no) as kode FROM request_npd WHERE request_no LIKE '%$code%'");
+        $rowID      = $sqlGetID->row();
+        $kode 		= $rowID->kode;
+
+        $urutan = (int) substr($kode, -3);
+        $urutan++;
+        $autoID	= sprintf("%03s", $urutan);
+
+        for ($i = 5; $i <= $total_row; $i++) {
+            $datas[] = array(
+                'item_npd_id' => $data->val($i, 2),
+                'item_npd_name' => $data->val($i, 3),
+                'product_family' => $data->val($i, 4),
+                'maker' => $data->val($i, 5),
+                'qty' => $data->val($i, 6),
+                'uom' => $data->val($i, 7),
+                'requirement_date' => $data->val($i, 8),
+                'category' => $data->val(2, 3),
+                'request_reason' => $data->val(3, 3),
+                "request_no" => $code . $autoID, 
+            );
+        }
+
+        $datas['total'] = count($datas);
+        echo json_encode($datas);
+
+        unlink($_FILES['file_upload']['name']);
+    }
+
+    public function uploadcreate()
+    {
+        if ($this->input->post()) {
+            $post = $this->input->post('data');
+
+            if($post['item_npd_id'] != "" && $post['item_npd_name'] != "" && $post['product_family'] != "" && $post['maker'] != "" && $post['qty'] != "" && $post['uom'] != ""){
+                $this->api->create('request_npd', array_merge($post, [
+                    "request_date" => date("Y-m-d"), 
+                    "request_by" => $this->session->name, 
+                ]), "PO", "JUTA");
+                echo json_encode(array("title" => "Good Job", "message" => "Product No " . $post['item_npd_id'] . " Created Successfully", "theme" => "success"));
+            }else{
+                echo json_encode(array("title" => "Error", "message" => "Item ID " . $post['item_npd_id'] . " Not Completed data", "theme" => "error"));
+            }
+        }
+    }
+
+    public function uploadclearFailed()
+    {
+        @unlink('excel/failed/request_npd.txt');
+    }
+
+    public function uploadcreateFailed()
+    {
+        if ($this->input->post()) {
+            $message = $this->input->post('message');
+            $textFailed = fopen('excel/failed/request_npd.txt', 'a');
+            fwrite($textFailed, $message . "\n");
+            fclose($textFailed);
+        }
+    }
+
+    public function uploadDownloadFailed()
+    {
+        $file = "excel/failed/request_npd.txt";
+
+        header('Content-Description: File Failed');
+        header('Content-Disposition: attachment; filename=' . basename($file));
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Content-Length: ' . @filesize($file));
+        header("Content-Type: text/plain");
+        @readfile($file);
     }
 
     public function print($option = "")

@@ -59,6 +59,10 @@
                 <span style="width:35%; display:inline-block;">Product No</span>
                 <input style="width:60%;" id="filter_item_id" class="easyui-combogrid">
             </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Document No</span>
+                <input style="width:60%;" id="filter_document" class="easyui-textbox">
+            </div>
             <div class="fitem" hidden>
                 <span style="width:35%; display:inline-block;">PO Status</span>
                 <select style="width:30%;" id="filter_status" class="easyui-combobox" panelHeight="auto">
@@ -224,11 +228,14 @@
         var filter_po_no = $("#filter_po_no").combobox('getValue');
         var filter_product_family = $("#filter_product_family").combobox('getValue');
         var filter_item_id = $("#filter_item_id").combogrid('getValue');
+        var filter_document = $("#filter_document").textbox('getValue');
+
         var url = "?filter_supplier=" + window.btoa(filter_supplier) +
             "&filter_status=" + window.btoa(filter_status) +
             "&filter_po_no=" + window.btoa(filter_po_no) +
             "&filter_product_family=" + window.btoa(filter_product_family) +
             "&filter_item_id=" + window.btoa(filter_item_id) +
+            "&filter_document=" + window.btoa(filter_document) +
             "&filter_from=" + window.btoa(filter_from) +
             "&filter_to=" + window.btoa(filter_to);
 
@@ -246,18 +253,21 @@
     }
 
     function excel() {
+        var filter_from = $("#filter_from").datebox('getValue');
+        var filter_to = $("#filter_to").datebox('getValue');
         var filter_supplier = $("#filter_supplier").combobox('getValue');
         var filter_status = $("#filter_status").combobox('getValue');
         var filter_po_no = $("#filter_po_no").combobox('getValue');
         var filter_product_family = $("#filter_product_family").combobox('getValue');
         var filter_item_id = $("#filter_item_id").combogrid('getValue');
-        var filter_from = $("#filter_from").datebox('getValue');
-        var filter_to = $("#filter_to").datebox('getValue');
+        var filter_document = $("#filter_document").textbox('getValue');
+
         var url = "?filter_supplier=" + window.btoa(filter_supplier) +
             "&filter_status=" + window.btoa(filter_status) +
             "&filter_po_no=" + window.btoa(filter_po_no) +
             "&filter_product_family=" + window.btoa(filter_product_family) +
             "&filter_item_id=" + window.btoa(filter_item_id) +
+            "&filter_document=" + window.btoa(filter_document) +
             "&filter_from=" + window.btoa(filter_from) +
             "&filter_to=" + window.btoa(filter_to);
         window.location.assign('<?= base_url('planning/delivery_confirm/print/excel') ?>' + url);
@@ -276,7 +286,7 @@
                 handler: function() {
                     var qty = $("#qty").numberbox('getValue');
                     var delivery = $("#delivery").numberbox('getValue');
-                    if (qty >= delivery) {
+                    if (parseInt(qty) >= parseInt(delivery)) {
                         $('#frm_insert').form('submit', {
                             url: url_save,
                             onSubmit: function() {

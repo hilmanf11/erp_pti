@@ -390,12 +390,18 @@ class Os_supply extends CI_Controller
                 <th>Product No</th>
                 <th>Product Name</th>
                 <th>Product Family</th>
-                <th>Stock</th>
+                <th>OS Supply</th>
                 <th>Actual</th>
                 <th>Status</th>
             </tr>';
         $no = 1;
         foreach ($records as $data) {
+            if($data['status'] == "EMPTY"){
+                $status = "GENERATE";
+            }else{
+                $status = $data['status'];
+            }
+
             $html .= '  <tr>
                             <td>' . $no . '</td>
                             <td style="mso-number-format:\@;">' . $data['product_no'] . '</td>
@@ -403,7 +409,7 @@ class Os_supply extends CI_Controller
                             <td>' . $data['product_family'] . '</td>
                             <td>' . $data['qty'] . '</td>
                             <td>' . $data['actual'] . '</td>
-                            <td>' . $data['status'] . '</td>
+                            <td>' . $status . '</td>
                         </tr>';
             $no++;
         }

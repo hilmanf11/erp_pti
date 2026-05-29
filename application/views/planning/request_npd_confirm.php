@@ -75,6 +75,7 @@
                         data: [
                             {id: 'CONFIRMED'},
                             {id: 'NOT EXIST'},
+                            {id: 'FREE SAMPLE'},
                             {id: 'CANCEL'}
                         ],
                         valueField: 'id',
@@ -399,16 +400,20 @@
     function cellStyler(value, row, index) {
         if (row.total_status == 0) {
             return 'background: #FF5F5F; color:white;';
-        } else {
+         } else if (row.total_status == 1) {
             return 'background: #53D636; color:white;';
+        } else {
+            return 'background: #FF5F5F; color:white;';
         }
     }
 
     function cellFormatter(val, row) {
         if (row.total_status == 0) {
             return 'CLOSE';
-        } else {
+        } else if (row.total_status == 1) {
             return 'OPEN';
+        } else {
+            return 'CANCEL';
         }
     };
 

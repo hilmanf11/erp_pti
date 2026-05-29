@@ -288,27 +288,23 @@
                 if (r) {
                     for (var i = 0; i < rows.length; i++) {
                         var row = rows[i];
-                        if(row.purchase_request == 0){
-                            $.ajax({
-                                method: 'post',
-                                url: '<?= base_url('planning/purchase_request_npd/delete') ?>',
-                                data: {
-                                    purchase_request_no: row.purchase_request_no
-                                },
-                                success: function(result) {
-                                    var result = eval('(' + result + ')');
-                                },
-                                error: function(jqXHR, textStatus, errorThrown) {
-                                    toastr.error(jqXHR.statusText);
-                                    $.messager.alert("Error", jqXHR.statusText, 'error');
-                                },
-                                complete: function(data) {
-                                    $('#dg').datagrid('reload');
-                                }
-                            });
-                        }else{
-                            toastr.error("Cannot delete data because qty > 0");
-                        }
+                        $.ajax({
+                            method: 'post',
+                            url: '<?= base_url('planning/purchase_request_npd/delete') ?>',
+                            data: {
+                                purchase_request_no: row.purchase_request_no
+                            },
+                            success: function(result) {
+                                var result = eval('(' + result + ')');
+                            },
+                            error: function(jqXHR, textStatus, errorThrown) {
+                                toastr.error(jqXHR.statusText);
+                                $.messager.alert("Error", jqXHR.statusText, 'error');
+                            },
+                            complete: function(data) {
+                                $('#dg').datagrid('reload');
+                            }
+                        });
                     }
                 }
             });
@@ -368,10 +364,16 @@
 
     function detailEdit(){
         var row = $('#dg_purchase_request').datagrid('getSelected');
+        
         if (row) {
-            $('#dlg_update').dialog('open');
             $('#frm_update').form('load', row);
 
+            if(row.approved_to == ""){
+                toastr.info("Sorry, you cannot edit the data as the status is already approved");
+                return false;
+            }
+
+            $('#dlg_update').dialog('open');
             $('#update_purchase_request_no').combogrid({
                 url: '<?= base_url('planning/purchase_request_npd/readPr/') ?>' + btoa(row.supplier_id) + '/' + btoa(row.product_family),
                 panelWidth: 500,
@@ -398,15 +400,15 @@
             $("#purchase_request_edit").numberbox({
                 onChange: function(val){
                     // if(parseInt(val) <= parseInt(row.purchase_order)){
-                        if(parseInt(val) == 0){
-                            var hasil = Math.ceil(parseInt(val));
-                        }else{
-                            if(parseInt(val) > row.moq){
-                                var hasil = (Math.ceil(parseInt(val) / row.mpq) * row.mpq);
-                            }else{
-                                var hasil = (Math.ceil(parseInt(val) / row.moq) * row.moq);
-                            }
-                        }
+                        // if(parseInt(val) == 0){
+                            var hasil = parseInt(val);
+                        // }else{
+                        //     if(parseInt(val) > row.moq){
+                        //         var hasil = (Math.ceil(parseInt(val) / row.mpq) * row.mpq);
+                        //     }else{
+                        //         var hasil = (Math.ceil(parseInt(val) / row.moq) * row.moq);
+                        //     }
+                        // }
                             
                         $("#purchase_request").numberbox('setValue', hasil);
                     // }else{
@@ -448,17 +450,27 @@
             data: "month=" + filter_from + "&year=" + filter_to,
             dataType: "json",
             success: function(monthName) {
+                $('#dg_purchase_request').datagrid('disableFilter');
+
                 $('#dg_purchase_request').datagrid({
                     url: '<?= base_url('planning/purchase_request_npd/datatableDetails/') ?>' + btoa(purchase_request_no) + "?filter_part_no=" + btoa(filter_part_no) + "&filter_from=" + btoa(filter_from) + "&filter_to=" + btoa(filter_to),
                     clientPaging: false,
-                    remoteFilter: true,
+                    // remoteFilter: true,
                     rownumbers: true,
-                    singleSelect: false,
+                    singleSelect: true,
                     fit:true,
                     columns: [
                         [{
                             field: 'ck',
                             checkbox: true,
+                            //rowspan: 2
+                        }, {
+                            field: 'approved_to',
+                            title: 'Status',
+                            width: 80,
+                            align: 'center',
+                            styler:cellStylerApproval, 
+                            formatter:cellFormatterApproval
                             //rowspan: 2
                         }, {
                             field: 'part_no',
@@ -539,6 +551,8 @@
                         }]
                     ]
                 });
+
+                $('#dg_purchase_request').treegrid('enableFilter');
             }
         });
     }

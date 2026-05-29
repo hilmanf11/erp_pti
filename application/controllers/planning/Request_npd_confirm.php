@@ -41,7 +41,7 @@ class Request_npd_confirm extends CI_Controller
         $query = $this->db->query("SELECT b.item_id, b.item_name, a.mpq, a.moq, a.share_order, a.leadtime 
             FROM supplier_items a 
             JOIN mst_item_raw b ON a.item_id = b.item_id
-            WHERE a.supplier_id = '$supplier' and b.item_id like '%$post%' and a.share_order > 0
+            WHERE a.supplier_id = '$supplier' and b.item_id like '%$post%'
             ORDER BY b.item_id ASC
         ");
         $records = $query->result_array();
@@ -66,10 +66,16 @@ class Request_npd_confirm extends CI_Controller
             $offset = ($page - 1) * $rows;
             $result = array();
             //Select Query
-            $this->db->select('a.*, SUM(a.qty) as total_qty, count(a.id) as total_data, count(b.id) as total_status, count(c.id) as total_confirm');
+            $this->db->select('a.*, SUM(a.qty) as total_qty, count(a.id) as total_data, 
+                (CASE WHEN count(a.id) = COUNT(d.id) THEN 2
+                      WHEN count(b.id) = 0 THEN 0
+                      ELSE 1
+                END) as total_status, 
+                count(c.id) as total_confirm');
             $this->db->from('request_npd a');
             $this->db->join("(select * from request_npd where status = 0) b", 'a.id = b.id', 'left');
             $this->db->join("(select * from request_npd where confirm != '') c", 'a.id = c.id', 'left');
+            $this->db->join("(select * from request_npd where confirm != '' and confirm != 'CONFIRMED') d", 'a.id = d.id', 'left');
             $this->db->where("(a.approved_to is null or a.approved_to = '')");
             if ($filter_from != "" and $filter_to != "") {
                 $this->db->where("a.request_date >=", $filter_from);

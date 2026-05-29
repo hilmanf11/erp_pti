@@ -55,6 +55,8 @@
                     <option value="purchase_order_npd">Purchase Order NPD</option>
                     <option value="simulation_mps">Simulation MPS</option>
                     <option value="forecast_supplier">Forecast Supplier</option>
+                    <option value="temp_vendor_contract">Temp. Vendor Contract</option>
+                    <option value="new_part_price_procurements">New Part Price Procurements</option>
                 </select>
             </div>
             <div class="fitem">

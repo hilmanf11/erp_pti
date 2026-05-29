@@ -14,55 +14,17 @@ class Approvals extends CI_Controller
         $this->load->model('api');
     }
 
-    // public function approveall()
-    // {
-    //     $approved_to = $this->input->post('approved_to');
-    //     $created_by = $this->input->post('created_by');
-    //     $table_name = $this->input->post('table_name');
-
-    //     $datas = $this->api->reads($table_name, [], ["approved_to" => $approved_to, "created_by" => $created_by]);
-
-    //     foreach ($datas as $data) {
-    //         $id = $data->id;
-    //         $user = $this->api->read('user', [], ["username" => $data->created_by]);
-    //         $approval = $this->api->read('approval', [], ["table_name" => $table_name]);
-
-    //         if ($data->approved == 1) {
-    //             $users_id = @$approval->user_approval_2;
-    //             $approved = 2;
-    //         } elseif ($data->approved == 2) {
-    //             $users_id = @$approval->user_approval_3;
-    //             $approved = 3;
-    //         } elseif ($data->approved == 3) {
-    //             $users_id = @$approval->user_approval_4;
-    //             $approved = 4;
-    //         } elseif ($data->approved == 4) {
-    //             $users_id = @$approval->user_approval_5;
-    //             $approved = 5;
-    //         } else {
-    //             $users_id = "";
-    //             $approved = 0;
-    //         }
-
-    //         $values = array(
-    //             "approved_by" => $this->session->username,
-    //             "approved_date" => date('Y-m-d H:i:s'),
-    //             "approved_to" => $users_id,
-    //             "approved" => $approved,
-    //         );
-
-    //         $send = $this->db->update($table_name, $values, ["id" => $id]);
-    //     }
-
-    //     echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
-    // }
-
     public function approveall()
     {
+        if(empty($this->session->username)){
+            die(json_encode(array("title" => "Expired", "message" => "Session has been expired", "theme" => "error")));
+        }
+        
         $approved_to = $this->input->post('approved_to');
         $approved_by = $this->input->post('approved_by');
         $created_by = $this->input->post('created_by');
         $table_name = $this->input->post('table_name');
+        $filters = $this->input->post('filters');
 
         $data = $this->api->read($table_name, [], ["approved_to" => $approved_to, "approved_by" => $approved_by]);
         $approval = $this->api->read('approval', [], ["table_name" => $table_name]);
@@ -90,13 +52,34 @@ class Approvals extends CI_Controller
             "approved_to" => $users_id,
             "approved" => $approved,
         );
+        $where = ["approved_to" => $approved_to, "approved_by" => $approved_by];
 
-        $this->db->update($table_name, $values, ["approved_to" => $approved_to, "approved_by" => $approved_by]);
-        echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
+        if ($table_name == "temp_vendor_contract" && empty($approved)) {
+            $values["status"] = 1;
+            $where["status"] = 0;
+
+            foreach ($filters as $key => $value) { $where[$key] = $value; }
+
+            $send = $this->processApprove("temp_vendor_contract", $where);
+        } else { $send = true; }
+
+        if ($send) {
+            $this->db->update($table_name, $values, $where);
+
+            if ($table_name == "new_part_price_procurements") {
+                $send = $this->processApprove("new_part_price_procurements", [], json_decode(base64_decode($this->input->post('datas'))));
+            }
+
+            echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
+        } else { echo log_message('error', 'There is an error in your system or data'); }
     }
 
     public function approve()
     {
+        if(empty($this->session->username)){
+            die(json_encode(array("title" => "Expired", "message" => "Session has been expired", "theme" => "error")));
+        }
+
         $id = $this->input->post('id');
         $tablename = $this->input->post('tablename');
         $data = $this->api->read($tablename, [], ["id" => $id]);
@@ -127,12 +110,119 @@ class Approvals extends CI_Controller
             "approved" => $approved,
         );
 
+        if (in_array($tablename, [
+            "temp_vendor_contract"
+        ]) && empty($approved)) {
+            $values["status"] = 1;
+            $send = $this->processApprove($tablename, ["id" => $id]);
+        }
         $send = $this->db->update($tablename, $values, ["id" => $id]);
         if ($send) {
             echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
         } else {
             echo log_message('error', 'There is an error in your system or data');
         }
+    }
+
+    public function processApprove($table, $where, $datas = [])
+    {
+        $send = true;
+        $this->db->trans_start();
+        if ($table == "temp_vendor_contract") {
+            foreach ($this->api->reads("temp_vendor_contract", [], $where) as $index => $temp) {
+                $find = $this->api->read("supplier_items", [], ["item_id" => $temp->item_id, "supplier_id" => $temp->supplier_id]);
+
+                $data = [
+                    "plant" => $temp->plant,
+                    "supplier_id" => $temp->supplier_id,
+                    "item_id" => $temp->item_id,
+                    "item_supplier" => $temp->item_supplier,
+                    "coo_name" => $temp->coo_name,
+                    "maker_code" => $temp->maker_code,
+                    "maker_type" => $temp->maker_type,
+                    "mpq" => $temp->mpq,
+                    "spq" => $temp->spq,
+                    "moq" => $temp->moq,
+                    "price" => $temp->price,
+                    "currency" => $temp->currency,
+                    "start_date" => $temp->start_date,
+                    "valid_date" => $temp->valid_date,
+                    "landed_cost" => $temp->landed_cost,
+                    "import_duty" => $temp->import_duty,
+                    "share_order" => $temp->share_order,
+                    "leadtime" => $temp->leadtime,
+                    "remarks" => $temp->remarks,
+                    "calculate" => $temp->calculate,
+                    "purchase" => $temp->purchase,
+                    "safety_stock" => $temp->safety_stock,
+                    "provide" => $temp->provide,
+                    "quotation_number" => $temp->quotation_number,
+                    "quotation_date" => $temp->quotation_date
+                ];
+
+                if (!empty($find)) { $send = $this->api->update("supplier_items", ["id" => $find->id], $data, "log"); }
+                else { $send = $this->api->create("supplier_items", $data, "ID", "log", "log"); }
+
+                $data_prices = json_decode($temp->data_prices, true);
+                if (!empty($data_prices) && $send) {
+                    $supplier_item = $this->api->read('supplier_items', [], ["item_id" => $temp->item_id, "supplier_id" => $temp->supplier_id, "plant" => $temp->plant, 'quotation_number' => $temp->quotation_number]);
+                    $data_prices["supplier_item_id"] = $supplier_item->id;
+
+                    $send = $this->api->create('supplier_item_prices', $data_prices, "SPI", "supplier_item_prices", "log");
+                }
+
+                if (!$send) { break; }
+            }
+            // die($this->db->last_query());
+        } elseif ($table == "new_part_price_procurements") {
+            $fullname = $this->api->read("user", [], ["username" => $this->session->username])->name;
+            $this->crm = $this->load->database('crm', TRUE);
+            $this->crm->trans_start();
+
+            foreach ($datas as $key => $value) {
+                if ($send) {
+                    $id = $value->id;
+                    $data = [
+                        "updated_by_name" => $fullname,
+                        "approved_by_name" => $fullname,
+                        "currency" => $value->currency,
+                        "price" => $value->price,
+                        "new_price" => 0,
+                        "percentage" => 0,
+                        "moq" => $value->moq,
+                        "mpq" => $value->mpq,
+                        "spq" => $value->spq,
+                        "leadtime" => $value->leadtime,
+                        "status" => 1,
+                        "remarks1" => $value->remarks1,
+                        "remarks2" => $value->remarks2,
+                        "remarks3" => $value->remarks3,
+                        "procurement_respons_date" => $value->procurement_respons_date,
+                        "item_id_maker" => $value->item_id_maker,
+                        "quot_req" => $value->quot_req,
+                        "quotation" => $value->quotation,
+                        "incoterms" => $value->incoterms
+                    ];
+                    $send = $this->api->update("new_part_price_procurements", ["id" => $id], $data);
+                    if ($send) {
+                        $new_data = $this->api->read("new_part_price_procurements", [], ["id" => $id]);
+                        $this->api->create("new_part_price_procurement_history", [
+                            "action" => "UPDATE",
+                            "descriptions" => json_encode($new_data)
+                        ]);
+                        $this->crm->where("id", $id)->update("new_part_price_procurements", $new_data);
+                    }
+                }
+            }
+
+            if (!$send) { $this->crm->trans_rollback(); }
+            else { $this->crm->trans_commit(); }
+        }
+
+        if (!$send) { $this->db->trans_rollback(); }
+        else { $this->db->trans_commit(); }
+
+        return $send;
     }
 
     public function disapproveall()
@@ -148,7 +238,12 @@ class Approvals extends CI_Controller
             $data = json_decode($read->approved_data, false);
 
             if (empty($data)) {
-                $send = $this->api->delete($table_name, ["id" => $id]);
+                if($table_name == "supplier_items"){
+                    // $this->api->delete("supplier_item_prices", ["supplier_item_id" => $id]);
+                    $this->api->delete($table_name, ["id" => $id]);
+                }else{
+                    $this->api->delete($table_name, ["id" => $id]);
+                }
             } else {
                 $send = $this->db->update($table_name, $data, ["id" => $id]);
             }
@@ -162,13 +257,18 @@ class Approvals extends CI_Controller
         $id = $this->input->post('id');
         $tablename = $this->input->post('tablename');
         $message = $this->input->post('message');
+        $reason = $this->input->post('reason');
         $read = $this->api->read($tablename, [], ["id" => $id]);
         $data = json_decode($read->approved_data, false);
         $merge = @array_merge((array) $read, array("disapprove" => $message));
 
         /* Default */
         if (empty($data)) {
-            $send = $this->api->delete($tablename, ["id" => $id]);
+            if($tablename == "temp_vendor_contract"){
+                $this->api->update("temp_vendor_contract", ["id" => $id], ["status" => 2, "reason" => $reason]);
+            }else{
+                $this->api->delete($tablename, ["id" => $id]);
+            }
         } else {
             $send = $this->db->update($tablename, $data, ["id" => $id]);
         }
@@ -209,9 +309,36 @@ class Approvals extends CI_Controller
         $simulation_mps = $this->api->reads('simulation_mps', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $forecast_supplier = $this->api->reads('forecast_supplier', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $request_npd = $this->api->reads('request_npd', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
+        $temp_vendor_contract = $this->api->reads('temp_vendor_contract', [], ["approved_to" => $this->session->username, "status" => 0], "", "", "", ["approved_to", "approved_by"]);
+        $new_part_price_procurements = $this->api->reads('new_part_price_procurements', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
 
-
-        $totalRows = (count($users) + count($generate_mrp_finals) + count($upload_gp) + count($balance_wip) + count($os_supply) + count($os_mpp) + count($os_vendor) + count($rm_stock) + count($mst_umh_havcp) + count($mst_umh) + count($mpp_os) + count($mst_wip) + count($mst_forecast) + count($fg_stock) + count($sales_order_os) + count($sales_order) + count($purchase_orders) + count($purchase_requests) + count($supplier_items) + count($supplier_item_prices) + count($simulation_mps) + count($forecast_supplier) + count($request_npd)); //+ count($forecasts) + count($stock_fg) + count($stock_wip) + count($os_so) + count($os_mpp) 
+        $totalRows = (
+            count($users) +
+            count($generate_mrp_finals) +
+            count($upload_gp) +
+            count($balance_wip) +
+            count($os_supply) +
+            count($os_mpp) +
+            count($os_vendor) +
+            count($rm_stock) +
+            count($mst_umh_havcp) +
+            count($mst_umh) +
+            count($mpp_os) +
+            count($mst_wip) +
+            count($mst_forecast) +
+            count($fg_stock) +
+            count($sales_order_os) +
+            count($sales_order) +
+            count($purchase_orders) +
+            count($purchase_requests) +
+            count($supplier_items) +
+            count($supplier_item_prices) +
+            count($simulation_mps) +
+            count($forecast_supplier) +
+            count($request_npd) +
+            count($temp_vendor_contract) +
+            count($new_part_price_procurements)
+        ); //+ count($forecasts) + count($stock_fg) + count($stock_wip) + count($os_so) + count($os_mpp) 
         if ($totalRows > 0) {
             echo '<span class="badge">' . $totalRows . '</span>';
         } else {
@@ -245,6 +372,8 @@ class Approvals extends CI_Controller
         $simulation_mps = $this->api->reads('simulation_mps', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $forecast_supplier = $this->api->reads('forecast_supplier', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
         $request_npd = $this->api->reads('request_npd', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
+        $temp_vendor_contract = $this->api->reads('temp_vendor_contract', [], ["approved_to" => $this->session->username, "status" => 0], "", "", "", ["approved_to", "approved_by"]);
+        $new_part_price_procurements = $this->api->reads('new_part_price_procurements', [], ["approved_to" => $this->session->username], "", "", "", ["approved_to", "approved_by"]);
 
         foreach ($users as $user) {
             $this->approvalMessage($user->approved_by, $user->approved_to, $user->created_by, "user");
@@ -315,16 +444,37 @@ class Approvals extends CI_Controller
         foreach ($request_npd as $npd) {
             $this->approvalMessage($npd->approved_by, $npd->approved_to, $npd->created_by, "request_npd");
         }
+        foreach ($temp_vendor_contract as $npd) {
+            $this->approvalMessage($npd->approved_by, $npd->approved_to, $npd->created_by, "temp_vendor_contract");
+        }
+        foreach ($new_part_price_procurements as $npd) {
+            $this->approvalMessage($npd->approved_by, $npd->approved_to, $npd->created_by, "new_part_price_procurements");
+        }
     }
 
     public function approvalMessage($approved_by, $approved_to, $created_by, $table)
     {
         $user = $this->api->read('user', [], ["username" => $approved_by]);
+        $user_name = @$user->name;
+        $name = strtoupper(str_replace("_", " ", $table));
+        $date = '';
 
         if (empty($user->avatar)) {
             $avatar = "default.png";
         } else {
             $avatar = $user->avatar;
+        }
+
+        if ($table == 'temp_vendor_contract') {
+            $name = 'VMS - Price Quotation';
+
+            $this->db->select("MIN(created_date) AS min")
+            ->from($table)->where(["approved_to" => $approved_to]);
+            $date = ' on '.$this->db->get()->row()->min;
+        }
+        if ($table == 'new_part_price_procurements') {
+            $create_name = $this->api->read('new_part_price_procurements', [], ["approved_to" => $approved_to]);
+            $user_name = $create_name->created_by_name;
         }
 
         $link = "approvalDetail('$table', '$approved_to', '$created_by', '$approved_by')";
@@ -339,8 +489,8 @@ class Approvals extends CI_Controller
                                     </div>
                                 </td>
                                 <td style="padding-left: 10px;">
-                                    <b>' . $user->name . '</b><br>
-                                    <small>Sent a request to approve data <b>' . strtoupper(str_replace("_", " ", $table)) . '</b></small>
+                                    <b>' . $user_name . '</b><br>
+                                    <small>Sent a request' . $date . ' to approve data <b>' . $name . '</b></small>
                                 </td>
                             </tr>
                         </table>
@@ -667,6 +817,34 @@ class Approvals extends CI_Controller
             $data['table'] = "request_npd";
             $this->load->view('template/header', $data);
             $this->load->view('approval/request_npd');
+        }
+    }
+
+    public function temp_vendor_contract($approved_to, $created_by, $approved_by)
+    {
+        if (empty($this->session->username)) {
+            redirect('error_session');
+        } else {
+            $data['approved_to'] = base64_decode($approved_to);
+            $data['created_by'] = base64_decode($created_by);
+            $data['approved_by'] = base64_decode($approved_by);
+            $data['table'] = "temp_vendor_contract";
+            $this->load->view('template/header', $data);
+            $this->load->view('approval/temp_vendor_contract');
+        }
+    }
+
+    public function new_part_price_procurements($approved_to, $created_by, $approved_by)
+    {
+        if (empty($this->session->username)) {
+            redirect('error_session');
+        } else {
+            $data['approved_to'] = base64_decode($approved_to);
+            $data['created_by'] = base64_decode($created_by);
+            $data['approved_by'] = base64_decode($approved_by);
+            $data['table'] = "new_part_price_procurements";
+            $this->load->view('template/header', $data);
+            $this->load->view('approval/new_part_price_procurements');
         }
     }
 
@@ -1501,10 +1679,11 @@ class Approvals extends CI_Controller
         $result = array();
 
         //Select Query
-        $this->db->select('a.*, b.name as supplier_name, c.name as maker_name');
+        $this->db->select('a.*, b.name as supplier_name, c.name as maker_name, COALESCE(d.mpq, 0) AS mpq_bf, COALESCE(d.moq, 0) AS moq_bf, COALESCE(d.leadtime, 0) AS leadtime_bf');
         $this->db->from('supplier_items a');
         $this->db->join('suppliers b', 'a.supplier_id = b.id');
         $this->db->join('mst_maker c', 'a.maker_code = c.number');
+        $this->db->join("(SELECT MAX(id) AS max, supplier_id, item_id, mpq, moq, leadtime FROM supplier_items_log GROUP BY supplier_id, item_id, mpq, moq, leadtime) d", 'a.item_id = d.item_id AND a.supplier_id = d.supplier_id', "LEFT");
         $this->db->where('a.approved_to', $approved_to);
         $this->db->where('a.approved_by', $approved_by);
         if (@count($filters) > 0) {
@@ -1519,6 +1698,7 @@ class Approvals extends CI_Controller
             }
         }
         $this->db->order_by('a.created_date', 'desc');
+        // die($this->db->get_compiled_select());
         //Total Data
         $totalRows = $this->db->count_all_results('', false);
         //Limit 1 - 10
@@ -1548,11 +1728,36 @@ class Approvals extends CI_Controller
         $result = array();
 
         //Select Query
-        $this->db->select('a.item_id, b.name as supplier_name, c.name as maker_name, d.*');
+        $this->db->select(
+            "a.quotation_number,".
+            "a.quotation_date,".
+            "a.item_id,".
+            "b.name as supplier_name,".
+            "c.name as maker_name,".
+            "d.*,".
+            "COALESCE(e.price, 0) AS price_last,".
+            "CASE WHEN COALESCE(e.price, 0) = 0 THEN 0 ELSE (d.price - COALESCE(e.price, 0)) END AS balance_price,".
+            "CASE ".
+                "WHEN (CASE WHEN COALESCE(e.price, 0) = 0 THEN 0 ELSE (d.price - COALESCE(e.price, 0)) END) > 0 THEN 'Increase'".
+                "WHEN (CASE WHEN COALESCE(e.price, 0) = 0 THEN 0 ELSE (d.price - COALESCE(e.price, 0)) END) < 0 THEN 'Decrease'".
+                "ELSE 'New Price'".
+            "END AS status_price,".
+            "e.valid_date AS valid_date_bf"
+        );
         $this->db->from('supplier_items a');
         $this->db->join('suppliers b', 'a.supplier_id = b.id');
         $this->db->join('mst_maker c', 'a.maker_code = c.number');
         $this->db->join('supplier_item_prices d', 'a.id = d.supplier_item_id');
+        $this->db->join("(".
+            "SELECT b.item_id, b.supplier_id, a.price, a.valid_date FROM supplier_item_prices_log a ".
+            "JOIN ( ".
+                "SELECT MAX(a.id) AS id, c.item_id, c.supplier_id, a.price ".
+                "FROM supplier_item_prices_log a ".
+                "JOIN supplier_item_prices b ON a.supplier_item_id = b.id ".
+                "JOIN supplier_items c ON b.supplier_item_id = c.id ".
+                "WHERE b.approved_to != '' GROUP BY c.item_id, c.supplier_id ".
+            ") b ON a.id = b.id"
+        .") e", 'a.item_id = e.item_id AND a.supplier_id = e.supplier_id', "LEFT");
         $this->db->where('d.approved_to', $approved_to);
         $this->db->where('d.approved_by', $approved_by);
         if (@count($filters) > 0) {
@@ -1569,6 +1774,7 @@ class Approvals extends CI_Controller
             }
         }
         $this->db->order_by('a.created_date', 'desc');
+        // die($this->db->get_compiled_select());
         //Total Data
         $totalRows = $this->db->count_all_results('', false);
         //Limit 1 - 10
@@ -1659,6 +1865,127 @@ class Approvals extends CI_Controller
         // $this->db->limit($rows, $offset);
         //Get Data Array
         $records = $this->db->get()->result_array();
+        //Mapping Data
+        $result['total'] = $totalRows;
+        $result = array_merge($result, ['rows' => $records]);
+        echo json_encode($result);
+    }
+
+    public function approvalTempVendorContract($approved_to, $created_by, $approved_by)
+    {
+        $approved_to = base64_decode($approved_to);
+        $created_by = base64_decode($created_by);
+        $approved_by = base64_decode($approved_by);
+
+        $filters = json_decode($this->input->post('filterRules'));
+        $page = $this->input->post('page');
+        $rows = $this->input->post('rows');
+
+        //Pagination 1-10
+        $page   = isset($page) ? intval($page) : 1;
+        $rows   = isset($rows) ? intval($rows) : 10;
+        $offset = ($page - 1) * $rows;
+        $result = array();
+
+        $wheres = ["a.approved_to" => $approved_to, "a.approved_by" => $approved_by, "a.status" => 0];
+        $likes = [];
+        if (@count($filters) > 0) {
+            foreach ($filters as $filter) {
+                $key = "a.".$filter->field;
+                if ($filter->field == "supplier_name") { $key = "b.name"; }
+                elseif ($filter->field == "maker_name") { $key = "c.name"; }
+                elseif ($filter->field == "status_price") { $key = "(CASE ".
+                    "WHEN (CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END) > 0 THEN 'Increase'".
+                    "WHEN (CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END) < 0 THEN 'Decrease'".
+                    "ELSE 'New Price'".
+                "END)"; }
+                $likes[$key] = $filter->value;
+            }
+        }
+
+        //Select Query
+        $this->db->distinct()->select("a.*,".
+            "b.name as supplier_name,".
+            "c.name as maker_name,".
+            "f.name as uom_name,".
+            "COALESCE(d.mpq, 0) AS mpq_bf,".
+            "COALESCE(d.moq, 0) AS moq_bf,".
+            "COALESCE(d.leadtime, 0) AS leadtime_bf,".
+            "COALESCE(d.price_last, 0) AS price_last,".
+            "d.price_date AS price_date,".
+            "CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END AS balance_price,".
+            "CASE ".
+                "WHEN (CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END) > 0 THEN 'Increase'".
+                "WHEN (CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END) < 0 THEN 'Decrease'".
+                "ELSE 'New Price'".
+            "END AS status_price"
+        )
+        ->from("temp_vendor_contract a")
+        ->join("suppliers b", "a.supplier_id = b.id")
+        ->join("mst_maker c", "a.maker_code = c.number")
+        ->join("(".
+            "SELECT DISTINCT x.*, aa.price AS price_last, aa.valid_date AS price_date ".
+            "FROM supplier_items x ".
+            "JOIN (SELECT supplier_item_id, MAX(valid_date) AS max FROM supplier_item_prices GROUP BY supplier_item_id) y ON x.id = y.supplier_item_id ".
+            "JOIN (SELECT supplier_item_id, valid_date, MAX(start_date) AS max FROM supplier_item_prices GROUP BY supplier_item_id, valid_date) z ON x.id = z.supplier_item_id AND y.max = z.valid_date ".
+            "JOIN supplier_item_prices aa ON x.id = aa.supplier_item_id AND y.max = aa.valid_date AND z.max = aa.start_date".
+        ") d", "a.item_id = d.item_id AND a.supplier_id = d.supplier_id", "LEFT")
+        ->join("mst_item_raw e", "e.item_id = a.item_id", "LEFT")
+        ->join("uom f", "e.um_id = f.number", "LEFT")
+        ->where($wheres)->like($likes)->order_by("created_date", "desc");
+        // die($this->db->get_compiled_select());
+        //Total Data
+        $totalRows = $this->db->count_all_results("", false);
+        //Limit 1 - 10
+        $this->db->limit($rows, $offset);
+        //Get Data Array
+        $records = $this->db->get()->result_array();
+        //Mapping Data
+        $result['total'] = $totalRows;
+        $result = array_merge($result, ['rows' => $records]);
+        echo json_encode($result);
+    }
+
+    public function approvalNewPartPriceProcurements($approved_to, $created_by, $approved_by)
+    {
+        $approved_to = base64_decode($approved_to);
+        $created_by = base64_decode($created_by);
+        $approved_by = base64_decode($approved_by);
+
+        $filters = json_decode($this->input->post('filterRules'));
+        $page = $this->input->post('page');
+        $rows = $this->input->post('rows');
+        $sort = $this->input->post('sort');
+        $order = $this->input->post('order');
+
+        //Pagination 1-10
+        $page   = isset($page) ? intval($page) : 1;
+        $rows   = isset($rows) ? intval($rows) : 10;
+        $offset = ($page - 1) * $rows;
+        $result = array();
+
+        // Sort
+        $sort   = isset($sort) ? strval($sort) : 'item_id';
+        $order   = isset($order) ? strval($order) : 'ASC';
+        if ($sort == 'item_id') { //pengecekan jika kolom alphanumeric contoh : 1, 1A, 1B
+            $sort = 'CAST(' . $sort . ' as UNSIGNED) ' . $order;
+        } else {
+            $sort = $sort . ' ' . $order;
+        }
+        $result = array();
+        //Select Query
+        $this->db->select('*')->from('new_part_price_procurements')
+        ->where(["approved_to" => $approved_to, "approved_by" => $approved_by])->order_by($sort);
+        //Total Data
+        $totalRows = $this->db->count_all_results('', false);
+        //Limit 1 - 10
+        // $this->db->limit($rows, $offset);
+        //Get Data Array
+        $records = [];
+        foreach ($this->db->get()->result() as $index => $row) {
+            // $row->status = 1;
+            $records[] = $row;
+        }
         //Mapping Data
         $result['total'] = $totalRows;
         $result = array_merge($result, ['rows' => $records]);

@@ -234,7 +234,7 @@ class Purchase_orders extends CI_Controller
         }
     }
 
-    public function datatableDetails($purchase_order_no, $revision){
+    public function datatableDetails($purchase_order_no, $revision = ""){
         $purchase_order_no = base64_decode($purchase_order_no);
         $filter_part_no = trim(base64_decode($this->input->get('filter_part_no')));
 
@@ -247,12 +247,15 @@ class Purchase_orders extends CI_Controller
         $this->db->from('purchase_orders a');
         $this->db->join('suppliers b', 'a.supplier_id = b.id');
         $this->db->join('purchase_requests c', 'a.purchase_request_no = c.purchase_request_no and a.item_id = c.part_no', 'left');
-        $this->db->join('supplier_items f', 'a.supplier_id = f.supplier_id and a.item_id = f.item_id');
+        $this->db->join('supplier_items f', 'a.supplier_id = f.supplier_id and a.item_id = f.item_id and f.share_order > 0');
         $this->db->join('mst_maker d', 'f.maker_code = d.number');
         $this->db->join("(SELECT supplier_item_id, price, currency, valid_date FROM supplier_item_prices WHERE (supplier_item_id, valid_date) IN (SELECT supplier_item_id, MAX(valid_date) FROM supplier_item_prices where start_date <= '$start_date' and valid_date >= '$start_date' GROUP BY supplier_item_id)) g", 'f.id = g.supplier_item_id', 'left');
         $this->db->where('a.purchase_order_no', $purchase_order_no);
-        $this->db->where('a.revision', $revision);
+        if($revision != ""){
+            $this->db->where('a.revision', $revision);
+        }
         $this->db->like('a.item_id', $filter_part_no);
+        $this->db->group_by('a.id');
         $this->db->order_by('a.item_id');
         //Total Data
         $totalRows = $this->db->count_all_results('', false);
@@ -280,7 +283,7 @@ class Purchase_orders extends CI_Controller
             'footer' => array([
                 "item_id" => "Grand Total",
                 "qty" => $total_qty,
-                "price" => ($total_amount / $total_qty),
+                // "price" => ($total_amount / $total_qty),
                 "sync" => 0,
                 "total" => $total_amount
             ])
@@ -317,7 +320,7 @@ class Purchase_orders extends CI_Controller
     }
 
     public function purchaseOrderNo($code){
-        $sqlGetID	= $this->db->query("SELECT max(purchase_order_no) as kode FROM purchase_orders WHERE purchase_order_no LIKE '%$code%'");
+        $sqlGetID	= $this->db->query("SELECT max(purchase_order_no) as kode FROM purchase_orders WHERE purchase_order_no LIKE '$code%'");
         $rowID      = $sqlGetID->row();
         $kode 		= $rowID->kode;
         
@@ -429,7 +432,7 @@ class Purchase_orders extends CI_Controller
                 }
 
                 $convert = $this->api->read("convertions", [], ["item_id" => $purchase_request['part_no']]);
-                if(empty($convert->uom_po)){
+                if(empty($convert->uom_from)){
                     $uom = $purchase_request['uom'];
                     $qty = $purchase_request['purchase_request'];
                     $total = ($purchase_request['purchase_request'] * $purchase_request['price']);
@@ -575,7 +578,7 @@ class Purchase_orders extends CI_Controller
     public function completeMail(){
         if ($this->input->post()) {
             $purchase_order_no = $this->input->post('purchase_order_no');
-            $email_date = $this->input->post('email_date');
+            $email_date = date("Y-m-d H:i:s", strtotime($this->input->post('email_date')));
             
             $this->db->update('purchase_orders', ["email_status" => "SENT", "confirm" => "Pending", "email_date" => $email_date], ["purchase_order_no" => $purchase_order_no]);
             
@@ -700,8 +703,16 @@ class Purchase_orders extends CI_Controller
             $this->dummy->where("item_id", $post['item_id']);
             $poc = $this->dummy->get()->row();
 
-            // $gpai = $this->apiSupplier($post['supplier_no']);
-            // $supplier = $gpai['data'];
+            $convert = $this->api->read("convertions", [], ["item_id" => $post['item_id']]);
+            if(empty($convert->uom_from)){
+                $qty = $post['qty'];
+            }else{
+                if($convert->type == "Divided"){
+                    $qty = ($post['qty'] * $convert->amount);
+                }else{
+                    $qty = ($post['qty'] / $convert->amount);
+                }
+            }
 
             $postFinal = array(
                 "poc_id" => $post['purchase_order_no'],
@@ -712,7 +723,7 @@ class Purchase_orders extends CI_Controller
                 "item_id" => $post['item_id'],
                 "poc_reqdate" => $post['eta'],
                 "etd_date" => $post['etd'],
-                "poc_reqqty" => $post['qty'],
+                "poc_reqqty" => $qty,
                 "currency" => $post['currency'],
                 "periode" => $post['p_year'].$post['p_month'],
                 // "poc_remark" => $post['reason'],
@@ -858,6 +869,19 @@ class Purchase_orders extends CI_Controller
         $supplier = $this->api->read('suppliers', [], ["id" => @$purchase_orders->supplier_id]);
         $approval = $this->api->read('approval', [], ["table_name" => "purchase_orders"]);
 
+        // $this->db->select('a.*, b.item_supplier, d.name as maker_name, d.type as maker_type');
+        // $this->db->from('purchase_orders a');
+        // $this->db->join('mst_item_raw b', 'a.item_id = b.item_id');
+        // $this->db->join('supplier_items c', 'a.supplier_id = c.supplier_id and a.item_id = c.item_id');
+        // $this->db->join('mst_maker d', 'c.maker_code = d.number');
+        // $this->db->where('a.purchase_order_no', base64_decode($po_no));
+        // $this->db->order_by('a.item_id');
+        // $query_po = $this->db->get()->result_array();
+
+        // if(count($purchase_orders_total) != count($query_po)){
+        //     die("UNCOMPLETE ITEM, Actual is ".count($purchase_orders_total)." but is result is ".count($query_po)." Please try again");
+        // }
+
         $user_3 = $this->api->read('user', [], ["username" => $approval->user_approval_2]);
         $user_4 = $this->api->read('user', [], ["username" => $approval->user_approval_3]);
         
@@ -942,9 +966,9 @@ class Purchase_orders extends CI_Controller
         for ($i = 0; $i < $page; $i++) {
             $this->db->select('a.*, b.item_supplier, d.name as maker_name, d.type as maker_type');
             $this->db->from('purchase_orders a');
-            $this->db->join('mst_item_raw b', 'a.item_id = b.item_id');
-            $this->db->join('supplier_items c', 'a.supplier_id = c.supplier_id and a.item_id = c.item_id');
-            $this->db->join('mst_maker d', 'c.maker_code = d.number');
+            $this->db->join('mst_item_raw b', 'a.item_id = b.item_id', 'left');
+            $this->db->join("(select * from supplier_items WHERE approved_to = '' or approved_to is null) c", 'a.supplier_id = c.supplier_id and a.item_id = c.item_id and c.share_order > 0', 'left');
+            $this->db->join('mst_maker d', 'c.maker_code = d.number', 'left');
             $this->db->where('a.purchase_order_no', base64_decode($po_no));
             $this->db->where('a.qty >', 0);
             $this->db->order_by('a.item_id');
@@ -1199,7 +1223,7 @@ class Purchase_orders extends CI_Controller
                         <table style="width:100%; font-size:12px; margin-top:20px;">
                             <tr>
                                 <td width="20">1.</td>
-                                <td>Please Acknowledge us in one week of time upon Receipt of PO <br>email to : takao.masahiko@tb-banshu.com, procurement01@banshu-ind.com, procurement02@banshu-ind.com</td>
+                                <td>Please Acknowledge us in one week of time upon Receipt of PO <br>email to :  marui.tatsuhiko@tb-banshu.com, procurement01@banshu-ind.com, procurement02@banshu-ind.com</td>
                             </tr>
                             <tr>
                                 <td width="20">2.</td>
@@ -1516,9 +1540,9 @@ class Purchase_orders extends CI_Controller
         //Select Query
         $this->db->select('a.*, b.item_supplier, c.number as supplier_no, c.name as supplier_name, d.maker_code, e.name as maker_name, e.type as maker_type');
         $this->db->from('purchase_orders a');
-        $this->db->join('mst_item_raw b', 'a.item_id = b.item_id');
+        $this->db->join('mst_item_raw b', 'a.item_id = b.item_id', 'left');
         $this->db->join('suppliers c', 'a.supplier_id = c.id');
-        $this->db->join('supplier_items d', 'a.supplier_id = d.supplier_id and a.item_id = d.item_id');
+        $this->db->join('supplier_items d', 'a.supplier_id = d.supplier_id and a.item_id = d.item_id and d.share_order > 0', 'left');
         $this->db->join('mst_maker e', 'd.maker_code = e.number', 'left');
         $this->db->where('a.type', "REGULAR");
         $this->db->like('a.p_month', $filter_month);
@@ -1601,6 +1625,19 @@ class Purchase_orders extends CI_Controller
                 <th style="text-align:center;">ETD</th>
                 <th style="text-align:center;">Contact</th>
                 <th style="text-align:center;">Email</th>
+                <th style="text-align:center;">Push ERP</th>
+                <th style="text-align:center;">Push Date</th>
+                <th style="text-align:center;">Send Mail Status</th>
+                <th style="text-align:center;">Send Mail Date</th>
+                <th style="text-align:center;">Receipt Status</th>
+                <th style="text-align:center;">Receipt Date</th>
+                <th style="text-align:center;">Approved</th>
+                <th style="text-align:center;">Approved By</th>
+                <th style="text-align:center;">Approved Date</th>
+                <th style="text-align:center;">Created By</th>
+                <th style="text-align:center;">Created Date</th>
+                <th style="text-align:center;">Updated By</th>
+                <th style="text-align:center;">Updated Date</th>
             </tr>';
 
         $no = 1;
@@ -1618,41 +1655,23 @@ class Purchase_orders extends CI_Controller
                 $etd = date("Y-m-d", strtotime("-21 days", strtotime($data['eta'])));
             }
 
-            // $m1 = date('Y-m-01', strtotime($leadtime));
-            // $m2 = date('Y-m-01', strtotime('+1 month', strtotime($leadtime)));
-            // $m3 = date('Y-m-01', strtotime('+2 month', strtotime($leadtime)));
-            // $m11 = "m".date('n', strtotime($leadtime));
-            // $m22 = "m".date('n', strtotime('+1 month', strtotime($leadtime)));
-            // $m33 = "m".date('n', strtotime('+2 month', strtotime($leadtime)));
+            if($data['approved_to'] == ""){
+                $approved = "Approved";
+            }else{
+                $approved = "Checking";
+            }
 
-            // $qmps1 = $this->db->query("SELECT qty FROM generate_mrp WHERE `period` = '$m1' and product_no = '$item_id' and revision = '$revision' and p_month = '$p_month' and p_year = '$p_year'");
-            // $rpms1 = $qmps1->row();
-
-            // $qmps2 = $this->db->query("SELECT qty FROM generate_mrp WHERE `period` = '$m2' and product_no = '$item_id' and revision = '$revision' and p_month = '$p_month' and p_year = '$p_year'");
-            // $rpms2 = $qmps2->row();
-
-            // $qmps3 = $this->db->query("SELECT qty FROM generate_mrp WHERE `period` = '$m3' and product_no = '$item_id' and revision = '$revision' and p_month = '$p_month' and p_year = '$p_year'");
-            // $rpms3 = $qmps3->row();
-
-            // $forecast = $this->forecast($item_id, $data['p_month'], $data['p_year'], @$revision);
-
-            // if(@$rpms1->qty > 0){
-            //     $prod1 = @$rpms1->qty;
-            // }else{
-            //     $prod1 = @$forecast->$m11;
-            // }
-
-            // if(@$rpms2->qty > 0){
-            //     $prod2 = @$rpms2->qty;
-            // }else{
-            //     $prod2 = @$forecast->$m22;
-            // }
-
-            // if(@$rpms3->qty > 0){
-            //     $prod3 = @$rpms3->qty;
-            // }else{
-            //     $prod3 = @$forecast->$m33;
-            // }
+            if($data['push'] == "OK"){
+                $push = "DONE";
+            }else{
+                $push = "-";
+            }
+            
+            if($data['email_status'] == ""){
+                $email_status = "Not Send";
+            }else{
+                $email_status = "Delivered";
+            }
 
             $html .= '  <tr>
                             <td>' . $no . '</td>
@@ -1677,6 +1696,19 @@ class Purchase_orders extends CI_Controller
                             <td>' . $etd . '</td>
                             <td>' . $data['contact'] . '</td>
                             <td>' . $data['email'] . '</td>
+                            <td>' . $push . '</td>
+                            <td>' . $data['push_date'] . '</td>
+                            <td>' . $email_status . '</td>
+                            <td>' . $data['email_date'] . '</td>
+                            <td>' . $data['confirm'] . '</td>
+                            <td>' . $data['confirm_date'] . '</td>
+                            <td>' . $approved . '</td>
+                            <td>' . $data['approved_by'] . '</td>
+                            <td>' . $data['approved_date'] . '</td>
+                            <td>' . $data['created_by'] . '</td>
+                            <td>' . $data['created_date'] . '</td>
+                            <td>' . $data['updated_by'] . '</td>
+                            <td>' . $data['updated_date'] . '</td>
                         </tr>';
             $no++;
         }

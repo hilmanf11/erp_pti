@@ -23,6 +23,8 @@ class Mpp_os extends CI_Controller
             redirect('error_session');
         } elseif ($this->checkuserAccess($this->id_menu()) > 0) {
             $data['button'] = $this->getbutton($this->id_menu());
+            $data['nik'] = $this->api->read('user', [], ['id' => $this->session->id])->number;
+
             $this->load->view('template/header', $data);
             $this->load->view('planning/mpp_os');
         } else {
@@ -55,12 +57,28 @@ class Mpp_os extends CI_Controller
             $filter_customer_id = base64_decode($this->input->get('filter_customer_id'));
             $filter_product_no = trim(base64_decode($this->input->get('filter_product_no')));
 
+            $customers = [];
+            if (empty($filter_customer_id)) {
+                $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+                $this->db->distinct()->select("customer")->from("setting_customer")->where(["user_id" => $nik]);
+                $wheres = explode(',', $this->db->get()->row()->customer);
+                $this->db->distinct()->select("TRIM(b.number) AS number")
+                ->from("mst_line a")->join("mst_customer b", "a.customer_code = b.nickname")
+                ->where_in("a.line_no", $wheres);
+                foreach ($this->db->get()->result() as $index => $row)
+                    { array_push($customers, $row->number); }
+            }
+
             //Select Query
             $this->db->select('a.item_id, a.item_name, b.*, c.circuit_no, d.name as customer_name');
             $this->db->from('mst_item a');
             $this->db->join('mpp_os b', "a.item_id = b.product_no and b.p_month = '$filter_month' and b.p_year = '$filter_year' and b.revision = '$filter_revision'", 'left');
             $this->db->join('wip_mst_wos_cct c', 'a.item_id = c.mstwos_assyno', 'left');
             $this->db->join('mst_customer d', 'a.id_customer = d.number', 'left');
+            if ($filter_customer_id != 'all') {
+                if (empty($customers)) { $this->db->where('a.id_customer', $filter_customer_id); }
+                else { $this->db->where_in('a.id_customer', $customers); }
+            }
             if ($filter_customer_id != "") {
                 $this->db->where('a.id_customer', $filter_customer_id);
             }
@@ -68,6 +86,7 @@ class Mpp_os extends CI_Controller
                 $this->db->like('a.item_id', $filter_product_no);
             }
             $this->db->order_by('d.name', 'asc');
+            // die($this->db->get_compiled_select());
 
             //Total Data
             $totalRows = $this->db->count_all_results('', false);
@@ -99,7 +118,16 @@ class Mpp_os extends CI_Controller
                     "product_no" => $post['product_no']
                 ]);
 
-                if (count($mpp) > 0) {
+                $nik = $this->api->read('user', [], ['id' => $this->session->id])->number;
+                $this->db->distinct()->select("TRIM(b.customer_code) AS nick")
+                ->from("setting_customer a")->join("mst_line b", "FIND_IN_SET(b.line_no, a.customer)")
+                ->where(["user_id" => $nik])->order_by("nick");
+                $nicks = [];
+                foreach ($this->db->get()->result() as $index => $row) { array_push($nicks, $row->nick); }
+                // die(var_dump($customer->nickname));
+                if (!in_array($customer->nickname, $nicks)) {
+                    echo json_encode(array("title" => "Failed", "message" => "You Not Allowed to Entry This Customer, ".$customer->name, "theme" => "error"));
+                } elseif (count($mpp) > 0) {
                     echo json_encode(array("title" => "Available", "message" => "OS MPP in Product No " . $post['product_no'] . " is duplicate", "theme" => "error"));
                 } else {
                     $dataFinal = array_merge($post, array(
@@ -178,7 +206,6 @@ class Mpp_os extends CI_Controller
             //Get CCT
             $items = $this->api->read("wip_mst_wos_cct", [], ["mstwos_assyno" => base64_encode($data['product_no'])]);
 
-            $customer = $this->api->read('mst_customer', [], ["number" => @$item->id_customer], "", "name", "asc");
             $line = $this->api->read('mst_item_line', [], ["item_id" => $data['product_no']], "", "line_no", "asc");
             $lineName = $this->api->read('mst_line', [], ["line_no" => @$line->line_no], "", "line_no", "asc");
             $mpp = $this->api->reads('mpp_os', [], [
@@ -188,30 +215,42 @@ class Mpp_os extends CI_Controller
                 "product_no" => $data['product_no']
             ]);
 
-            if (empty(@$item->item_id)) {
+            if (empty($item)) {
                 echo json_encode(array("title" => "Not Found", "message" => "Product No " . $data['product_no'] . " Not Found", "theme" => "error"));
-            } elseif (count($mpp) > 0) {
-                $this->api->update('mpp_os', [
-                    "p_month" => $data['p_month'],
-                    "p_year" => $data['p_year'],
-                    "revision" => $data['revision'],
-                    "product_no" => $data['product_no']
-                ], ["os_mpp" => $data['os_mpp']]);
-
-                echo json_encode(array("title" => "Good Job", "message" => "Product No" . $data['product_no'] . " Updated Successfully", "theme" => "success"));
-            } elseif ($data['p_month'] == "" || $data['p_year'] == "" || $data['revision'] == "") {
-                echo json_encode(array("title" => "Empty", "message" => "Period or Revision Cannot Empty", "theme" => "error"));
             } else {
-                $dataFinal = array_merge($data, array(
-                    "product_name" => @$item->item_name,
-                    "circuit_no" => @$items->circuit_no,
-                    "line_name" => @$lineName->remarks,
-                    "customer_id" => @$customer->number,
-                    "customer_name" => @$customer->name
-                ));
+                $customer = $this->api->read('mst_customer', [], ["number" => @$item->id_customer], "", "name", "asc");
+                $nik = $this->api->read('user', [], ['id' => $this->session->id])->number;
+                $this->db->distinct()->select("TRIM(b.customer_code) AS nick")
+                ->from("setting_customer a")->join("mst_line b", "FIND_IN_SET(b.line_no, a.customer)")
+                ->where(["user_id" => $nik])->order_by("nick");
+                $nicks = [];
+                foreach ($this->db->get()->result() as $index => $row) { array_push($nicks, $row->nick); }
+                // die(var_dump($customer->nickname));
+                if (!in_array($customer->nickname, $nicks)) {
+                    echo json_encode(array("title" => "Failed", "message" => "You Not Allowed to Entry This Customer, ".$customer->name, "theme" => "error"));
+                } elseif (count($mpp) > 0) {
+                    $this->api->update('mpp_os', [
+                        "p_month" => $data['p_month'],
+                        "p_year" => $data['p_year'],
+                        "revision" => $data['revision'],
+                        "product_no" => $data['product_no']
+                    ], ["os_mpp" => $data['os_mpp']]);
 
-                $send   = $this->api->create('mpp_os', $dataFinal, "MPPOS", "MPPOS");
-                echo json_encode(array("title" => "Good Job", "message" => "Product No" . $data['product_no'] . " Saved Successfully", "theme" => "success"));
+                    echo json_encode(array("title" => "Good Job", "message" => "Product No" . $data['product_no'] . " Updated Successfully", "theme" => "success"));
+                } elseif ($data['p_month'] == "" || $data['p_year'] == "" || $data['revision'] == "") {
+                    echo json_encode(array("title" => "Empty", "message" => "Period or Revision Cannot Empty", "theme" => "error"));
+                } else {
+                    $dataFinal = array_merge($data, array(
+                        "product_name" => @$item->item_name,
+                        "circuit_no" => @$items->circuit_no,
+                        "line_name" => @$lineName->remarks,
+                        "customer_id" => @$customer->number,
+                        "customer_name" => @$customer->name
+                    ));
+
+                    $send   = $this->api->create('mpp_os', $dataFinal, "MPPOS", "MPPOS");
+                    echo json_encode(array("title" => "Good Job", "message" => "Product No" . $data['product_no'] . " Saved Successfully", "theme" => "success"));
+                }
             }
         }
     }
@@ -264,19 +303,33 @@ class Mpp_os extends CI_Controller
         $filter_customer_id = base64_decode($this->input->get('filter_customer_id'));
         $filter_product_no = trim(base64_decode($this->input->get('filter_product_no')));
 
+        $customers = [];
+        if (empty($filter_customer_id)) {
+            $nik = $this->api->read("user", [], ["id" => $this->session->id])->number;
+            $this->db->distinct()->select("customer")->from("setting_customer")->where(["user_id" => $nik]);
+            $wheres = explode(',', $this->db->get()->row()->customer);
+            $this->db->distinct()->select("TRIM(b.number) AS number")
+            ->from("mst_line a")->join("mst_customer b", "a.customer_code = b.nickname")
+            ->where_in("a.line_no", $wheres);
+            foreach ($this->db->get()->result() as $index => $row)
+                { array_push($customers, $row->number); }
+        }
+
         //Select Query
         $this->db->select('a.item_id, a.item_name, b.*, c.circuit_no, d.name as customer_name');
         $this->db->from('mst_item a');
         $this->db->join('mpp_os b', "a.item_id = b.product_no and b.p_month = '$filter_month' and b.p_year = '$filter_year' and b.revision = '$filter_revision'", 'left');
         $this->db->join('wip_mst_wos_cct c', 'a.item_id = c.mstwos_assyno', 'left');
         $this->db->join('mst_customer d', 'a.id_customer = d.number', 'left');
-        if ($filter_customer_id != "") {
-            $this->db->where('a.id_customer', $filter_customer_id);
+        if ($filter_customer_id != 'all') {
+            if (empty($customers)) { $this->db->where('a.id_customer', $filter_customer_id); }
+            else { $this->db->where_in('a.id_customer', $customers); }
         }
         if ($filter_product_no != "") {
             $this->db->like('a.item_id', $filter_product_no);
         }
         $this->db->order_by('d.name', 'asc');
+        // die($this->db->get_compiled_select());
         $records = $this->db->get()->result_array();
 
         $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;} .str{ mso-number-format:\@; }</style><body>
