@@ -198,7 +198,7 @@ class setup_incoterms extends CI_Controller
                         $autoID = sprintf("%04s", $urutan + 1);
                     }
                     $postFinal['number'] = "SHP-" . $autoID;
-                    $send   = $this->api->create('setup_incoterms', $postFinal);
+                    $send   = $this->api->create('setup_incoterms', $postFinal, "SIN", "setup_incoterms");
                     echo $send;
                 }
             } else {
