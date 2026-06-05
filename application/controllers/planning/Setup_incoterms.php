@@ -95,7 +95,7 @@ class setup_incoterms extends CI_Controller
                 $post   = $this->input->post();
                 $setup_incoterms = $this->api->read('setup_incoterms', [], ["incoterm_number" => $post['incoterm_number'], "country_number" => $post['country_number']]);
                 if (!$setup_incoterms) {
-                    $send   = $this->api->create('setup_incoterms', $post, "SIN", "setup_incoterms");
+                    $send   = $this->api->create('setup_incoterms', $post, "SHP", "setup_incoterms");
                     echo $send;
                 } else {
                     show_error("Duplicate Data");
@@ -117,7 +117,7 @@ class setup_incoterms extends CI_Controller
                 $send = $this->api->update('setup_incoterms', ["id" => $id], $post);
                 echo $send;
             } else {
-                $send   = $this->api->create('setup_incoterms', $post, "SIN", "setup_incoterms");
+                $send   = $this->api->create('setup_incoterms', $post, "SHP", "setup_incoterms");
                 echo $send;
             }
         } else {
@@ -198,7 +198,7 @@ class setup_incoterms extends CI_Controller
                         $autoID = sprintf("%04s", $urutan + 1);
                     }
                     $postFinal['number'] = "SHP-" . $autoID;
-                    $send   = $this->api->create('setup_incoterms', $postFinal, "SIN", "setup_incoterms");
+                    $send   = $this->api->create('setup_incoterms', $postFinal, "SHP", "setup_incoterms");
                     echo $send;
                 }
             } else {
