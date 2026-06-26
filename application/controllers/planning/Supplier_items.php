@@ -728,15 +728,15 @@ class Supplier_items extends CI_Controller
                     echo json_encode(array("title" => "Not Found", "message" => "Supplier " . $data['supplier_number'] . " and Part No " . $data['item_id'] . " Data Not Found in Supplier Items", "theme" => "error"));
                 } else {
                     $maker_code = empty($data['maker_code']) ? @$supplier_items->maker_code : @$data['maker_code'];
-                    $spq = $data['spq'] ?? $supplier_items->spq;
-                    $mpq = $data['mpq'] ?? $supplier_items->mpq;
-                    $moq = $data['moq'] ?? $supplier_items->moq;
+                    $spq = ($data['spq'] == '') ? @$supplier_items->spq : @$data['spq'];
+                    $mpq = ($data['mpq'] == '') ? @$supplier_items->mpq : @$data['mpq'];
+                    $moq = ($data['moq'] == '') ? @$supplier_items->moq : @$data['moq'];
                     $item_supplier = empty($data['item_supplier']) ? @$supplier_items->item_supplier : @$data['item_supplier'];
                     $coo_name = empty($data['coo_name']) ? @$supplier_items->coo_name : @$data['coo_name'];
                     $landed_cost = empty($data['landed_cost']) ? @$supplier_items->landed_cost : @$data['landed_cost'];
                     $import_duty = empty($data['import_duty']) ? @$supplier_items->import_duty : @$data['import_duty'];
-                    $share_order = $data['share_order'] ?? $supplier_items->share_order;
-                    $leadtime = $data['leadtime'] ?? $supplier_items->leadtime;
+                    $share_order = ($data['share_order'] == '') ? @$supplier_items->share_order : @$data['share_order'];
+                    $leadtime = ($data['leadtime'] == '') ? @$supplier_items->leadtime : @$data['leadtime'];
                     $currency = empty($data['currency']) ? @$supplier_items->currency : @$data['currency'];
                     $price = empty($data['price']) ? @$supplier_items->price : @$data['price'];
                     $start_date = empty($data['start_date']) ? @$supplier_items->start_date : @$data['start_date'];
@@ -1167,8 +1167,8 @@ class Supplier_items extends CI_Controller
                             <td>' . $data['leadtime'] . '</td>
                             <td>' . $data['uom'] . '</td>
                             <td>' . $data['start_date'] . '</td>
-                            <td>' . $data['price'] . '</td>
                             <td>' . $data['valid_date'] . '</td>
+                            <td>' . $data['price'] . '</td>
                             <td>' . $data['currency'] . '</td>
                             <td>' . $data['exchange_rate'] . '</td>
                             <td>' . $data['incoterm'] . '</td>
