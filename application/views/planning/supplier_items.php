@@ -4,9 +4,10 @@
         <tr>
             <th field="ck" checkbox="true"></th>
             <th data-options="field:'plant',width:50,halign:'center'">Plant</th>
+            <th data-options="field:'supplier_number',width:100,halign:'center'">Vendor ID</th>
             <th data-options="field:'supplier_name',width:250,halign:'center'">Vendor Name</th>
             <th data-options="field:'quotation_number',width:250,halign:'center'">Quotation No</th>
-            <th data-options="field:'item_id',width:200,halign:'center'">Part No</th>
+            <th data-options="field:'item_id',width:200,halign:'center'">Part No. BEI</th>
         </tr>
     </thead>
     <thead>
@@ -19,20 +20,25 @@
             <th rowspan="2" data-options="field:'pfm_name',width:120,halign:'center'">Product Family</th>
             <th rowspan="2" data-options="field:'maker_name',width:150,halign:'center'">Maker</th>
             <th rowspan="2" data-options="field:'maker_type',width:100,halign:'center'">Maker Type</th>
-            <th rowspan="2" data-options="field:'maker_origin',width:150,halign:'center'">Maker Origin</th>
+            <th rowspan="2" data-options="field:'maker_origin',width:150,halign:'center'">Country Of Origin</th>
             <!-- <th rowspan="2" data-options="field:'landed_cost',width:100,halign:'center'">Landed Cost</th>
             <th rowspan="2" data-options="field:'import_duty',width:100,halign:'center'">Import Duty</th> -->
             <th rowspan="2" data-options="field:'spq',width:80,halign:'center',align:'right',formatter:numberformatComa">SPQ</th>
             <th rowspan="2" data-options="field:'mpq',width:80,halign:'center',align:'right',formatter:numberformatComa">MPQ</th>
             <th rowspan="2" data-options="field:'moq',width:80,halign:'center',align:'right',formatter:numberformatComa">MOQ</th>
-            <th rowspan="2" data-options="field:'uom',width:80,align:'center'">UoM</th>
-            <th colspan="3" data-options="field:'',width:80,halign:'center',align:'right'">Prices</th>
-            <th rowspan="2" data-options="field:'currency',width:80,align:'center'">Currency</th>
-            <th rowspan="2" data-options="field:'leadtime',width:80,align:'center'">Leadtime<br></th>
             <th rowspan="2" data-options="field:'share_order',width:80,align:'center'">Share Order<br></th>
             <th rowspan="2" hidden data-options="field:'safety_stock',width:80,halign:'center',align:'right',formatter:numberformatComa">Safety <br>Stock<br>(%)</th>
             <th rowspan="2" hidden data-options="field:'calculate',width:100,formatter:calculateMpq">Calculate<br>MPQ</th>
             <th rowspan="2" data-options="field:'provide',width:80,halign:'center'">Provide<br>Customer</th>
+            <th rowspan="2" data-options="field:'leadtime',width:80,align:'center'">Leadtime<br>(Days)</th>
+            <th rowspan="2" data-options="field:'uom',width:80,align:'center'">UoM</th>
+            <th colspan="4" data-options="field:'',width:80,halign:'center',align:'right'">Prices</th>
+            <th rowspan="2" data-options="field:'currency',width:80,align:'center'">Currency</th>
+            <th rowspan="2" data-options="field:'exchange_rate',width:100,align:'center'">Exchange Rate</th>
+            <th rowspan="2" data-options="field:'incoterm',width:100,align:'center'">Incoterm</th>
+            <th rowspan="2" data-options="field:'total_ddp',width:120,align:'center'">Total DDP %</th>
+            <th rowspan="2" data-options="field:'price_procurement',width:100,halign:'center',align:'right',formatter:numberformat">Procurement<br>Price (IDR)</th>
+            <th rowspan="2" data-options="field:'cheaper',width:120,align:'center'">Cheaper</th>
             <th rowspan="2" data-options="field:'detail',width:80,halign:'center',formatter:BtnDetail">History</th>
             <th rowspan="2" data-options="field:'remarks',width:250,halign:'center'">Remarks</th>
             <th colspan="3" data-options="field:'',width:100,halign:'center'">Approved</th>
@@ -40,6 +46,7 @@
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
         </tr>
         <tr>
+            <th data-options="field:'start_date',width:100,align:'center'">Start Date</th>
             <th data-options="field:'valid_date',width:100,align:'center'">Valid Date</th>
             <th data-options="field:'price',width:80,halign:'center',align:'right',formatter:numberformat">Price</th>
             <th data-options="field:'add',width:80,halign:'center',formatter:BtnPrice">Add</th>
@@ -481,7 +488,7 @@
 
     //DOWNLOAD TEMPLATE UPLOAD
     function download_excel() {
-        window.location.assign('<?= base_url('template/tmp_supplier_items.xls') ?>');
+        window.location.assign('<?= base_url('template/tmp_vendor_contracts.xls') ?>');
     }
 
     //FILTER DATA

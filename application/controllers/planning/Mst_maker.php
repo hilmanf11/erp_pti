@@ -142,7 +142,9 @@ class Mst_maker extends CI_Controller
             $datas[] = array(
                 'number' => $data->val($i, 2),
                 'name' => $data->val($i, 3),
-                'description' => $data->val($i, 4)
+                'type' => $data->val($i, 4),
+                'origin' => $data->val($i, 5),
+                'description' => $data->val($i, 6)
             );
         }
 
@@ -159,11 +161,12 @@ class Mst_maker extends CI_Controller
             $mainProcess = $this->api->reads('mst_maker', [], ["number" => $data['number']]);
 
             if (count($mainProcess) > 0) {
-                echo json_encode(array("title" => "Duplicated", "message" => "Code " . $data['number'] . " has been Duplicated", "theme" => "error"));
+                // echo json_encode(array("title" => "Duplicated", "message" => "Code " . $data['number'] . " has been Duplicated", "theme" => "error"));
+                $send = $this->api->update('mst_maker', ["id" => $mainProcess[0]->id], $data);
             } else {
                 $send = $this->api->create('mst_maker', $data, "MK", "MK");
-                echo $send;
             }
+            echo $send;
         }
     }
 
@@ -180,9 +183,11 @@ class Mst_maker extends CI_Controller
         $this->db->from('config');
         $config = $this->db->get()->row();
 
-        $this->db->select('*');
-        $this->db->from('mst_maker');
-        $this->db->where('deleted_is', 0);
+        $this->db->select('a.*, b.name as created_name, c.name as updated_name');
+        $this->db->from('mst_maker a');
+        $this->db->join('user b', 'a.created_by = b.username', 'left');
+        $this->db->join('user c', 'a.updated_by = c.username', 'left');
+        $this->db->where('a.deleted_is', 0);
         $records = $this->db->get()->result_array();
 
         $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
@@ -215,6 +220,10 @@ class Mst_maker extends CI_Controller
                 <th>Type</th>
                 <th>Country of Origin</th>
                 <th>Remarks</th>
+                <th>Created By</th>
+                <th>Created Date</th>
+                <th>Updated By</th>
+                <th>Updated Date</th>
             </tr>';
         $no = 1;
         foreach ($records as $data) {
@@ -225,6 +234,10 @@ class Mst_maker extends CI_Controller
                             <td>' . $data['type'] . '</td>
                             <td>' . $data['origin'] . '</td>
                             <td>' . $data['description'] . '</td>
+                            <td>' . $data['created_name'] . '</td>
+                            <td>' . $data['created_date'] . '</td>
+                            <td>' . $data['updated_name'] . '</td>
+                            <td>' . $data['updated_date'] . '</td>
                         </tr>';
             $no++;
         }
