@@ -88,9 +88,9 @@ class Supplier_items extends CI_Controller
         $result = array();
 
         $this->db->select("a.*, g.valid_date, g.price, g.currency,c.item_id, c.item_name, b.number as supplier_number, b.origin, e.name as pfm_name, b.name as supplier_name, b.type, d.name as uom, f.name as maker_name, f.type as maker_type, f.origin as maker_origin, CASE WHEN a.created_by = '$user_vendor' THEN COALESCE(TRIM(h.name), '') ELSE '' END AS create_by, CASE WHEN a.created_by = '$user_vendor' THEN DATE(a.created_date) ELSE '' END AS create_date, c.um_id, i.name AS incoterm, 
-        case when g.currency = 'IDR' then 1 else g.exchange_rate end as exchange_rate , 
+        case when g.currency = 'IDR' then 1 else k.middle end as exchange_rate , 
         j.country_name, j.total_ddp,
-        coalesce((g.price * (case when g.currency = 'IDR' then 1 else g.exchange_rate end))+ (g.price * (case when g.currency = 'IDR' then 1 else g.exchange_rate end) * COALESCE(j.total_ddp, 0)), 0) AS price_procurement
+        coalesce((g.price * (case when g.currency = 'IDR' then 1 else k.middle end))+ (g.price * (case when g.currency = 'IDR' then 1 else k.middle end) * COALESCE(j.total_ddp, 0)), 0) AS price_procurement
         ");
         $this->db->from('supplier_items a');
         $this->db->join('suppliers b', 'b.id = a.supplier_id');
@@ -100,6 +100,7 @@ class Supplier_items extends CI_Controller
         $this->db->join('mst_maker f', 'a.maker_code = f.number', 'left');
         $this->db->join("(SELECT supplier_item_id, price, currency, start_date, valid_date, exchange_rate FROM supplier_item_prices WHERE (supplier_item_id, valid_date) IN (SELECT supplier_item_id, MAX(valid_date) FROM supplier_item_prices GROUP BY supplier_item_id) GROUP BY supplier_item_id) g", 'a.id = g.supplier_item_id', 'left');
         $this->db->join("user h", "a.created_by = h.username", "LEFT");
+        $this->db->join("exchange_rates k", 'k.start_date <= g.valid_date AND k.end_date >= g.valid_date and k.currency = g.currency', 'left');
         if ($filter_check == "true") {
             $this->db->join("(SELECT item_id FROM supplier_items GROUP BY item_id HAVING COUNT(*) > 1) i", 'a.item_id = i.item_id');
         }
@@ -390,7 +391,12 @@ class Supplier_items extends CI_Controller
 
                 $supplier_items = $this->api->read('supplier_items', [], ["supplier_id" => $post['supplier_id'], "item_id" => $post['item_id'], "plant" => $post['plant'], "quotation_number" => $post["quotation_number"]]);
                 if (!$supplier_items) {
-                    $send = $this->api->create('supplier_items', $post, "SPI", "supplier_items");
+                    $attachment = $this->api->upload('attachment', ["jpg", "png", "jpeg", "pdf", "xls", "xlsx", "docx"], 'assets/documents/supplier_items/', [], "supplier_items", "attachment");
+                    $attachment2 = $this->api->upload('attachment2', ["jpg", "png", "jpeg", "pdf", "xls", "xlsx", "docx"], 'assets/documents/supplier_items2/', [], "supplier_items", "attachment2");
+                    $attachment3 = $this->api->upload('attachment3', ["jpg", "png", "jpeg", "pdf", "xls", "xlsx", "docx"], 'assets/documents/supplier_items3/', [], "supplier_items", "attachment3");
+                    $postFinal = array_merge($post, ["attachment" => $attachment, "attachment2" => $attachment2, "attachment3" => $attachment3]);
+
+                    $send = $this->api->create('supplier_items', $postFinal, "SPI", "supplier_items");
                     echo $send;
                 } else {
                     show_error("Duplicate Data or this item still checking in approval");
@@ -473,8 +479,8 @@ class Supplier_items extends CI_Controller
                     "share_order" => $read->share_order,
                     "leadtime" => $read->leadtime,
                     "remarks" => $read->remarks,
-                    "quotation_number" => $post['quotation_number'],
-                    "quotation_date" => $post['quotation_date'],
+                    // "quotation_number" => $post['quotation_number'],
+                    // "quotation_date" => $post['quotation_date'],
                 );
 
                 $send = $this->api->create("supplier_items_log", $history, "SPL", "supplier_items_log");
@@ -582,7 +588,10 @@ class Supplier_items extends CI_Controller
                 'landed_cost' => $data->val($i, 18),
                 'import_duty' => $data->val($i, 19),
                 'remarks' => $data->val($i, 20),
-                'action' => $data->val($i, 21)
+                'quotation_number' => $data->val($i, 21),
+                'quotation_date' => $data->val($i, 22),
+                'incoterm_code' => $data->val($i, 23),
+                'action' => $data->val($i, 24)
             );
         }
         $datas['total'] = count($datas);
@@ -635,6 +644,7 @@ class Supplier_items extends CI_Controller
             $plant = $this->api->read('plants', [], ["number" => $data['plant']]);
             $supplier = $this->api->read('suppliers', [], ["number" => $data['supplier_number']]);
             $maker = $this->api->read('mst_maker', [], ["number" => $data['maker_code']]);
+            $incoterm = $this->api->read('incoterms', [], ["number" => $data['incoterm_code']]);
             // $supplier_items = $this->api->read('supplier_items', [], ["status" => 0, "item_id" => @$item->item_id, "supplier_id" => @$supplier->id, "plant" => $data['plant'], "quotation_number" => $data['quotation_number'] ?? '']);
             $supplier_items = $this->api->read('supplier_items', [], ["status" => 0, "item_id" => @$item->item_id, "supplier_id" => @$supplier->id, "plant" => $data['plant']]);
             $supplier_item_prices = $this->api->read('supplier_item_prices', [], ["supplier_item_id" => @$supplier_items->id]);
@@ -647,9 +657,9 @@ class Supplier_items extends CI_Controller
                 die(json_encode(array("title" => "Not Found", "message" => "Vendor " . $data['supplier_number'] . " Not Found", "theme" => "error")));
             }
 
-            // if (empty($data['quotation_number'])) {
-            //     die(json_encode(array("title" => "Not Found", "message" => "Quotation Number " . $data['quotation_number'] . " Not Found", "theme" => "error")));
-            // }
+            if (empty($data['quotation_number'])) {
+                die(json_encode(array("title" => "Not Found", "message" => "Quotation Number " . $data['quotation_number'] . " Not Found", "theme" => "error")));
+            }
 
             if (empty($item->item_id)) {
                 die(json_encode(array("title" => "Not Found", "message" => "Part No " . $data['item_id'] . " Not Found", "theme" => "error")));
@@ -668,6 +678,8 @@ class Supplier_items extends CI_Controller
                     echo json_encode(array("title" => "Not Found", "message" => "Currency Still Empty", "theme" => "error"));
                 } elseif (!empty($supplier_items->item_id)) {
                     echo json_encode(array("title" => "Duplicate", "message" => "Supplier " . $data['supplier_number'] . " and Part No " . $data['item_id'] . " Has been Created", "theme" => "error"));
+                } elseif (empty($incoterm->number)) {
+                    echo json_encode(array("title" => "Not Found", "message" => "Incoterm " . $data['incoterm_code'] . " Not Found", "theme" => "error"));
                 } else {
                     if ($this->isValidDate($data['start_date'])) {
                         //
@@ -683,7 +695,11 @@ class Supplier_items extends CI_Controller
                     } else {
                         die(json_encode(array("title" => "Not Found", "message" => "Format Date " . $data['valid_date'] . " rejected, use YYYY-MM-DD format and format type is text", "theme" => "error")));
                     }
-
+                    if ($this->isValidDate($data['quotation_date'])) {
+                        //
+                    } else {
+                        die(json_encode(array("title" => "Not Found", "message" => "Format Date " . $data['quotation_date'] . " rejected, use YYYY-MM-DD format and format type is text", "theme" => "error")));
+                    }
                     $postFinal = array(
                         "item_id" => $item->item_id,
                         "item_supplier" => $data['item_supplier'],
@@ -704,8 +720,9 @@ class Supplier_items extends CI_Controller
                         "valid_date" => $data['valid_date'],
                         "leadtime" => $data['leadtime'],
                         "remarks" => $data['remarks'],
-                        // "quotation_number" => $data['quotation_number'],
+                        "quotation_number" => $data['quotation_number'],
                         "quotation_date" => $data['quotation_date'],
+                        "incoterm_code" => $data['incoterm_code'],
                     );
                     $send = $this->api->create('supplier_items', $postFinal, "SPI", "supplier_items");
                     // $supplier_item = $this->api->read('supplier_items', [], ["item_id" => @$item->item_id, "supplier_id" => @$supplier->id, "plant" => $data['plant'], 'quotation_number' => $data['quotation_number']]);
@@ -742,6 +759,9 @@ class Supplier_items extends CI_Controller
                     $start_date = empty($data['start_date']) ? @$supplier_items->start_date : @$data['start_date'];
                     $valid_date = empty($data['valid_date']) ? @$supplier_items->valid_date : @$data['valid_date'];
                     $remarks = empty($data['remarks']) ? @$supplier_items->remarks : @$data['remarks'];
+                    $quotation_number = ($data['quotation_number'] == '') ? @$supplier_items->quotation_number : @$data['quotation_number'];
+                    $quotation_date = ($data['quotation_date'] == '') ? @$supplier_items->quotation_date : @$data['quotation_date'];
+                    $incoterm_code = ($data['incoterm_code'] == '') ? @$supplier_items->incoterm_code : @$data['incoterm_code'];
 
                     $postFinal = array(
                         "plant" => $data['plant'],
@@ -762,7 +782,10 @@ class Supplier_items extends CI_Controller
                         "start_date" => $start_date,
                         "valid_date" => $valid_date,
                         "leadtime" => $leadtime,
-                        "remarks" => $remarks
+                        "remarks" => $remarks,
+                        "quotation_number" => $quotation_number,
+                        "quotation_date" => $quotation_date,
+                        "incoterm_code" => $incoterm_code,
                     );
                     $prices = array(
                         "supplier_item_id" => $supplier_items->id,
@@ -878,9 +901,9 @@ class Supplier_items extends CI_Controller
         $config = $this->db->get()->row();
 
         $this->db->select("a.*, g.valid_date, g.price, g.currency, c.item_id, c.item_name, b.number as supplier_number, b.origin, e.name as pfm_name, b.name as supplier_name, b.type, d.name as uom, f.name as maker_name, f.type as maker_type, f.origin as maker_origin, CASE WHEN a.created_by = '$user_vendor' THEN COALESCE(TRIM(h.name), '') ELSE '' END AS create_by, CASE WHEN a.created_by = '$user_vendor' THEN DATE(a.created_date) ELSE '' END AS create_date, c.um_id, i.name AS incoterm,
-        case when g.currency = 'IDR' then 1 else g.exchange_rate end as exchange_rate , 
+        case when g.currency = 'IDR' then 1 else k.middle end as exchange_rate , 
         j.country_name, j.total_ddp,
-        coalesce((g.price * (case when g.currency = 'IDR' then 1 else g.exchange_rate end))+ (g.price * (case when g.currency = 'IDR' then 1 else g.exchange_rate end) * COALESCE(j.total_ddp, 0)), 0) AS price_procurement
+        coalesce((g.price * (case when g.currency = 'IDR' then 1 else k.middle end))+ (g.price * (case when g.currency = 'IDR' then 1 else k.middle end) * COALESCE(j.total_ddp, 0)), 0) AS price_procurement
         ");
         $this->db->from('supplier_items a');
         $this->db->join('suppliers b', 'b.id = a.supplier_id');
@@ -890,6 +913,7 @@ class Supplier_items extends CI_Controller
         $this->db->join('mst_maker f', 'a.maker_code = f.number', 'left');
         $this->db->join("(SELECT supplier_item_id, price, currency, start_date, valid_date, exchange_rate FROM supplier_item_prices WHERE (supplier_item_id, valid_date) IN (SELECT supplier_item_id, MAX(valid_date) FROM supplier_item_prices GROUP BY supplier_item_id) GROUP BY supplier_item_id) g", 'a.id = g.supplier_item_id', 'left');
         $this->db->join("user h", "a.created_by = h.username", "LEFT");
+        $this->db->join("exchange_rates k", 'k.start_date <= g.valid_date AND k.end_date >= g.valid_date and k.currency = g.currency', 'left');
         if ($filter_check == "true") {
             $this->db->join("(SELECT item_id FROM supplier_items GROUP BY item_id HAVING COUNT(*) > 1) i", 'a.item_id = i.item_id');
         }
@@ -1056,7 +1080,7 @@ class Supplier_items extends CI_Controller
             }
             $this->db->order_by("a.item_id");
             $totalRows = $this->db->count_all_results('', false);
-            if (!$no_limit) {
+            if (!isset($no_limit)) {
                 $this->db->limit($rows, $offset);
             }
             $records = $this->db->get()->result_array();
@@ -1086,6 +1110,10 @@ class Supplier_items extends CI_Controller
             <table id="customers" border="1">
                     <tr>
                         <th width="20">No</th>
+                        <th>Approved</th>
+                        <th>Approved By</th>
+                        <th>Approved Date</th>
+                        <th>Plant</th>
                         <th>Vendor ID</th>
                         <th>Vendor Name</th>
                         <th>Quotation</th>
@@ -1099,12 +1127,17 @@ class Supplier_items extends CI_Controller
                         <th>Maker</th>
                         <th>Maker Type</th>
                         <th>Country Of Origin</th>
+                        <th>Landed Cost</th>
+                        <th>Import Duty</th>
                         <th>SPQ</th>
                         <th>MPQ</th>
                         <th>MOQ</th>
                         <th>Share Order</th>
                         <th>Provide Customer</th>
                         <th>Leadtime (Days)</th>
+                        <th>Safety<br>Stock (%)</th>
+                        <th>Calculate MPQ</th>
+                        <th>Account COA</th>
                         <th>UoM</th>
                         <th>Start Date</th>
                         <th>Valid Date</th>
@@ -1116,6 +1149,10 @@ class Supplier_items extends CI_Controller
                         <th>Procurement Price (IDR)</th>
                         <th>Cheaper</th>
                         <th>Remarks</th>
+                <th>Created By</th>
+                <th>Created Date</th>
+                <th>Updated By</th>
+                <th>Updated Date</th>
                     </tr>';
             $no = 1;
 
@@ -1142,10 +1179,19 @@ class Supplier_items extends CI_Controller
                 $cheaperMap[$lookupKey] = 'CHEAPER ' . $cheaperRank;
             }
             foreach ($records as $data) {
+                if ($data['approved_to'] == "") {
+                    $approved = "APPROVED";
+                } else {
+                    $approved = "CHECKING";
+                }
+
                 $lookupKey = $data['supplier_id'] . '|' . $data['item_id'];
                 $cheaper = isset($cheaperMap[$lookupKey]) ? $cheaperMap[$lookupKey] : '';
                 $html .= '<tr>
-                            <td>' . $no . '</td>
+                            <td>' . $no . '</td>   <td>' . $approved . '</td>
+                            <td>' . $data['approved_by'] . '</td>
+                            <td>' . $data['approved_date'] . '</td>
+                            <td>' . $data['plant'] . '</td>
                             <td>' . $data['supplier_number'] . '</td>
                             <td>' . $data['supplier_name'] . '</td>
                             <td>' . $data['quotation_number'] . '</td>
@@ -1159,12 +1205,17 @@ class Supplier_items extends CI_Controller
                             <td>' . $data['maker_name'] . '</td>
                             <td>' . $data['maker_type'] . '</td>
                             <td>' . $data['maker_origin'] . '</td>
+                            <td>' . $data['landed_cost'] . '</td>
+                            <td>' . $data['import_duty'] . '</td>
                             <td>' . $data['spq'] . '</td>
                             <td>' . $data['mpq'] . '</td>
                             <td>' . $data['mpq'] . '</td>
                             <td>' . $data['share_order'] . '</td>
                             <td>' . $data['provide'] . '</td>
                             <td>' . $data['leadtime'] . '</td>
+                            <td>' . $data['safety_stock'] . '</td>
+                            <td>' . $data['calculate'] . '</td>
+                            <td>' . $data['account_number'] . '</td>
                             <td>' . $data['uom'] . '</td>
                             <td>' . $data['start_date'] . '</td>
                             <td>' . $data['valid_date'] . '</td>
@@ -1176,11 +1227,122 @@ class Supplier_items extends CI_Controller
                             <td>' . $data['price_procurement'] . '</td>
                             <td>' . $cheaper . '</td>
                             <td>' . $data['remarks'] . '</td>
+                            <td>' . $data['created_by'] . '</td>
+                            <td>' . $data['created_date'] . '</td>
+                            <td>' . $data['updated_by'] . '</td>
+                            <td>' . $data['updated_date'] . '</td>
                         </tr>';
                 $no++;
             }
             $html .= '</table></body></html>';
             echo $html;
         }
+    }
+
+    public function excel_price($option = "")
+    {
+        $format  = date("Ymd");
+        header("Content-type: application/vnd-ms-excel");
+        header("Content-Disposition: attachment; filename=vendor_items_price_history_$format.xls");
+
+        $filter_suppliers  = base64_decode($this->input->get('filter_suppliers'));
+        $filter_category  = base64_decode($this->input->get('filter_category'));
+        $filter_maker  = base64_decode($this->input->get('filter_maker'));
+        $filter_item_rm = base64_decode($this->input->get('filter_item_rm'));
+        $filter_item_vendor = base64_decode($this->input->get('filter_item_vendor'));
+        $filter_share_order = base64_decode($this->input->get('filter_share_order'));
+        $filter_status_price = base64_decode($this->input->get('filter_status_price'));
+        $filter_type = base64_decode($this->input->get('filter_type'));
+        $filter_check = $this->input->get('filter_check');
+
+        //Config
+        $this->db->select('*');
+        $this->db->from('config');
+        $config = $this->db->get()->row();
+
+        $sql = $this->db->query("SELECT z.* FROM 
+            (SELECT a.item_id, c.item_supplier as item_rm_number, c.item_name as item_rm_name, d.name as item_family_name, a.supplier_id, b.name as supplier_name, b.type, b.currency, a.price, a.valid_date, a.remarks, a.created_by, a.created_date, a.plant, a.start_date
+             FROM supplier_items_log a 
+             JOIN suppliers b ON a.supplier_id = b.id
+             JOIN mst_item_raw c ON a.item_id = c.id
+             JOIN mst_item_family d ON c.pfm_id = d.id and d.groups <> 'Finished Good'
+             WHERE c.pfm_id like '%$filter_category%' AND a.supplier_id like '%$filter_suppliers%' AND a.item_id like '%$filter_item_rm%' and b.type like '%$filter_type%'
+             UNION ALL
+             SELECT a.item_id, c.item_supplier as item_rm_number, c.item_name as item_rm_name, d.name as item_family_name, a.supplier_id, b.name as supplier_name, b.type, b.currency, a.price, a.valid_date, a.remarks, (CASE WHEN a.updated_by is null THEN a.created_by ELSE a.updated_by END) as created_by, (CASE WHEN a.updated_date is null THEN a.created_date ELSE a.updated_date END) as created_date, a.plant, a.start_date
+             FROM supplier_items a 
+             JOIN suppliers b ON a.supplier_id = b.id
+             JOIN mst_item_raw c ON a.item_id = c.id
+             JOIN mst_item_family d ON c.pfm_id = d.id and d.groups <> 'Finished Good'
+             WHERE c.pfm_id like '%$filter_category%' AND a.supplier_id like '%$filter_suppliers%' AND a.item_id like '%$filter_item_rm%' and b.type like '%$filter_type%') z
+             GROUP BY z.supplier_id, z.item_rm_number, z.price
+             ORDER BY z.supplier_id, z.item_rm_number, z.created_date DESC");
+        $records = $sql->result_array();
+
+        $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#supplier_items {border-collapse: collapse;width: 100%;font-size: 12px;}#supplier_items td, #supplier_items th {border: 1px solid #ddd;padding: 2px;}#supplier_items tr:nth-child(even){background-color: #f2f2f2;}#supplier_items tr:hover {background-color: #ddd;}#supplier_items th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
+        <center>
+            <div style="float: left; font-size: 12px; text-align: left;">
+                <table style="width: 100%;">
+                    <tr>
+                        <td width="50" style="font-size: 12px; vertical-align: top; text-align: center; vertical-align:jus margin-right:10px;">
+                            <img src="' . $config->favicon . '" width="30">
+                        </td>
+                        <td style="font-size: 14px; text-align: left; margin:2px;">
+                            <b>' . $config->name . '</b>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div style="float: right; font-size: 12px; text-align: right;">
+                Print Date ' . date("d M Y H:m:s") . ' <br>
+                Print By ' . $this->session->username . '  
+            </div>
+            <br><br>
+            <div style="float: centet; font-size: 16px; text-align: center;">
+                <h3>HISTORY SUPPLIER CONTRACT PRICE RM</h3>
+            </div>
+        </center>
+        
+        <table id="supplier_items" border="1">
+            <tr>
+                <th width="20">No</th>
+                <th>Plant</th>
+                <th>Vendor ID</th>
+                <th>Vendor Name</th>
+                <th>Original Part No</th>
+                <th>Part No Vendor</th>
+                <th>Description</th>
+                <th>Vendor Type</th>
+                <th>Product Family</th>
+                <th>Currency</th>
+                <th>Price</th>
+                <th>Start Date</th>
+                <th>Valid Date</th>
+                <th>Remarks</th>
+                <th>Created By</th>
+                <th>Created Date</th>
+            </tr>';
+        $no = 1;
+        foreach ($records as $data) {
+            $html .= '<tr>
+                    <td>' . $no . '</td>
+                    <td>' . $data['plant'] . '</td>
+                    <td style="mso-number-format:\@;">' . $data['supplier_id'] . '</td>
+                    <td>' . $data['supplier_name'] . '</td>
+                    <td>' . $data['item_id'] . '</td>
+                    <td style="mso-number-format:\@;">' . $data['item_rm_number'] . '</td>
+                    <td style="mso-number-format:\@;">' . $data['item_rm_name'] . '</td>
+                    <td>' . $data['type'] . '</td>
+                    <td>' . $data['item_family_name'] . '</td>
+                    <td>' . $data['currency'] . '</td>
+                    <td>' . $data['price'] . '</td>
+                    <td>' . $data['start_date'] . '</td>
+                    <td>' . $data['valid_date'] . '</td>
+                    <td>' . $data['remarks'] . '</td>
+                    <td>' . $data['created_by'] . '</td>
+                    <td>' . $data['created_date'] . '</td>';
+            $no++;
+        }
+        $html .= '</table></body></html>';
+        echo $html;
     }
 }

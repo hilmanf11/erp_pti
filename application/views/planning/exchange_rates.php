@@ -201,6 +201,20 @@
 
         $('#middle').numberbox({required: true, precision: 2});
 
+          $("#selling").numberbox({
+            onChange: function(selling) {
+                var buying = $("#buying").numberbox('getValue');
+                $("#middle").numberbox('setValue', ((parseFloat(buying) + parseFloat(selling)) / 2));
+            }
+        });
+
+        $("#buying").numberbox({
+            onChange: function(buying) {
+                var selling = $("#selling").numberbox('getValue');
+                $("#middle").numberbox('setValue', ((parseFloat(buying) + parseFloat(selling)) / 2));
+            }
+        });
+
         getprocess({act: 'datatables'});
     });
 
