@@ -425,10 +425,10 @@
 		$('#dlg_notif').dialog('open');
 	}
 
-	approvalList();
-	approvalCount();
-	setInterval(approvalList, 10000);
-	setInterval(approvalCount, 10000);
+	// approvalList();
+	// approvalCount();
+	// setInterval(approvalList, 10000);
+	// setInterval(approvalCount, 10000);
 
 	function approvalList() {
 		$.ajax({
@@ -517,10 +517,10 @@
 		$('#pageNotification').attr('src', '<?= base_url("notification/delivery_schedules") ?>');
 	}
 
-	notificationList();
-	notificationCount();
-	setInterval(notificationList, 10000);
-	setInterval(notificationCount, 10000);
+	// notificationList();
+	// notificationCount();
+	// setInterval(notificationList, 10000);
+	// setInterval(notificationCount, 10000);
 
 	function logout() {
 		Swal.fire({

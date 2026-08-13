@@ -33,6 +33,7 @@
             <th rowspan="2" data-options="field:'provide',width:80,halign:'center'">Provide<br>Customer</th>
             <th rowspan="2" data-options="field:'leadtime',width:80,align:'center'">Leadtime<br>(Days)</th>
             <th rowspan="2" data-options="field:'uom',width:80,align:'center'">UoM</th>
+            <th rowspan="2" data-options="field:'uom_convertion',width:80,align:'center'">UoM<br>Convertion</th>
             <th colspan="4" data-options="field:'',width:80,halign:'center',align:'right'">Prices</th>
             <th rowspan="2" data-options="field:'currency',width:80,align:'center'">Currency</th>
             <th rowspan="2" data-options="field:'attachment',width:100,halign:'center',formatter:BtnAttachment">Attachment</th>
@@ -339,6 +340,7 @@
                 <th data-options="field:'mpq',width:80,halign:'center',align:'right',formatter:numberformatComa">MPQ</th>
                 <th data-options="field:'moq',width:80,halign:'center',align:'right',formatter:numberformatComa">MOQ</th>
                 <th data-options="field:'uom',width:80,align:'center'">UoM</th>
+                <th data-options="field:'uom_convertion',width:80,align:'center'">UoM<br>Convertion</th>
                 <th data-options="field:'currency',width:80,align:'center'">Currency</th>
                 <th data-options="field:'price',width:80,halign:'center',align:'right',formatter:numberformat">Price</th>
                 <th data-options="field:'leadtime',width:80,align:'center'">Leadtime</th>

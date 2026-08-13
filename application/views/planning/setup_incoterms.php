@@ -5,6 +5,8 @@
             <th rowspan="2" data-options="field:'number',width:120,halign:'center'">Shipping Code</th>
             <th rowspan="2" data-options="field:'incoterm_name',width:200,halign:'center'">Incoterm</th>
             <th rowspan="2" data-options="field:'country_name',width:200,halign:'center'">Country Of Origin</th>
+            <th rowspan="2" data-options="field:'item_family_name',width:200,halign:'center'">Product Family</th>
+            <th rowspan="2" data-options="field:'sub_prodfam',width:200,halign:'center'">Sub Product Family</th>
             <th rowspan="2" data-options="field:'insurance',width:120,halign:'center',align:'right',formatter:numberformatComa">Insurance (%)</th>
             <th rowspan="2" data-options="field:'transportation',width:120,halign:'center',align:'right',formatter:numberformatComa">Transportation (%)</th>
             <th rowspan="2" data-options="field:'import_duty',width:120,halign:'center',align:'right',formatter:numberformatComa">Import Duty (%)</th>
@@ -42,8 +44,16 @@
                 <input style="width:60%;" name="country_number" id="country_number" required="" class="easyui-combogrid">
             </div>
             <div class="fitem">
+                <span style="width:35%; display:inline-block;">Product Family</span>
+                <input style="width:60%;" name="pfm_number" id="pfm_number" required="" class="easyui-combobox">
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Product Family</span>
+                <input style="width:60%;" name="sub_prodfam" id="sub_prodfam" required="" class="easyui-combobox">
+            </div>
+            <div class="fitem">
                 <span style="width:35%; display:inline-block;">Insurance (%)</span>
-                <input style="width:60%;" name="insurance" id="insurance" required="true" class="easyui-numberbox" data-options="precision:4">
+                <input style="width:60%;" name="insurance" id="insurance" required="true" class="easyui-numberbox" data-options="precision:8">
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Transportation (%)</span>
@@ -315,6 +325,20 @@
             });
         });
 
+        $('#pfm_number').combobox({
+            url: '<?php echo base_url('planning/mst_item/readFamily'); ?>',
+            valueField: 'number',
+            textField: 'name',
+            prompt: 'Select Product Family',
+            onSelect: function(row) {
+                $('#sub_prodfam').combobox({
+                    url: '<?= base_url('planning/setup_incoterms/readSubFamily/') ?>' + row.number,
+                    valueField: 'item_name',
+                    textField: 'item_name',
+                    prompt: 'Select Sub Product Family',
+                });
+            }
+        });
     });
 
     //Calculate Total DDP

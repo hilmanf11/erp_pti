@@ -23,7 +23,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 | a PHP script and you can easily do that on your own.
 |
 */
-$config['base_url'] = "http://" . $_SERVER['HTTP_HOST'] . "/erp-new";
+$config['base_url'] = "http://" . $_SERVER['HTTP_HOST'] . "/erp_pti";
 //$config['base_url'] = "http://43.254.126.202/erp-new";
 /*
 |--------------------------------------------------------------------------

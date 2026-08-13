@@ -134,7 +134,7 @@ class Temp_vendor_contract extends CI_Controller
                 die(json_encode(array("title" => "Not Found", "message" => "Item Not Found in Vendor Contract", "theme" => "error")));
             }
 
-            if ($supplier_items->maker_code != $temp_vendor_contract->maker_code) {
+            if (@$supplier_items->maker_code != @$temp_vendor_contract->maker_code) {
                 die(json_encode(array("title" => "Failed", "message" => "Invalid Maker Code, Part No " . $data['item_id'], "theme" => "error")));
             }
 

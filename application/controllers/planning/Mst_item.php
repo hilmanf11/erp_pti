@@ -81,44 +81,44 @@ class Mst_item extends CI_Controller
         $rows = $this->input->post('rows') ?: $this->input->get('rows');
         $post = $this->input->post('q') ?: ""; // For filtering item_id
         $item_family = $this->input->get('product_family'); // Get the item_family parameter
-    
+
         // Pagination: Default to page 1 and 50 rows per page if not set
         $page = isset($page) && is_numeric($page) ? intval($page) : 1;
         $rows = isset($rows) && is_numeric($rows) ? intval($rows) : 50;
         $offset = ($page - 1) * $rows;
-    
+
         // Query
         $this->db->select('*');
         $this->db->from('mst_item_raw');
-        
+
         // Add filter for `item_family` if provided
         if (!empty($item_family)) {
             $this->db->like('item_name', $item_family);
         }
-    
+
         // Order by item_id
         $this->db->order_by('item_id', 'ASC');
-    
+
         // Count total rows (ignoring limit)
         $totalRows = $this->db->count_all_results('', false);
-    
+
         // Apply pagination
         $this->db->limit($rows, $offset);
-    
+
         // Fetch paginated results
         $records = $this->db->get()->result_array();
-    
+
         // Format result
         $result = [
             'total' => $totalRows,
             'rows' => $records
         ];
-    
+
         // Return as JSON
         echo json_encode($result);
     }
-    
-    
+
+
 
     public function datatables()
     {
@@ -151,7 +151,7 @@ class Mst_item extends CI_Controller
                     } elseif ($filter->field == "uom") {
                         $this->db->like("e.name", $filter->value);
                     } else {
-                        $this->db->like("a.".$filter->field, $filter->value);
+                        $this->db->like("a." . $filter->field, $filter->value);
                     }
                 }
             }

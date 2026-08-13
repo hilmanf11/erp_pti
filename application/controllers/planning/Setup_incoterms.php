@@ -47,6 +47,13 @@ class setup_incoterms extends CI_Controller
         $send = $this->api->query("SELECT * FROM setup_incoterms WHERE number like '%$post%' or name like '%$post%'");
         echo json_encode($send);
     }
+
+    public function readSubFamily($item_family = "")
+    {
+        $send = $this->api->reads('mst_item_raw', ["pfm_id" => $item_family], ["stscode_id" => "01"], "", "item_id", "asc", ["item_name"]);
+        echo json_encode($send);
+    }
+
     public function datatables()
     {
         if ($this->input->post()) {
@@ -59,10 +66,11 @@ class setup_incoterms extends CI_Controller
             $offset = ($page - 1) * $rows;
             $result = array();
             //Select Query
-            $this->db->select('a.*, b.name as incoterm_name, c.name as country_name');
+            $this->db->select('a.*, b.name as incoterm_name, c.name as country_name, d.name as item_family_name');
             $this->db->from('setup_incoterms a');
             $this->db->join('incoterms b', 'a.incoterm_number = b.number', 'left');
             $this->db->join('country_of_origins c', 'a.country_number = c.number', 'left');
+            $this->db->join('mst_item_family d', 'a.pfm_number = d.number', 'left');
             $this->db->where('a.deleted_is', 0);
             if (@count($filters) > 0) {
                 foreach ($filters as $filter) {
@@ -70,6 +78,8 @@ class setup_incoterms extends CI_Controller
                         $this->db->like("b.number", $filter->value);
                     } elseif ($filter->field == "country_name") {
                         $this->db->like("c.name", $filter->value);
+                    } elseif ($filter->field == "item_family_name") {
+                        $this->db->like("d.name", $filter->value);
                     } else {
                         $this->db->like("a." . $filter->field, $filter->value);
                     }
@@ -145,9 +155,11 @@ class setup_incoterms extends CI_Controller
                 'row_number' => trim($data->val($i, 1)),
                 'incoterm_number' => $data->val($i, 2),
                 'country_number' => $data->val($i, 3),
-                'insurance' => $data->val($i, 4),
-                'transportation' => $data->val($i, 5),
-                'import_duty' => $data->val($i, 6),
+                'pfm_number' => $data->val($i, 4),
+                'sub_prodfam' => $data->val($i, 5),
+                'insurance' => $data->val($i, 6),
+                'transportation' => $data->val($i, 7),
+                'import_duty' => $data->val($i, 8),
             );
         }
         $datas['total'] = count($datas);
@@ -162,12 +174,15 @@ class setup_incoterms extends CI_Controller
                 !empty($data['incoterm_number']) &&
                 !empty($data['country_number']) &&
                 $data['insurance'] != '' &&
+                $data['pfm_number'] != '' &&
+                $data['sub_prodfam'] != '' &&
                 $data['transportation'] != '' &&
                 $data['import_duty'] != ''
             ) {
                 //Cek Process Number
                 $incoterm = $this->api->read('incoterms', [], ["number" => $data['incoterm_number']]);
                 $country_of_origin = $this->api->read('country_of_origins', [], ["number" => $data['country_number']]);
+                $mst_item_family = $this->api->read('mst_item_family', [], ["number" => $data['pfm_number']]);
                 $setup_incoterms = $this->api->read('setup_incoterms', [], ["incoterm_number" => $data['incoterm_number'], "country_number" => $data['country_number']]);
 
                 $total_ddp = $data['insurance'] + $data['transportation'] + $data['import_duty'];
@@ -183,6 +198,8 @@ class setup_incoterms extends CI_Controller
                     echo json_encode(array("title" => "Not Found", "message" => "Incoterm " . $data['incoterm_number'] . " Not Found", "theme" => "error"));
                 } elseif (empty($country_of_origin->number)) {
                     echo json_encode(array("title" => "Not Found", "message" => "Country of Origin " . $data['country_number'] . " Not Found", "theme" => "error"));
+                } elseif (empty($mst_item_family->number)) {
+                    echo json_encode(array("title" => "Not Found", "message" => "Product Family " . $data['pfm_number'] . " Not Found", "theme" => "error"));
                 } elseif (!empty($setup_incoterms->number)) {
                     $send = $this->api->update('setup_incoterms', ["id" => $setup_incoterms->id], $postFinal);
                     echo $send;
@@ -217,10 +234,11 @@ class setup_incoterms extends CI_Controller
         $this->db->select('*');
         $this->db->from('config');
         $config = $this->db->get()->row();
-        $this->db->select('a.*, b.name as incoterm_name, c.name as country_name');
+        $this->db->select('a.*, b.name as incoterm_name, c.name as country_name, d.name as item_family_name');
         $this->db->from('setup_incoterms a');
         $this->db->join('incoterms b', 'a.incoterm_number = b.number', 'left');
         $this->db->join('country_of_origins c', 'a.country_number = c.number', 'left');
+        $this->db->join('mst_item_family d', 'a.pfm_number = d.number', 'left');
         $this->db->where('a.deleted_is', 0);
         $this->db->order_by('a.number', 'ASC');
         $records = $this->db->get()->result_array();
@@ -251,6 +269,8 @@ class setup_incoterms extends CI_Controller
                 <th>Shipping Code</th>
                 <th>Incoterm</th>
                 <th>Country Of Origin</th>
+                <th>Product Family</th>
+                <th>Sub Product Family</th>
                 <th>Insurance (%)</th>
                 <th>Transportation (%)</th>
                 <th>Import Duty (%)</th>
@@ -263,7 +283,9 @@ class setup_incoterms extends CI_Controller
                             <td>' . $data['number'] . '</td>
                             <td>' . $data['incoterm_name'] . '</td>
                             <td>' . $data['country_name'] . '</td>
-                            <td align="right">' . number_format($data['insurance'], 4) . '</td>
+                            <td>' . $data['item_family_name'] . '</td>
+                            <td>' . $data['sub_prodfam'] . '</td>
+                            <td align="right">' . number_format($data['insurance'], 8) . '</td>
                             <td align="right">' . number_format($data['transportation'], 4) . '</td>
                             <td align="right">' . number_format($data['import_duty'], 4) . '</td>
                             <td align="right">' . number_format($data['total_ddp'], 4) . '</td>

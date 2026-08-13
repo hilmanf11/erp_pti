@@ -87,7 +87,7 @@ class Supplier_items extends CI_Controller
         $offset = ($page - 1) * $rows;
         $result = array();
 
-        $this->db->select("a.*, g.valid_date, g.price, g.currency,c.item_id, c.item_name, b.number as supplier_number, b.origin, e.name as pfm_name, b.name as supplier_name, b.type, d.name as uom, f.name as maker_name, f.type as maker_type, f.origin as maker_origin, CASE WHEN a.created_by = '$user_vendor' THEN COALESCE(TRIM(h.name), '') ELSE '' END AS create_by, CASE WHEN a.created_by = '$user_vendor' THEN DATE(a.created_date) ELSE '' END AS create_date, c.um_id, i.name AS incoterm, 
+        $this->db->select("a.*, g.start_date, g.valid_date, g.price, g.currency,c.item_id, c.item_name, b.number as supplier_number, b.origin, e.name as pfm_name, b.name as supplier_name, b.type, d.name as uom, m.uom_to as uom_convertion, f.name as maker_name, f.type as maker_type, f.origin as maker_origin, CASE WHEN a.created_by = '$user_vendor' THEN COALESCE(TRIM(h.name), '') ELSE '' END AS create_by, CASE WHEN a.created_by = '$user_vendor' THEN DATE(a.created_date) ELSE '' END AS create_date, c.um_id, i.name AS incoterm, 
         case when g.currency = 'IDR' then 1 else k.middle end as exchange_rate , 
         j.country_name, j.total_ddp,
         coalesce((g.price * (case when g.currency = 'IDR' then 1 else k.middle end))+ (g.price * (case when g.currency = 'IDR' then 1 else k.middle end) * COALESCE(j.total_ddp, 0)), 0) AS price_procurement
@@ -109,6 +109,8 @@ class Supplier_items extends CI_Controller
                         select ja.*, jb.name as country_name from setup_incoterms ja 
                         left join country_of_origins jb on ja.country_number = jb.number
                         ) j", "a.incoterm_code = j.incoterm_number and b.origin=j.country_name", "LEFT");
+        $this->db->join('convertions m', 'a.item_id = m.item_id', 'left');
+
         // $this->db->join("(".
         //     "SELECT DISTINCT MAX(id) AS max, supplier_id, item_id FROM supplier_items ".
         //     "WHERE COALESCE(approved_to, '') = '' GROUP BY supplier_id, item_id".
@@ -133,7 +135,7 @@ class Supplier_items extends CI_Controller
         }
         // die(var_dump(!empty($this->input->get('vendor'))));
         if (!empty($this->input->get('vendor'))) {
-            $q = str_replace("`a`.*", "a.id, 'vendor' AS act, aa.status, aa.reason, a.plant, a.quotation_number, a.item_supplier, a.coo_name, a.spq, a.mpq, a.moq, a.leadtime, a.share_order, a.safety_stock, a.calculate, a.provide, a.remarks, aa.approved, aa.approved_to, aa.approved_by, aa.approved_date, a.created_by, a.created_date, a.updated_by, a.updated_date, '' AS data_prices, g.start_date", $this->db->get_compiled_select());
+            $q = str_replace("`a`.*", "a.id, 'vendor' AS act, aa.status, aa.reason, a.plant, a.quotation_number, a.item_supplier, a.coo_name, a.spq, a.mpq, a.moq, a.leadtime, a.share_order, a.safety_stock, a.calculate, a.provide, a.remarks, aa.approved, aa.approved_to, aa.approved_by, aa.approved_date, a.created_by, a.created_date, a.updated_by, a.updated_date, '' AS data_prices", $this->db->get_compiled_select());
             $q1 = str_replace("aa.approved, aa.approved_to, aa.approved_by, aa.approved_date", "NULL AS approved, NULL AS approved_to, NULL AS approved_by, NULL AS approved_date", $q);
             $q1 = str_replace("'vendor'", "'supplier'", $q1);
             $q1 = str_replace("aa.status", "a.status", $q1);
@@ -232,13 +234,14 @@ class Supplier_items extends CI_Controller
         $offset = ($page - 1) * $rows;
         $result = array();
 
-        $this->db->select('a.*, c.item_id, c.item_name, c.item_supplier, b.number as supplier_number, b.origin, e.name as pfm_name, b.name as supplier_name, b.type, d.name as uom, f.name as maker_name, f.type as maker_type, f.origin as maker_origin');
+        $this->db->select('a.*, c.item_id, c.item_name, c.item_supplier, b.number as supplier_number, b.origin, e.name as pfm_name, b.name as supplier_name, b.type,d.name as uom, g.uom_to as uom_convertion, f.name as maker_name, f.type as maker_type, f.origin as maker_origin');
         $this->db->from('supplier_items_log a');
         $this->db->join('suppliers b', 'b.id = a.supplier_id');
         $this->db->join('mst_item_raw c', 'c.item_id = a.item_id');
         $this->db->join('uom d', 'c.um_id = d.number', 'left');
         $this->db->join('mst_item_family e', 'c.pfm_id = e.number', 'left');
         $this->db->join('mst_maker f', 'a.maker_code = f.number', 'left');
+        $this->db->join('convertions g', 'a.item_id = g.item_id', 'left');
         $this->db->where('a.supplier_item_id', $id);
         $this->db->order_by('b.name', 'ASC');
         $this->db->order_by('a.item_id', 'ASC');
@@ -755,13 +758,40 @@ class Supplier_items extends CI_Controller
                     $share_order = ($data['share_order'] == '') ? @$supplier_items->share_order : @$data['share_order'];
                     $leadtime = ($data['leadtime'] == '') ? @$supplier_items->leadtime : @$data['leadtime'];
                     $currency = empty($data['currency']) ? @$supplier_items->currency : @$data['currency'];
-                    $price = empty($data['price']) ? @$supplier_items->price : @$data['price'];
+                    $price =  ($data['price'] == '')  ? @$supplier_items->price : @$data['price'];
                     $start_date = empty($data['start_date']) ? @$supplier_items->start_date : @$data['start_date'];
                     $valid_date = empty($data['valid_date']) ? @$supplier_items->valid_date : @$data['valid_date'];
                     $remarks = empty($data['remarks']) ? @$supplier_items->remarks : @$data['remarks'];
                     $quotation_number = ($data['quotation_number'] == '') ? @$supplier_items->quotation_number : @$data['quotation_number'];
                     $quotation_date = ($data['quotation_date'] == '') ? @$supplier_items->quotation_date : @$data['quotation_date'];
                     $incoterm_code = ($data['incoterm_code'] == '') ? @$supplier_items->incoterm_code : @$data['incoterm_code'];
+
+                    if (empty($data['start_date'])) {
+                        //
+                    } else {
+                        if ($this->isValidDate($data['start_date'])) {
+                        } else {
+                            die(json_encode(array("title" => "Not Found", "message" => "Start Date " . $data['start_date'] . " rejected, use YYYY-MM-DD format and format type is text", "theme" => "error")));
+                        }
+                    }
+
+                    if (empty($data['valid_date'])) {
+                        //
+                    } else {
+                        if ($this->isValidDate($data['valid_date'])) {
+                        } else {
+                            die(json_encode(array("title" => "Not Found", "message" => "Valid Date " . $data['valid_date'] . " rejected, use YYYY-MM-DD format and format type is text", "theme" => "error")));
+                        }
+                    }
+
+                    if (empty($data['quotation_date'])) {
+                        //
+                    } else {
+                        if ($this->isValidDate($data['quotation_date'])) {
+                        } else {
+                            die(json_encode(array("title" => "Not Found", "message" => "Format Date " . $data['quotation_date'] . " rejected, use YYYY-MM-DD format and format type is text", "theme" => "error")));
+                        }
+                    }
 
                     $postFinal = array(
                         "plant" => $data['plant'],
@@ -798,14 +828,14 @@ class Supplier_items extends CI_Controller
 
                     $pricesNew = array(
                         "supplier_item_id" => $supplier_items->id,
-                        "price" => $data['price'],
-                        "currency" => $data['currency'],
-                        "start_date" => $data['start_date'],
-                        "valid_date" => $data['valid_date'],
-                        "remarks" => $data['remarks'],
+                        "price" => empty($data['price']) ? @$supplier_item_prices->price : $data['price'],
+                        "currency" => empty($data['currency']) ? @$supplier_item_prices->currency : $data['currency'],
+                        "start_date" => empty($data['start_date']) ? @$supplier_item_prices->start_date : $data['start_date'],
+                        "valid_date" => empty($data['valid_date']) ? @$supplier_item_prices->valid_date : $data['valid_date'],
+                        "remarks" => empty($data['remarks']) ? @$supplier_item_prices->remarks : $data['remarks'],
                     );
 
-                    if (!empty($data['price']) || !empty($data['valid_date'])) {
+                    if ($data['price'] != '' || !empty($data['valid_date'])) {
                         if ($data['price'] != @$supplier_items->price || $data['valid_date'] != @$supplier_items->valid_date) {
                             if (empty(@$supplier_item_prices->price)) {
                                 $this->api->create("supplier_item_prices", $prices, "SPI", "supplier_item_prices");
@@ -900,7 +930,7 @@ class Supplier_items extends CI_Controller
         $this->db->from('config');
         $config = $this->db->get()->row();
 
-        $this->db->select("a.*, g.valid_date, g.price, g.currency, c.item_id, c.item_name, b.number as supplier_number, b.origin, e.name as pfm_name, b.name as supplier_name, b.type, d.name as uom, f.name as maker_name, f.type as maker_type, f.origin as maker_origin, CASE WHEN a.created_by = '$user_vendor' THEN COALESCE(TRIM(h.name), '') ELSE '' END AS create_by, CASE WHEN a.created_by = '$user_vendor' THEN DATE(a.created_date) ELSE '' END AS create_date, c.um_id, i.name AS incoterm,
+        $this->db->select("a.*, g.valid_date, g.price, g.currency, c.item_id, c.item_name, b.number as supplier_number, b.origin, e.name as pfm_name, b.name as supplier_name, b.type, d.name as uom, m.uom_to as uom_convertion, f.name as maker_name, f.type as maker_type, f.origin as maker_origin, CASE WHEN a.created_by = '$user_vendor' THEN COALESCE(TRIM(h.name), '') ELSE '' END AS create_by, CASE WHEN a.created_by = '$user_vendor' THEN DATE(a.created_date) ELSE '' END AS create_date, c.um_id, i.name AS incoterm,
         case when g.currency = 'IDR' then 1 else k.middle end as exchange_rate , 
         j.country_name, j.total_ddp,
         coalesce((g.price * (case when g.currency = 'IDR' then 1 else k.middle end))+ (g.price * (case when g.currency = 'IDR' then 1 else k.middle end) * COALESCE(j.total_ddp, 0)), 0) AS price_procurement
@@ -921,7 +951,8 @@ class Supplier_items extends CI_Controller
         $this->db->join("(
                     select ja.*, jb.name as country_name from setup_incoterms ja 
                     left join country_of_origins jb on ja.country_number = jb.number
-                    ) j", "a.incoterm_code = j.incoterm_number and b.origin=j.country_name", "LEFT"); // $this->db->join("(".
+                    ) j", "a.incoterm_code = j.incoterm_number and b.origin=j.country_name", "LEFT");
+        $this->db->join('convertions m', 'a.item_id = m.item_id', 'left'); // $this->db->join("(".
         //     "SELECT DISTINCT MAX(id) AS max, supplier_id, item_id FROM supplier_items ".
         //     "WHERE COALESCE(approved_to, '') = '' GROUP BY supplier_id, item_id".
         // ") j", "a.id = j.max AND a.supplier_id = j.supplier_id");
@@ -945,7 +976,7 @@ class Supplier_items extends CI_Controller
         }
         // die(var_dump(!empty($this->input->get('vendor'))));
         if (!empty($this->input->get('vendor'))) {
-            $q = str_replace("`a`.*", "a.id, 'vendor' AS act, aa.status, aa.reason, a.plant, a.quotation_number, a.item_supplier, a.coo_name, a.spq, a.mpq, a.moq, a.leadtime, a.share_order, a.safety_stock, a.calculate, a.provide, a.remarks, aa.approved, aa.approved_to, aa.approved_by, aa.approved_date, a.created_by, a.created_date, a.updated_by, a.updated_date, '' AS data_prices, g.start_date", $this->db->get_compiled_select());
+            $q = str_replace("`a`.*", "a.id, 'vendor' AS act, aa.status, aa.reason, a.plant, a.quotation_number, a.item_supplier, a.coo_name, a.spq, a.mpq, a.moq, a.leadtime, a.share_order, a.safety_stock, a.calculate, a.provide, a.remarks, aa.approved, aa.approved_to, aa.approved_by, aa.approved_date, a.created_by, a.created_date, a.updated_by, a.updated_date, '' AS data_prices", $this->db->get_compiled_select());
             $q1 = str_replace("aa.approved, aa.approved_to, aa.approved_by, aa.approved_date", "NULL AS approved, NULL AS approved_to, NULL AS approved_by, NULL AS approved_date", $q);
             $q1 = str_replace("'vendor'", "'supplier'", $q1);
             $q1 = str_replace("aa.status", "a.status", $q1);
@@ -1139,6 +1170,7 @@ class Supplier_items extends CI_Controller
                         <th>Calculate MPQ</th>
                         <th>Account COA</th>
                         <th>UoM</th>
+                        <th>UoM<br>Convertion</th>
                         <th>Start Date</th>
                         <th>Valid Date</th>
                         <th>Price</th>
@@ -1217,6 +1249,7 @@ class Supplier_items extends CI_Controller
                             <td>' . $data['calculate'] . '</td>
                             <td>' . $data['account_number'] . '</td>
                             <td>' . $data['uom'] . '</td>
+                            <td>' . $data['uom_convertion'] . '</td>
                             <td>' . $data['start_date'] . '</td>
                             <td>' . $data['valid_date'] . '</td>
                             <td>' . $data['price'] . '</td>

@@ -69,7 +69,8 @@ class Marketing_price extends CI_Controller
 
         $result = array();
 
-        $this->db->select('a.*, g.start_date, g.valid_date, g.price, g.currency, c.item_id, c.item_name, c.item_supplier, b.number as supplier_number, b.origin, e.name as pfm_name, b.name as supplier_name, b.type, d.name as uom, f.name as maker_name, f.type as maker_type, f.origin as maker_origin');
+        $this->db->select('a.*, g.start_date, g.valid_date, g.price, g.currency, c.item_id, c.item_name, c.item_supplier, b.number as supplier_number, b.origin, e.name as pfm_name, b.name as supplier_name, b.type, d.name as uom, f.name as maker_name, f.type as maker_type, f.origin as maker_origin,
+        (case when k.currency is not null then k.currency else a.currency end) as currency_converted, a.currency as currency_original');
         $this->db->from('supplier_items a');
         $this->db->join('suppliers b', 'b.id = a.supplier_id');
         $this->db->join('mst_item_raw c', 'c.item_id = a.item_id');
@@ -77,6 +78,7 @@ class Marketing_price extends CI_Controller
         $this->db->join('mst_item_family e', 'c.pfm_id = e.id', 'left');
         $this->db->join('mst_maker f', 'a.maker_code = f.number');
         $this->db->join("(SELECT start_date,supplier_item_id, price, currency, valid_date FROM supplier_item_prices WHERE (supplier_item_id, valid_date) IN (SELECT supplier_item_id, MAX(valid_date) FROM supplier_item_prices GROUP BY supplier_item_id)) g", 'a.id = g.supplier_item_id', 'left');
+        $this->db->join("exchange_rates k", 'k.start_date <= g.valid_date AND k.end_date >= g.valid_date and k.currency = g.currency', 'left');
         if ($filter_check == "true") {
             $this->db->join("(SELECT item_id FROM supplier_items GROUP BY item_id HAVING COUNT(*) > 1) h", 'a.item_id = h.item_id');
         }
@@ -143,7 +145,8 @@ class Marketing_price extends CI_Controller
                 "maker_name" => $record['maker_name'],
                 "maker_type" => $record['maker_type'],
                 "price" => $record['price'],
-                "currency" => $record['currency'],
+                "currency" => $record['currency_converted'],
+                "currency_original" => $record['currency_original'],
                 "start_date" => $record['start_date'],
                 "valid_date" => $record['valid_date'],
                 "assurance_price" => $assurance_price,
