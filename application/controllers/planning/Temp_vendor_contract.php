@@ -169,6 +169,7 @@ class Temp_vendor_contract extends CI_Controller
                 "spq" => $data['spq'],
                 "mpq" => $data['mpq'],
                 "moq" => $data['moq'],
+                "lme_range" => isset($data['lme_range']) ? $data['lme_range'] : '',
                 "currency" => $data['currency'],
                 "incoterm_code" => $data['incoterm'],
                 "price" => $data['price'],

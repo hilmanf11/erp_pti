@@ -135,11 +135,12 @@ class Supplier_items extends CI_Controller
         }
         // die(var_dump(!empty($this->input->get('vendor'))));
         if (!empty($this->input->get('vendor'))) {
-            $q = str_replace("`a`.*", "a.id, 'vendor' AS act, aa.status, aa.reason, a.plant, a.quotation_number, a.item_supplier, a.coo_name, a.spq, a.mpq, a.moq, a.leadtime, a.share_order, a.safety_stock, a.calculate, a.provide, a.remarks, aa.approved, aa.approved_to, aa.approved_by, aa.approved_date, a.created_by, a.created_date, a.updated_by, a.updated_date, '' AS data_prices", $this->db->get_compiled_select());
+            $q = str_replace("`a`.*", "a.id, 'vendor' AS act, aa.status, aa.reason, a.plant, a.quotation_number, a.item_supplier, a.coo_name, a.spq, a.mpq, a.moq, a.lme_range, a.leadtime, a.share_order, a.safety_stock, a.calculate, a.provide, a.remarks, aa.approved, aa.approved_to, aa.approved_by, aa.approved_date, a.created_by, a.created_date, a.updated_by, a.updated_date, '' AS data_prices", $this->db->get_compiled_select());
             $q1 = str_replace("aa.approved, aa.approved_to, aa.approved_by, aa.approved_date", "NULL AS approved, NULL AS approved_to, NULL AS approved_by, NULL AS approved_date", $q);
             $q1 = str_replace("'vendor'", "'supplier'", $q1);
             $q1 = str_replace("aa.status", "a.status", $q1);
             $q1 = str_replace("aa.reason", "NULL AS reason", $q1);
+            $q1 = str_replace("a.lme_range", "'' AS lme_range", $q1);
             $q2 = str_replace("supplier_items", "temp_vendor_contract", $q);
             $q2 = str_replace("`g`.`price`", "`a`.`price`", $q2);
             $q2 = str_replace("`g`.`currency`", "`a`.`currency`", $q2);
@@ -976,11 +977,12 @@ class Supplier_items extends CI_Controller
         }
         // die(var_dump(!empty($this->input->get('vendor'))));
         if (!empty($this->input->get('vendor'))) {
-            $q = str_replace("`a`.*", "a.id, 'vendor' AS act, aa.status, aa.reason, a.plant, a.quotation_number, a.item_supplier, a.coo_name, a.spq, a.mpq, a.moq, a.leadtime, a.share_order, a.safety_stock, a.calculate, a.provide, a.remarks, aa.approved, aa.approved_to, aa.approved_by, aa.approved_date, a.created_by, a.created_date, a.updated_by, a.updated_date, '' AS data_prices", $this->db->get_compiled_select());
+            $q = str_replace("`a`.*", "a.id, 'vendor' AS act, aa.status, aa.reason, a.plant, a.quotation_number, a.item_supplier, a.coo_name, a.spq, a.mpq, a.moq, a.lme_range, a.leadtime, a.share_order, a.safety_stock, a.calculate, a.provide, a.remarks, aa.approved, aa.approved_to, aa.approved_by, aa.approved_date, a.created_by, a.created_date, a.updated_by, a.updated_date, '' AS data_prices", $this->db->get_compiled_select());
             $q1 = str_replace("aa.approved, aa.approved_to, aa.approved_by, aa.approved_date", "NULL AS approved, NULL AS approved_to, NULL AS approved_by, NULL AS approved_date", $q);
             $q1 = str_replace("'vendor'", "'supplier'", $q1);
             $q1 = str_replace("aa.status", "a.status", $q1);
             $q1 = str_replace("aa.reason", "NULL AS reason", $q1);
+            $q1 = str_replace("a.lme_range", "'' AS lme_range", $q1);
             $q2 = str_replace("supplier_items", "temp_vendor_contract", $q);
             $q2 = str_replace("`g`.`price`", "`a`.`price`", $q2);
             $q2 = str_replace("`g`.`currency`", "`a`.`currency`", $q2);

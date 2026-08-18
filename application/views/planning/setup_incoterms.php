@@ -48,7 +48,7 @@
                 <input style="width:60%;" name="pfm_number" id="pfm_number" required="" class="easyui-combobox">
             </div>
             <div class="fitem">
-                <span style="width:35%; display:inline-block;">Product Family</span>
+                <span style="width:35%; display:inline-block;">Sub Product Family</span>
                 <input style="width:60%;" name="sub_prodfam" id="sub_prodfam" required="" class="easyui-combobox">
             </div>
             <div class="fitem">
