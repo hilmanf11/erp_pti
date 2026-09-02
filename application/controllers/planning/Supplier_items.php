@@ -193,25 +193,32 @@ class Supplier_items extends CI_Controller
                 if ($cmp !== 0) {
                     return $cmp;
                 }
+
+                $plantCmp = strcmp((string) $a['plant'], (string) $b['plant']);
+                if ($plantCmp !== 0) {
+                    return $plantCmp;
+                }
+
                 return $a['price_procurement'] <=> $b['price_procurement'];
             });
 
             $cheaperMap = [];
-            $lastItemId = null;
+            $lastGroupKey = null;
             $cheaperRank = 0;
             foreach ($sortedRecords as $row) {
-                if ($lastItemId !== $row['item_id']) {
-                    $lastItemId = $row['item_id'];
+                $groupKey = $row['item_id'] . '|' . $row['plant'];
+                if ($lastGroupKey !== $groupKey) {
+                    $lastGroupKey = $groupKey;
                     $cheaperRank = 1;
                 } else {
                     $cheaperRank++;
                 }
-                $lookupKey = $row['supplier_id'] . '|' . $row['item_id'];
+                $lookupKey = $row['supplier_id'] . '|' . $row['item_id'] . '|' . $row['plant'];
                 $cheaperMap[$lookupKey] = 'CHEAPER ' . $cheaperRank;
             }
 
             foreach ($records as $key => $value) {
-                $lookupKey = $value['supplier_id'] . '|' . $value['item_id'];
+                $lookupKey = $value['supplier_id'] . '|' . $value['item_id'] . '|' . $value['plant'];
                 $records[$key]['cheaper'] = isset($cheaperMap[$lookupKey]) ? $cheaperMap[$lookupKey] : '';
             }
         }
@@ -837,15 +844,15 @@ class Supplier_items extends CI_Controller
                     );
 
                     if ($data['price'] != '' || !empty($data['valid_date'])) {
-                        if ($data['price'] != @$supplier_items->price || $data['valid_date'] != @$supplier_items->valid_date) {
-                            if (empty(@$supplier_item_prices->price)) {
-                                $this->api->create("supplier_item_prices", $prices, "SPI", "supplier_item_prices");
-                            } else {
-                                $this->api->update('supplier_item_prices', ["supplier_item_id" => $supplier_items->id], $pricesNew);
-                            }
-
-                            $this->api->create("supplier_item_prices_log", $prices, "JUTA", "supplier_item_prices_log");
+                        // if ($data['price'] != @$supplier_item_prices->price || $data['valid_date'] != @$supplier_item_prices->valid_date) {
+                        if (empty(@$supplier_item_prices->price)) {
+                            $this->api->create("supplier_item_prices", $prices, "SPI", "supplier_item_prices");
+                        } else {
+                            $this->api->update('supplier_item_prices', ["supplier_item_id" => $supplier_items->id], $pricesNew);
                         }
+
+                        $this->api->create("supplier_item_prices_log", $prices, "JUTA", "supplier_item_prices_log");
+                        // }
                     }
 
                     $send = $this->api->update('supplier_items', ["item_id" => @$item->item_id, "supplier_id" => @$supplier->id, "plant" => $data['plant']], $postFinal);
@@ -1196,30 +1203,37 @@ class Supplier_items extends CI_Controller
                 if ($cmp !== 0) {
                     return $cmp;
                 }
+
+                $plantCmp = strcmp((string) $a['plant'], (string) $b['plant']);
+                if ($plantCmp !== 0) {
+                    return $plantCmp;
+                }
+
                 return $a['price_procurement'] <=> $b['price_procurement'];
             });
 
             $cheaperMap = [];
-            $lastItemId = null;
+            $lastGroupKey = null;
             $cheaperRank = 0;
             foreach ($sortedRecords as $row) {
-                if ($lastItemId !== $row['item_id']) {
-                    $lastItemId = $row['item_id'];
+                $groupKey = $row['item_id'] . '|' . $row['plant'];
+                if ($lastGroupKey !== $groupKey) {
+                    $lastGroupKey = $groupKey;
                     $cheaperRank = 1;
                 } else {
                     $cheaperRank++;
                 }
-                $lookupKey = $row['supplier_id'] . '|' . $row['item_id'];
+                $lookupKey = $row['supplier_id'] . '|' . $row['item_id'] . '|' . $row['plant'];
                 $cheaperMap[$lookupKey] = 'CHEAPER ' . $cheaperRank;
             }
+
             foreach ($records as $data) {
                 if ($data['approved_to'] == "") {
                     $approved = "APPROVED";
                 } else {
                     $approved = "CHECKING";
                 }
-
-                $lookupKey = $data['supplier_id'] . '|' . $data['item_id'];
+                $lookupKey = $data['supplier_id'] . '|' . $data['item_id'] . '|' . $data['plant'];
                 $cheaper = isset($cheaperMap[$lookupKey]) ? $cheaperMap[$lookupKey] : '';
                 $html .= '<tr>
                             <td>' . $no . '</td>   <td>' . $approved . '</td>

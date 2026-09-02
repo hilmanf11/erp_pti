@@ -70,7 +70,7 @@ class Marketing_price extends CI_Controller
         $result = array();
 
         $this->db->select('a.*, g.start_date, g.valid_date, g.price, g.currency, c.item_id, c.item_name, c.item_supplier, b.number as supplier_number, b.origin, e.name as pfm_name, b.name as supplier_name, b.type, d.name as uom, f.name as maker_name, f.type as maker_type, f.origin as maker_origin,
-        (case when k.currency is not null then k.currency else a.currency end) as currency_converted, a.currency as currency_original');
+        (CASE WHEN k.currency IS NOT NULL THEN k.currency ELSE g.currency end) as currency_converted, g.currency as currency_original');
         $this->db->from('supplier_items a');
         $this->db->join('suppliers b', 'b.id = a.supplier_id');
         $this->db->join('mst_item_raw c', 'c.item_id = a.item_id');
