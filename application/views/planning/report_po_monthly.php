@@ -37,20 +37,16 @@
         <?= $button ?>
     </div>
 </div>
-
 <div class="easyui-panel" title="Print Preview" style="width:100%;padding:10px;" data-options="fit:true">
     <iframe id="printout" src="" style="width: 100%; height: 95%; border: 0;"></iframe>
 </div>
-
 <script>
     function reload() {
         window.location.reload();
     }
-
     function pdf() {
         $("#printout").get(0).contentWindow.print();
     }
-
     function filter() {
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").combobox('getValue');
@@ -59,12 +55,10 @@
         var filter_supplier = $("#filter_supplier").combogrid('getValue');
         var filter_product_family = $("#filter_product_family").combobox('getValue');
         var filter_part_no = $("#filter_part_no").combogrid('getValue');
-
-        if(filter_supplier == "" && filter_product_family == "" && filter_part_no == ""){
-            toastr.warning("Please Select Supplier, Product Family or Part No First");
-            return false;
-        }
-
+        // if(filter_supplier == "" && filter_product_family == "" && filter_part_no == ""){
+        //     toastr.warning("Please Select Supplier, Product Family or Part No First");
+        //     return false;
+        // }
         var url = "?filter_month=" + btoa(filter_month) + 
                   "&filter_year=" + btoa(filter_year) + 
                   "&filter_month2=" + btoa(filter_month2) + 
@@ -72,11 +66,9 @@
                   "&filter_supplier=" + btoa(filter_supplier) + 
                   "&filter_product_family=" + btoa(filter_product_family) +
                   "&filter_part_no=" + btoa(filter_part_no);
-
         $("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
         $("#printout").attr('src', '<?= base_url('planning/report_po_monthly/print') ?>' + url);
     }
-
     function excel() {
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").combobox('getValue');
@@ -85,12 +77,10 @@
         var filter_supplier = $("#filter_supplier").combogrid('getValue');
         var filter_product_family = $("#filter_product_family").combobox('getValue');
         var filter_part_no = $("#filter_part_no").combogrid('getValue');
-
-        if(filter_supplier == "" && filter_product_family == "" && filter_part_no == ""){
-            toastr.warning("Please Select Supplier, Product Family or Part No First");
-            return false;
-        }
-
+        // if(filter_supplier == "" && filter_product_family == "" && filter_part_no == ""){
+        //     toastr.warning("Please Select Supplier, Product Family or Part No First");
+        //     return false;
+        // }
         var url = "?filter_month=" + btoa(filter_month) + 
                   "&filter_year=" + btoa(filter_year) + 
                   "&filter_month2=" + btoa(filter_month2) + 
@@ -98,10 +88,8 @@
                   "&filter_supplier=" + btoa(filter_supplier) + 
                   "&filter_product_family=" + btoa(filter_product_family) +
                   "&filter_part_no=" + btoa(filter_part_no);
-
         window.location.assign('<?= base_url('planning/report_po_monthly/print/excel') ?>' + url);
     }
-
     $(function() {
         //Filter Cutoff
         $('#filter_month').combobox({
@@ -110,28 +98,24 @@
             textField: 'name',
             prompt: 'Month',
         });
-
         $('#filter_year').combobox({
             url: '<?php echo base_url('planning/mst_data/readYears'); ?>',
             valueField: 'id',
             textField: 'name',
             prompt: 'Year',
         });
-
         $('#filter_month2').combobox({
             url: '<?php echo base_url('planning/mst_data/readMonths'); ?>',
             valueField: 'id',
             textField: 'name',
             prompt: 'Month',
         });
-
         $('#filter_year2').combobox({
             url: '<?php echo base_url('planning/mst_data/readYears'); ?>',
             valueField: 'id',
             textField: 'name',
             prompt: 'Year',
         });
-
         $('#filter_supplier').combogrid({
             url: '<?= base_url('planning/suppliers/reads') ?>',
             panelWidth: 400,
@@ -158,7 +142,6 @@
                 }]
             ]
         });
-
         $('#filter_product_family').combobox({
             url: '<?php echo base_url('planning/mst_item/readFamily'); ?>',
             valueField: 'number',

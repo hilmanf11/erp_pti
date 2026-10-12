@@ -1,7 +1,6 @@
 <?php
 date_default_timezone_set("Asia/Bangkok");
 defined('BASEPATH') or exit('No direct script access allowed');
-
 class Report_po_monthly extends CI_Controller
 {
     public function __construct()
@@ -13,7 +12,6 @@ class Report_po_monthly extends CI_Controller
         $this->load->library('session');
         $this->load->model('api');
     }
-
     //HALAMAN UTAMA
     public function index()
     {
@@ -27,7 +25,6 @@ class Report_po_monthly extends CI_Controller
             redirect('error_access');
         }
     }
-
     public function print($option = "")
     {
         if ($option == "excel") {
@@ -35,7 +32,6 @@ class Report_po_monthly extends CI_Controller
             header("Content-type: application/vnd-ms-excel");
             header("Content-Disposition: attachment; filename=report_po_monthly_$format.xls");
         }
-
         if ($this->input->get()) {
             $filter_month = base64_decode($this->input->get('filter_month'));
             $filter_year = base64_decode($this->input->get('filter_year'));
@@ -44,10 +40,8 @@ class Report_po_monthly extends CI_Controller
             $filter_supplier = base64_decode($this->input->get('filter_supplier'));
             $filter_product_family = base64_decode($this->input->get('filter_product_family'));
             $filter_part_no = base64_decode($this->input->get('filter_part_no'));
-
             $period_start = date("Y-m-d", strtotime($filter_year."-".$filter_month."-01"));
             $period_finish = date("Y-m-d", strtotime($filter_year2."-".$filter_month2."-01"));
-            
             $header = "";
             $period = [];
             $totalH = 0;
@@ -56,10 +50,8 @@ class Report_po_monthly extends CI_Controller
                 $header .= '<th style="text-align:center;">'.$monthName.'</th>';
                 $period[] = date("Ym", strtotime($period_start));
                 $totalH++;
-
                 $period_start = date("Y-m-d", strtotime("+1 month", strtotime($period_start)));
             }
-            
             $this->db->select('a.item_id, 
                 a.item_vendor, 
                 a.item_name, 
@@ -89,12 +81,10 @@ class Report_po_monthly extends CI_Controller
             $this->db->order_by('b.name', 'asc');
             $this->db->order_by('a.item_id', 'asc');
             $records = $this->db->get()->result_array();
-
             //Config
             $this->db->select('*');
             $this->db->from('config');
             $config = $this->db->get()->row();
-
             $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style>
                     <style> .str{ mso-number-format:\@; } </style>
                     <body>
@@ -135,24 +125,19 @@ class Report_po_monthly extends CI_Controller
             foreach ($records as $record) {
                 $supplier_id = $record['supplier_id'];
                 $item_id = $record['item_id'];
-                
                 $period_start2 = date("Y-m-d", strtotime($filter_year."-".$filter_month."-01"));
                 $period_finish2 = date("Y-m-d", strtotime($filter_year2."-".$filter_month2."-01"));
-                
                 $content = "";
                 $grand_total = 0;
                 while (strtotime($period_start2) <= strtotime($period_finish2)) {
                     $periodDate = date('Ym', strtotime($period_start2));
                     $query = $this->db->query("SELECT SUM(qty) as total FROM purchase_orders WHERE CONCAT(p_year, p_month) = '$periodDate' and supplier_id = '$supplier_id' and item_id = '$item_id'");
                     $row = $query->row();
-
                     $total = empty(@$row->total) ? 0 : @$row->total;
                     $content .= '<td style="text-align:right;">'.$total.'</td>';
-
                     $grand_total += $total;
                     $period_start2 = date("Y-m-d", strtotime("+1 month", strtotime($period_start2)));
                 }
-
                 $html .= '<tr>
                             <td style="text-align:center;">' . $no . '</td>
                             <td>' . $record['supplier_name'] . '</td>
@@ -169,10 +154,8 @@ class Report_po_monthly extends CI_Controller
                         </tr>';
                 $no++;
             }
-            
             $html .= '</table>';
         }
-
         $html .= '</body></html>';
         echo $html;
     }
