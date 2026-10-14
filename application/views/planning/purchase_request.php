@@ -1074,6 +1074,13 @@
                                         }
 
                                         if (value == 100) {
+                                            $.ajax({
+                                                type: "post",
+                                                url: "<?= base_url('planning/purchase_request/updatepr') ?>",
+                                                data: {
+                                                    purchase_request_no: window.btoa(purchase_request_no)
+                                                }
+                                            });
                                             Swal.fire('Good job!', 'Process Generate Data Completed!', 'success');
                                             $("#dg").datagrid('reload');
                                         }

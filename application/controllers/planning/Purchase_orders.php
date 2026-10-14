@@ -440,15 +440,16 @@ class Purchase_orders extends CI_Controller
                 $end_product_family = $purchase_request['product_family'];
                 $end_purchase_order_no = $purchase_order_no;
             }
-            if (count($arr) > 0) {
-                $this->db->update("purchase_requests", ["create_po" => date("Y-m-d H:i:s"), "confirm" => 0, "confirm_date" => null], ["purchase_request_no" => $purchase_request_no]);
-            }
+            // if (count($arr) > 0) {
+            //     $this->db->update("purchase_requests", ["create_po" => date("Y-m-d H:i:s"), "confirm" => 0, "confirm_date" => null], ["purchase_request_no" => $purchase_request_no]);
+            // }
             $arr['total'] = @count($arr);
             die(json_encode($arr));
         } else {
             show_error("Cannot Process your request");
         }
     }
+
     // public function getData()
     // {
     //     if ($this->input->get()) {

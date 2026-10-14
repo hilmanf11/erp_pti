@@ -11,7 +11,7 @@ class Purchase_request extends CI_Controller
         $this->load->library('form_validation');
         $this->load->library('session');
         $this->load->model('api');
-        // $this->pg = $this->load->database('pg', TRUE);
+        $this->pg = $this->load->database('pg', TRUE);
     }
 
     public function index()
@@ -614,6 +614,16 @@ class Purchase_request extends CI_Controller
             show_error("Cannot Process your request");
         }
     }
+
+    public function updatePr()
+    {
+        if ($this->input->post()) {
+            $purchase_request_no = base64_decode($this->input->post('purchase_request_no'));
+            $this->db->update("purchase_requests", ["create_po" => date("Y-m-d H:i:s"), "confirm" => 0, "confirm_date" => null], ["purchase_request_no" => $purchase_request_no]);
+            echo json_encode(array("title" => "Good Job", "message" => "Data Updated Successfully", "theme" => "success"));
+        }
+    }
+
 
     public function delete()
     {
