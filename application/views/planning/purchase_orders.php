@@ -7,7 +7,6 @@
             opacity: 0;
         }
     }
-
     .blink {
         animation: blink 2s infinite;
         font-size: 20px !important;
@@ -63,7 +62,6 @@
         </tr>
     </thead>
 </table>
-
 <div id="toolbar" style="height: 230px; padding:10px;">
     <div style="width: 100%; display: grid; grid-template-columns: auto auto auto; grid-gap: 5px; display: flex;">
         <fieldset style="width: 60%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
@@ -123,7 +121,6 @@
         </fieldset>
         <fieldset style="width: 30%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
             <legend><b>Generating Process</b></legend>
-
             <b>Convert PR to PO / Push Data</b>
             <div id="p_upload" class="easyui-progressbar" style="width:100%;"></div>
             <center><b id="p_start">0</b> Of <b id="p_finish">0</b></center>
@@ -139,7 +136,6 @@
     <a href="javascript:;" class="easyui-linkbutton" plain="true" onclick="priceSyncAll()"><i class="fa fa-money"></i> Sync Prices</a>
     <!-- <a href="javascript:;" class="easyui-linkbutton" plain="true" onclick="toastr.info('Still Development')"><i class="fa fa-money"></i> Sync Prices</a> -->
 </div>
-
 <div id="toolbar2" style="height: auto; padding:10px;">
     <div style="width: 100%; display: grid; grid-template-columns: auto auto auto; grid-gap: 5px; display: flex;">        
         <fieldset style="width: 100%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
@@ -174,7 +170,6 @@
                     <input style="width:60%;" id="d_product_family" class="easyui-textbox" readonly>
                 </div>
             </div>
-
             <div style="width: 100%; float: left;">
                 <div class="alert alert-danger" role="alert" id="sendBlink">
                     <small>Please Recheck before send Mail to</small> <b id="sendMailText"></b>
@@ -183,11 +178,9 @@
         </fieldset>
     </div>
 </div>
-
 <div id="toolbar3" style="height: auto; padding:10px;">
     <a href="javascript:;" class="easyui-linkbutton" plain="false" onclick="export_excel3()"><i class="fa fa-file"></i> &nbsp; Export Excel</a>
 </div>
-
 <div id="dlg_purchase_order" class="easyui-dialog" title="Detail Purchase Order" data-options="closed: true,modal:true" style="width: 98%; height: 550px; top: 0px; left: 0px;">
     <table id="dg_purchase_order" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar2" showFooter="true">
         <thead>
@@ -213,7 +206,6 @@
         </thead>
     </table>
 </div>
-
 <div id="dlg_confirm" class="easyui-dialog" title="Confrim PO" toolbar="#toolbar3" data-options="closed: true,modal:true" style="width: 100%; height: 550px; top: 0px; left: 0px;">
     <table id="dg_confirm" class="easyui-datagrid" style="width:100%;">
         <thead>
@@ -239,7 +231,6 @@
         </thead>
     </table>
 </div>
-
 <div id="dlg_insert" class="easyui-dialog" title="Update Data" data-options="closed: true,modal:true" style="width: 500px; padding:10px; top: 20px;">
     <form id="frm_insert" method="post" novalidate>
         <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
@@ -289,13 +280,20 @@
                 <input style="width:30%;" name="total" id="total" readonly class="easyui-numberbox" data-options="precision: 4">
             </div>
             <div class="fitem">
+                <span style="width:35%; display:inline-block;">ETA</span>
+                <input style="width:60%;" name="eta" id="eta" class="easyui-datebox" data-options="formatter:myformatter,parser:myparser, editable:false">
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">ETD</span>
+                <input style="width:60%;" name="etd" id="etd" class="easyui-datebox" data-options="formatter:myformatter,parser:myparser, editable:false">
+            </div>
+            <div class="fitem">
                 <span style="width:35%; display:inline-block;">Reason</span>
                 <input style="width:50%;" name="reason" id="reason" required class="easyui-textbox">
             </div>
         </fieldset>
     </form>
 </div>
-
 <div id="dlg_insert_schedule" class="easyui-dialog" title="Update Data" data-options="closed: true,modal:true" style="width: 800px; padding:10px; top: 20px; left:10px;">
     <form id="frm_insert_schedule" method="post" novalidate>
         <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
@@ -429,7 +427,6 @@
         </fieldset>
     </form>
 </div>
-
 <div id="dlg_mail" class="easyui-dialog" title="Send Mail" data-options="closed: true,modal:true" style="width: 900px; height: 550px; padding:10px; top: 20px;">
     <form id="frm_mail" method="post" enctype="multipart/form-data" novalidate>
         <div class="alert alert-warning">
@@ -492,14 +489,12 @@
             <div style="float: left; width: 100%; margin-top: 20px;">
                 <div class="easyui-panel" title="Message Mail" style="width:98%; height:200px; padding:10px;">
                     <div id="mail_message">
-
                     </div>
                 </div>
             </div>
         </fieldset>
     </form>
 </div>
-
 <!-- Upload -->
 <div id="dlg_upload" class="easyui-dialog" title="Upload Data" data-options="closed: true,modal:true" style="width: 400px; padding:10px; top: 20px;">
     <form id="frm_upload" method="post" enctype="multipart/form-data" novalidate>
@@ -516,24 +511,19 @@
     <div id="p_remarks" class="easyui-panel" style="width:100%; height:200px; padding:10px; margin-top: 10px;">
         <p>History Upload</p>
         <ul id="remarks">
-
         </ul>
     </div>
 </div>
-
 <!-- PDF -->
 <iframe id="printout" src="" style="width: 100%;" hidden></iframe>
-
 <script>
     function add() {
         toastr.info("Not Ready this Function");
     }
-
     function editSchedule(){
         var row = $('#dg_purchase_order').datagrid('getSelected');
         if (row) {
             $('#dlg_insert_schedule').dialog('open');
-
             $.ajax({
                 type: "get",
                 url: "<?= base_url('planning/delivery_schedules/readMonths') ?>",
@@ -548,7 +538,6 @@
                     $("#p6").html(monthName[5]);
                 }
             });
-
             $.ajax({
                 type: "post",
                 url: "<?= base_url("planning/purchase_orders/get_delivery_schedules") ?>",
@@ -556,7 +545,6 @@
                 dataType: "json",
                 success: function (response) {
                     $('#frm_insert_schedule').form('load', response);
-
                     url_save_schedule = '<?= base_url('planning/delivery_schedules/update') ?>?id=' + btoa(response.id);
                 }
             });
@@ -564,7 +552,6 @@
             toastr.warning("Please select one of the data in the table first!", "Information");
         }
     }
-
     // function checkConfirmPo(){
     //     $.ajax({
     //         type: "post",
@@ -579,13 +566,10 @@
     //         }
     //     });
     // }
-
     // checkConfirmPo();
     // setInterval(checkConfirmPo, 10000000);
-
     // function confirmPo() {
     //     $("#dlg_confirm").dialog('open');
-        
     //     $('#dg_confirm').datagrid({
     //         url: '<?= base_url('planning/purchase_orders/datatableConfirm') ?>',
     //         clientPaging: false,
@@ -595,7 +579,6 @@
     //         fit:true,
     //     });
     // }
-
     function confirm(purchase_request_no) {
         $.ajax({
             type: "post",
@@ -608,14 +591,11 @@
             }
         });
     }
-    
     function details(purchase_order_no, supplier, product_family, push="", email = "", email_cc = "") {
         $("#dlg_purchase_order").dialog('open');
-
         $("#d_purchase_order_no").textbox('setValue', purchase_order_no);
         $("#d_supplier").textbox('setValue', supplier);
         $("#d_product_family").textbox('setValue', product_family);
-        
         if(push == ""){
             $("#pushData").hide();
             $("#detailEdit").show();
@@ -646,12 +626,9 @@
             $("#mail_po").textbox("setValue", purchase_order_no);
             $("#mail_subject").textbox("setValue", "PO#" + purchase_order_no + "_" + supplier);
         }
-
         var revision = $("#filter_revision").combobox('getValue');
         var filter_part_no = $("#filter_part_no").combogrid('getValue');
-
         $('#dg_purchase_order').datagrid('loading');
-
         $.ajax({
             url: '<?= base_url('planning/purchase_orders/datatableDetails/') ?>' + btoa(purchase_order_no) + "/" + revision + "?filter_part_no=" + btoa(filter_part_no),
             type: 'POST',
@@ -661,12 +638,10 @@
             }
         });
     }
-
     function detailEdit(){
         var row = $('#dg_purchase_order').datagrid('getSelected');
         if (row) {
             $('#dlg_insert').dialog('open');
-
             $("#purchase_order_no").combogrid({
                 url: '<?= base_url('planning/purchase_orders/readPo/') ?>' + row.p_month + '/' + row.p_year + '/' + row.revision + '/' + row.product_family,
                 panelWidth: 600,
@@ -696,15 +671,12 @@
                     $("#supplier_name").textbox("setValue", po.supplier_name);
                 }
             });
-
             $('#frm_insert').form('load', row);
-
             url_save = '<?= base_url('planning/purchase_orders/updateDetails') ?>?id=' + btoa(row.id);
         } else {
             toastr.warning("Please select one of the data in the table first!", "Information");
         }
     }
-
     function priceSync(id){
         $.messager.prompt('Sync Price', 'Please input Password to Sync Price', function(r){
             if (r == "PROCUREMENTUMI2024"){
@@ -720,16 +692,13 @@
                         } else {
                             toastr.error(result.message, result.title);
                         }
-                
                         $("#dg_purchase_order").datagrid('reload');
                     }
                 });
             }
         });
-
         $('.messager-input').attr('type', 'password');
     }
-
     function priceSyncAll() {
         var rows = $('#dg').datagrid('getSelections');
         if (rows.length > 0) {
@@ -744,12 +713,10 @@
                             Swal.showLoading();
                         },
                     });
-
                     requestDataPrice(rows.length, rows);
                     function requestDataPrice(total, json, number = 1, value = 0, success = 1, failed = 1) {
                         if (value < 100) {
                             value = Math.floor((number / total) * 100);
-                            
                             var row = json[number - 1];
                             $.ajax({
                                 method: 'post',
@@ -766,7 +733,6 @@
                                         toastr.error(result.message);
                                         requestDataPrice(total, json, number + 1, value, success + 1, failed + 0);
                                     }
-
                                     if (value == 100) {
                                         Swal.close();
                                         Swal.fire('Good job!', 'Process Sync Price Data Completed!', 'success');
@@ -783,13 +749,11 @@
                     }
                 }
             });
-
             $('.messager-input').attr('type', 'password');
         } else {
             toastr.warning("Please select one of the data in the table first!", "Information");
         }
     }
-
     function pushData(){
         var rows = $('#dg_purchase_order').datagrid('getSelections');
         if (rows.length > 0) {
@@ -797,25 +761,21 @@
                 if (r == "PUSHDATA"){
                     $('#dlg_purchase_order').dialog('close');
                     requestData2(rows.length, rows);
-
                     function requestData2(total, json, number = 1, value = 0, success = 1, failed = 1) {
                         if (value < 100) {
                             value = Math.floor((number / total) * 100);
                             $('#p_upload').progressbar('setValue', value);
                             $('#p_start').html(number);
                             $('#p_finish').html(total);
-
                             $.post('<?= base_url('planning/purchase_orders/pushData') ?>', {
                                 data: json[number - 1]
                             }, function(note) {
                                 var result = eval('(' + note + ')');
-
                                 if (result.theme == "success") {
                                     requestData2(total, json, number + 1, value, success + 1, failed + 0);
                                 } else {
                                     requestData2(total, json, number + 1, value, success + 0, failed + 1);
                                 }
-
                                 if (value == 100) {
                                     Swal.fire('Good job!', 'Process Generate Data Completed!', 'success');
                                     $("#dg").datagrid('reload');
@@ -823,7 +783,6 @@
                             }).fail(function(jqXHR, textStatus) {
                                 if (textStatus == "error") {
                                     toastr.error("Connection time out");
-
                                     requestData2(total, json, number, value, success + 0, failed + 1);
                                 }
                             });
@@ -831,13 +790,11 @@
                     }
                 }
             });
-
             $('.messager-input').attr('type', 'password');
         }else{
             toastr.warning("Please select one of the data in the table first!");
         }
     }
-
     function createSd(purchase_order_no) {
         $.messager.prompt('Create Schedule Delivery', 'Please input Password Generate, Be careful if data is generated for this period it will be deleted', function(r){
             if (r == "DELIVERYSCHEDULE"){
@@ -850,7 +807,6 @@
                         Swal.showLoading();
                     },
                 });
-
                 $.ajax({
                     type: "get",
                     url: "<?= base_url('planning/delivery_schedules/getData') ?>",
@@ -858,28 +814,23 @@
                     dataType: "json",
                     success: function(rows) {
                         Swal.close();
-
                         if(rows['total'] > 0){
                             requestData(rows['total'], rows);
-
                             function requestData(total, json, number = 1, value = 0, success = 1, failed = 1) {
                                 if (value < 100) {
                                     value = Math.floor((number / total) * 100);
                                     $('#p_upload').progressbar('setValue', value);
                                     $('#p_start').html(number);
                                     $('#p_finish').html(total);
-
                                     $.post('<?= base_url('planning/delivery_schedules/create') ?>', {
                                         data: json[number - 1]
                                     }, function(note) {
                                         var result = eval('(' + note + ')');
-
                                         if (result.theme == "success") {
                                             requestData(total, json, number + 1, value, success + 1, failed + 0);
                                         } else {
                                             requestData(total, json, number + 1, value, success + 0, failed + 1);
                                         }
-
                                         if (value == 100) {
                                             Swal.fire('Good job!', 'Process Generate Data Completed!', 'success');
                                             $("#dg").datagrid('reload');
@@ -887,7 +838,6 @@
                                     }).fail(function(jqXHR, textStatus) {
                                         if (textStatus == "error") {
                                             toastr.error("Connection time out");
-
                                             requestData(total, json, number, value, success + 0, failed + 1);
                                         }
                                     });
@@ -905,14 +855,12 @@
             }
         });
     }
-
     function sendMail(){
         // toastr.info("Not Available");
         $("#dlg_mail").dialog('open');
         $("#attachment").filebox('clear');
         $("#mail_message").html("");
         $("#mail_format").combobox("clear");
-
         $("#mail_format").combobox({
             onChange: function(val){
                 $.ajax({
@@ -931,13 +879,11 @@
             }
         })
     }
-
     function completeMail(){
         $.messager.prompt('Complete Mail', 'Please input Password to Complete Mail PO', function(r){
             if (r == "COMPLETEMAIL"){
                 var purchase_order_no = $("#d_purchase_order_no").textbox('getValue');
                 var email_date = $("#d_email_date").datebox('getValue');
-
                 $.ajax({
                     type: "post",
                     url: "<?= base_url("planning/purchase_orders/completeMail") ?>",
@@ -950,7 +896,6 @@
             }
         });
     }
-
     function componentCheck(filter_month, filter_year, filter_revision) {
         $.ajax({
             type: "get",
@@ -971,7 +916,6 @@
                 }
             }
         });
-
         $('#filter_po').combobox({
             url: '<?php echo base_url('planning/purchase_orders/readPoSearch?filter_month='); ?>' + window.btoa(filter_month) + '&filter_year=' + btoa(filter_year) + '&filter_revision=' + btoa(filter_revision),
             valueField: 'purchase_order_no',
@@ -985,7 +929,6 @@
             }],
         });
     }
-
     function deleted() {
         var rows = $('#dg').datagrid('getSelections');
         if (rows.length > 0) {
@@ -1021,7 +964,6 @@
             toastr.warning("Please select one of the data in the table first!", "Information");
         }
     }
-
     function filter() {
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").combobox('getValue');
@@ -1031,7 +973,6 @@
         var filter_part_no = $("#filter_part_no").combogrid('getValue');
         var filter_supplier = $("#filter_supplier").combogrid('getValue');
         var filter_status = $("#filter_status").combobox('getValue');
-
         var url = "?filter_month=" + window.btoa(filter_month) +
             "&filter_year=" + window.btoa(filter_year) +
             "&filter_revision=" + window.btoa(filter_revision) +
@@ -1040,23 +981,19 @@
             "&filter_product_family=" + window.btoa(filter_product_family) +
             "&filter_status=" + window.btoa(filter_status) +
             "&filter_part_no=" + window.btoa(filter_part_no);
-
         if (filter_month == "" || filter_year == "") {
             toastr.warning("Please Choose Filter Date!", "Information");
         } else {
             $('#dg').datagrid({
                 url: '<?= base_url('planning/purchase_orders/datatables') ?>' + url,
             });
-
             $("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
             $("#printout").attr('src', '<?= base_url('planning/purchase_orders/print') ?>' + url);
         }
     }
-
     function pdf() {
         $("#printout").get(0).contentWindow.print();
     }
-
     function excel() {
         var filter_month = $("#filter_month").combobox('getValue');
         var filter_year = $("#filter_year").combobox('getValue');
@@ -1066,7 +1003,6 @@
         var filter_part_no = $("#filter_part_no").combogrid('getValue');
         var filter_supplier = $("#filter_supplier").combogrid('getValue');
         var filter_status = $("#filter_status").combobox('getValue');
-
         var url = "?filter_month=" + window.btoa(filter_month) +
             "&filter_year=" + window.btoa(filter_year) +
             "&filter_revision=" + window.btoa(filter_revision) +
@@ -1075,18 +1011,15 @@
             "&filter_product_family=" + window.btoa(filter_product_family) +
             "&filter_status=" + window.btoa(filter_status) +
             "&filter_part_no=" + window.btoa(filter_part_no);
-
         if (filter_month == "" || filter_year == "") {
             toastr.warning("Please Choose Filter Date!", "Information");
         } else {
             window.location.assign('<?= base_url('planning/purchase_orders/print/excel') ?>' + url);
         }
     }
-
     function export_excel3(){
         $('#dg_confirm').datagrid('toExcel','Data Confirm PR to PO.xls');
     }
-
     function csv() {
         $.messager.prompt('Export CSV', 'Please input Password to Export to CSV', function(r){
             if (r == "CSV"){
@@ -1095,23 +1028,18 @@
             }
         });
     }
-
     //Upload Data
     function upload() {
         $('#dlg_upload').dialog('open');
     }
-
     function download_excel() {
         window.location.assign('<?= base_url('template/tmp_purchase_orders.xls') ?>');
     }
-
     function reload() {
         window.location.reload();
     }
-
     $(function() {
     	$("#add").html("Generate");
-        
         $('#dg').datagrid({
             pagination: true,
             clientPaging: false,
@@ -1125,28 +1053,24 @@
                 }
             }
         });
-
         $('#dg_purchase_order').datagrid({
             clientPaging: false,
             rownumbers: true,
             singleSelect: false,
             fit:true,
         }).datagrid('enableFilter');
-
         $("#qty").numberbox({
             onChange: function(qty){
                 var price = $("#price").numberbox("getValue");
                 $("#total").numberbox("setValue", (parseInt(qty) * parseInt(price)));
             }
         });
-
         $("#price").numberbox({
             onChange: function(price){
                 var qty = $("#qty").numberbox("getValue");
                 $("#total").numberbox("setValue", (parseInt(qty) * parseInt(price)));
             }
         })
-
         $('#dlg_insert').dialog({
             buttons: [{
                 text: 'Save',
@@ -1159,13 +1083,11 @@
                         },
                         success: function(result) {
                             var result = eval('(' + result + ')');
-
                             if (result.theme == "success") {
                                 toastr.success(result.message, result.title);
                             } else {
                                 toastr.error(result.message, result.title);
                             }
-
                             $('#dlg_insert').dialog('close');
                             $('#dg_purchase_order').datagrid('reload');
                         }
@@ -1173,7 +1095,6 @@
                 }
             }]
         });
-
         $('#dlg_insert_schedule').dialog({
             buttons: [{
                 text: 'Save',
@@ -1186,7 +1107,6 @@
                         },
                         success: function(result) {
                             var result = eval('(' + result + ')');
-
                             if (result.theme == "success") {
                                 toastr.success(result.message);
                             } else {
@@ -1197,7 +1117,6 @@
                 }
             }]
         });
-
         $('#dlg_mail').dialog({
             buttons: [{
                 text: 'Send Mail',
@@ -1205,7 +1124,6 @@
                 handler: function() {
                     var mail_format = $("#mail_format").combobox('getValue');
                     var d_purchase_order_no = $("#d_purchase_order_no").textbox('getValue');
-
                     if(mail_format != ""){
                         $.messager.prompt('Send Mail', 'Please input Password to Send Mail', function(r){
                             if (r == "SENDMAIL"){
@@ -1215,7 +1133,6 @@
                                         if($(this).form('validate') === true){
                                             $('#dlg_mail').dialog('close');
                                             $('#dlg_purchase_order').dialog('close');
-                                            
                                             Swal.fire({
                                                 title: 'Please Wait...',
                                                 showConfirmButton: false,
@@ -1230,15 +1147,12 @@
                                         }
                                     },
                                     success: function(result) {
-
                                         var result = eval('(' + result + ')');
-
                                         if (result.theme == "success") {
                                             toastr.success(result.message, result.title);
                                         } else {
                                             toastr.error(result.message, result.title);
                                         }
-
                                         Swal.close();
                                         $('#dg').datagrid('reload');
                                     },
@@ -1254,7 +1168,6 @@
                 }
             }]
         });
-
         //Upload Data
         $('#dlg_upload').dialog({
             buttons: [{
@@ -1277,14 +1190,12 @@
                             $.messager.progress('close');
                             var json = eval('(' + result + ')');
                             requestData3(json.total, json);
-
                             function requestData3(total, json, number = 1, value = 0) {
                                 if (value < 100) {
                                     value = Math.floor((number / total) * 100);
                                     $('#p_upload2').progressbar('setValue', value);
                                     $('#p_start2').html(number);
                                     $('#p_finish2').html(total);
-
                                     $.post('<?= base_url('planning/purchase_orders/uploadCreate') ?>', {
                                         data: json[number - 1]
                                     }, function(note) {
@@ -1304,7 +1215,6 @@
                 }
             }]
         });
-
         $('#filter_month').combobox({
             url: '<?php echo base_url('planning/mst_data/readMonths'); ?>',
             valueField: 'id',
@@ -1319,13 +1229,11 @@
             onSelect: function(month){
                 var filter_year = $("#filter_year").combobox('getValue');
                 var filter_revision = $("#filter_revision").combobox('getValue');
-
                 if(filter_year != "" && filter_revision != ""){
                     componentCheck(month.id, filter_year, filter_revision);
                 }
             }
         });
-
         $('#filter_year').combobox({
             url: '<?php echo base_url('planning/mst_data/readYears'); ?>',
             valueField: 'id',
@@ -1340,13 +1248,11 @@
             onSelect: function(year){
                 var filter_month = $("#filter_month").combobox('getValue');
                 var filter_revision = $("#filter_revision").combobox('getValue');
-
                 if(filter_month != "" && filter_revision != ""){
                     componentCheck(filter_month, year, filter_revision);
                 }
             }
         });
-
         $('#filter_revision').combobox({
             url: '<?php echo base_url('planning/mst_data/readRevisions'); ?>',
             valueField: 'id',
@@ -1361,13 +1267,11 @@
             onSelect: function(revision){
                 var filter_month = $("#filter_month").combobox('getValue');
                 var filter_year = $("#filter_year").combobox('getValue');
-
                 if(filter_month != "" && filter_year != ""){
                     componentCheck(filter_month, filter_year, revision.id);
                 }
             }
         });
-
         $('#filter_product_family').combobox({
             url: '<?php echo base_url('planning/generate_mrp/readProductFamily'); ?>',
             valueField: 'pfm_name',
@@ -1408,7 +1312,6 @@
                 });
             }
         });
-
         $('#filter_supplier').combogrid({
             url: '<?= base_url('planning/purchase_orders/readSupplier') ?>',
             panelWidth: 400,
@@ -1436,18 +1339,15 @@
             ]
         });
     });
-
     //Format Datepicker
     function myformatter(date) {
         var y = date.getFullYear();
         var m = date.getMonth() + 1;
         var d = date.getDate();
-
         if(y != "1899"){
             return y + '-' + (m < 10 ? ('0' + m) : m) + '-' + (d < 10 ? ('0' + d) : d);
         }
     }
-
     //Format Datepicker
     function myparser(s) {
         if (!s) return new Date();
@@ -1461,7 +1361,6 @@
             return new Date();
         }
     }
-
     function cellStyler(value, row, index) {
         if (value == "OPEN") {
             return 'background: #53D636; color:white;';
@@ -1469,34 +1368,27 @@
             return 'background: #FF5F5F; color:white;';
         }
     }
-
     function numberformat(value, row) {
         const formatter = new Intl.NumberFormat('id-ID', {
             minimumFractionDigits: 0
         });
-
         return "<b>" + formatter.format(value) + "</b>";
     }
-
     function numberformatPrice(value, row){
         if(row.currency == "IDR"){
             var digit = 0;
         }else{
             var digit = 0;
         }
-
         const formatter = new Intl.NumberFormat('id-ID', {
             minimumFractionDigits: digit
         });
-
         return "<b>" + formatter.format(value) + "</b>";
     }
-
     function BtnDetail(val, row) {
         var details = "details('"+row.purchase_order_no+"','"+row.supplier_name+"','"+row.product_family_name+"')";
         return '<a class="btn btn-primary w-100" style="pointer-events: visible; opacity:1;" onClick="'+details+'"><i class="fa fa-eye"></i> View</a>';
     }
-
     function BtnConfirm(val, row) {
         if (parseInt(row.total_pr) == parseInt(row.total_po)){
             var confirm = "confirm('"+row.purchase_request_no+"')";
@@ -1505,11 +1397,9 @@
             return '-';
         }
     }
-
     function BtnPrint(val, row) {
         return '<a class="btn btn-primary w-100" target="_blank" href="<?= base_url('planning/purchase_orders/print_po/') ?>'+btoa(row.purchase_order_no)+'" style="pointer-events: visible; opacity:1;"><i class="fa fa-print"></i> Print</a>';
     }
-
     function BtnCreateSd(val, row) {
         // if(row.supplier_type == "IMPORT"){
             if (row.print_sd == 0) {
@@ -1522,7 +1412,6 @@
         //     return '-';
         // }
     }
-
     function BtnPrintSd(val, row) {
         // if(row.supplier_type == "IMPORT"){
             if(val > 0){
@@ -1534,7 +1423,6 @@
         //     return '-';
         // }
     }
-
     function BtnPush(val, row) {
         if(row.push == "OK") {
             return 'DONE';
@@ -1546,7 +1434,6 @@
             return '-';
         }
     }
-
     function BtnSend(val, row) {
         if(row.email_status == "SENT"){
             return "-";
@@ -1557,7 +1444,6 @@
             return '-';
         }
     }
-    
     function BtnSync(val, row) {
         if(parseFloat(row.price) == parseFloat(row.dprice) && row.currency == row.dcurrency){
             return "-";
@@ -1568,7 +1454,6 @@
             return '<a class="btn btn-primary w-100" style="pointer-events: visible; opacity:1;" onClick="'+details+'"><i class="fa fa-history"></i> Sync</a>';
         }
     }
-
     function cellStylerApproval(value, row, index) {
         if (row.approved_to == null) {
             return 'background: #FF5F5F; color:white;';
@@ -1578,7 +1463,6 @@
             return 'background: #FF5F5F; color:white;';
         }
     }
-
     function cellFormatterApproval(val, row) {
         if (row.approved_to == null) {
             return 'Not Setting';
@@ -1588,7 +1472,6 @@
             return 'Checking';
         }
     };
-
     function cellStylerSend(value, row, index) {
         if (value == null) {
             return 'background: #FF5F5F; color:white;';
@@ -1596,7 +1479,6 @@
             return 'background: #53D636; color:white;';
         }
     }
-
     function cellFormatterSend(value, row) {
         if (value == null) {
             return 'Not Send';
@@ -1604,7 +1486,6 @@
             return 'Delivered';
         }
     };
-
     function cellStylerConfirm(value, row, index) {
         if (value == null) {
             return 'background: #FF5F5F; color:white;';
@@ -1614,7 +1495,6 @@
             return 'background: #53D636; color:white;';
         }
     }
-
     function cellFormatterConfirm(value, row) {
         if (value == null) {
             return 'Not Receipt';
@@ -1624,7 +1504,6 @@
             return 'Confirm';
         }
     };
-
     function cellStylerPrice(value,row,index){
         if (parseInt(row.total_pr) == parseInt(row.total_po)){
             return 'background-color:#D1FFC6;';

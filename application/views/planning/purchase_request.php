@@ -1,9 +1,14 @@
 <style>
     @keyframes blink {
-        0%, 50%, 100% {
+
+        0%,
+        50%,
+        100% {
             opacity: 1;
         }
-        25%, 75% {
+
+        25%,
+        75% {
             opacity: 0;
         }
     }
@@ -19,29 +24,29 @@
 <table id="dg" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar">
     <thead>
         <tr>
-                <th rowspan="2" field="ck" checkbox="true"></th>
-                <th rowspan="2" data-options="field:'purchase_request_no',width:180,halign:'center'">PR No</th>
-                <th rowspan="2" data-options="field:'purchase_request_date',width:100,halign:'center'">PR Date</th>
-                <th rowspan="2" data-options="field:'supplier_name',width:250,halign:'center'">Vendor Name</th>
-                <th rowspan="2" data-options="field:'product_family',width:120,halign:'center'">Product Family</th>
-                <th rowspan="2" data-options="field:'total_pr',width:100,halign:'center',align:'right',formatter:numberformat">Total PR</th>
-                <th rowspan="2" data-options="field:'detail',width:80,halign:'center',formatter:BtnDetail">Detail</th>
-                <th colspan="2" data-options="field:'',width:100,halign:'center'">Create PO</th>
-                <th colspan="2" data-options="field:'',width:100,halign:'center'">Confirm PR</th>
-                <th colspan="3" data-options="field:'',width:100,halign:'center'">Approved</th>
-                <th colspan="2" data-options="field:'',width:100,halign:'center'">Created</th>
-            </tr>
-            <tr>
-                <th data-options="field:'send',width:120,align:'center',formatter:BtnSend">Create</th>
-                <th data-options="field:'create_po',width:150,align:'center'">Date</th>
-                <th data-options="field:'confirm',width:100,align:'center', styler:cellStylerConfirm, formatter:cellFormatterConfirm">Status</th>
-                <th data-options="field:'confirm_date',width:150,align:'center'">Date</th>
-                <th data-options="field:'approved_to',width:80,align:'center', styler:cellStylerApproval, formatter:cellFormatterApproval">Status</th>
-                <th data-options="field:'approved_by',width:100,align:'center'">By</th>
-                <th data-options="field:'approved_date',width:120,align:'center'">Date</th>
-                <th data-options="field:'created_by',width:100,align:'center'">By</th>
-                <th data-options="field:'created_date',width:120,align:'center'">Date</th>
-            </tr>
+            <th rowspan="2" field="ck" checkbox="true"></th>
+            <th rowspan="2" data-options="field:'purchase_request_no',width:180,halign:'center'">PR No</th>
+            <th rowspan="2" data-options="field:'purchase_request_date',width:100,halign:'center'">PR Date</th>
+            <th rowspan="2" data-options="field:'supplier_name',width:250,halign:'center'">Vendor Name</th>
+            <th rowspan="2" data-options="field:'product_family',width:120,halign:'center'">Product Family</th>
+            <th rowspan="2" data-options="field:'total_pr',width:100,halign:'center',align:'right',formatter:numberformat">Total PR</th>
+            <th rowspan="2" data-options="field:'detail',width:80,halign:'center',formatter:BtnDetail">Detail</th>
+            <th colspan="2" data-options="field:'',width:100,halign:'center'">Create PO</th>
+            <th colspan="2" data-options="field:'',width:100,halign:'center'">Confirm PR</th>
+            <th colspan="3" data-options="field:'',width:100,halign:'center'">Approved</th>
+            <th colspan="2" data-options="field:'',width:100,halign:'center'">Created</th>
+        </tr>
+        <tr>
+            <th data-options="field:'send',width:120,align:'center',formatter:BtnSend">Create</th>
+            <th data-options="field:'create_po',width:150,align:'center'">Date</th>
+            <th data-options="field:'confirm',width:100,align:'center', styler:cellStylerConfirm, formatter:cellFormatterConfirm">Status</th>
+            <th data-options="field:'confirm_date',width:150,align:'center'">Date</th>
+            <th data-options="field:'approved_to',width:80,align:'center', styler:cellStylerApproval, formatter:cellFormatterApproval">Status</th>
+            <th data-options="field:'approved_by',width:100,align:'center'">By</th>
+            <th data-options="field:'approved_date',width:120,align:'center'">Date</th>
+            <th data-options="field:'created_by',width:100,align:'center'">By</th>
+            <th data-options="field:'created_date',width:120,align:'center'">Date</th>
+        </tr>
     </thead>
 </table>
 
@@ -81,7 +86,7 @@
     <a href="javascript:void(0)" class="easyui-linkbutton" data-options="plain:true" onclick="removeit()"><i class="fa fa-times"></i> Remove</a>
 </div>
 
-<div id="toolbar" style="height: 195px; padding:10px;">
+<div id="toolbar" style="height: 235px; padding:10px;">
     <div style="width: 100%; display: grid; grid-template-columns: auto auto auto; grid-gap: 5px; display: flex;">
         <fieldset style="width: 60%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
             <legend><b>Filter Data</b></legend>
@@ -101,6 +106,10 @@
                         <option value="4">4</option>
                         <option value="5">5</option>
                     </select>
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; display:inline-block;">PR No</span>
+                    <input style="width:60%;" id="filter_pr" class="easyui-combobox">
                 </div>
                 <div class="fitem">
                     <span style="width:35%; display:inline-block;"></span>
@@ -130,7 +139,9 @@
             <center><b id="p_start">0</b> Of <b id="p_finish">0</b></center>
             <br>
             <center>
-                <a href="#" onclick="confirmPo()" id="confirmPo" style="text-decoration: none;"><div class="blink">Confirm Edit PO</div></a>
+                <a href="#" onclick="confirmPo()" id="confirmPo" style="text-decoration: none;">
+                    <div class="blink">Confirm Edit PO</div>
+                </a>
             </center>
         </fieldset>
     </div>
@@ -310,8 +321,8 @@
         var filter_part_no = $("#filter_part_no").combogrid('getValue');
 
         if (filter_month != "" && filter_year != "" && filter_revision != "") {
-            $.messager.prompt('Generate PR', 'Please input Password Generate, Be careful if data is generated for this period it will be deleted', function(r){
-                if (r == "PURCHASEREQUEST"){
+            $.messager.prompt('Generate PR', 'Please input Password Generate, Be careful if data is generated for this period it will be deleted', function(r) {
+                if (r == "PURCHASEREQUEST") {
                     Swal.fire({
                         title: 'Please Wait for Generating Data',
                         showConfirmButton: false,
@@ -334,7 +345,7 @@
                         success: function(rows) {
                             Swal.close();
 
-                            if(rows['total'] > 0){
+                            if (rows['total'] > 0) {
                                 requestData(rows['total'], rows);
 
                                 function requestData(total, json, number = 1, value = 0, success = 1, failed = 1) {
@@ -368,7 +379,7 @@
                                         });
                                     }
                                 }
-                            }else{
+                            } else {
                                 toastr.warning("Data MRP Not Found");
                             }
                         },
@@ -386,7 +397,7 @@
         }
     }
 
-    function adds(){
+    function adds() {
         $('#dlg_insert').dialog('open');
         $('#frm_insert').form('clear');
 
@@ -459,7 +470,7 @@
                                 });
 
                                 $(ed6.target).numberbox({
-                                    onChange: function(val){
+                                    onChange: function(val) {
                                         var hasil = (Math.ceil(val / rows.moq) * rows.moq);
                                         $(ed6.target).numberbox('setValue', hasil);
                                     }
@@ -616,7 +627,7 @@
                 if (r) {
                     for (var i = 0; i < rows.length; i++) {
                         var row = rows[i];
-                        if(row.purchase_request == 0){
+                        if (row.purchase_request == 0) {
                             $.ajax({
                                 method: 'post',
                                 url: '<?= base_url('planning/purchase_request/delete') ?>',
@@ -634,7 +645,7 @@
                                     $('#dg').datagrid('reload');
                                 }
                             });
-                        }else{
+                        } else {
                             toastr.error("Cannot delete data because qty > 0");
                         }
                     }
@@ -652,13 +663,15 @@
         var filter_supplier_id = $("#filter_supplier_id").combobox('getValue');
         var filter_product_family = $("#filter_product_family").combobox('getValue');
         var filter_part_no = $("#filter_part_no").combogrid('getValue');
+        var filter_pr = $("#filter_pr").combobox('getValue');
 
         var url = "?filter_month=" + window.btoa(filter_month) +
             "&filter_year=" + window.btoa(filter_year) +
             "&filter_revision=" + window.btoa(filter_revision) +
             "&filter_supplier_id=" + window.btoa(filter_supplier_id) +
             "&filter_product_family=" + window.btoa(filter_product_family) +
-            "&filter_part_no=" + window.btoa(filter_part_no);
+            "&filter_part_no=" + window.btoa(filter_part_no) +
+            "&filter_pr=" + window.btoa(filter_pr);
 
         if (filter_month == "" || filter_year == "") {
             toastr.warning("Please Choose Filter Date!", "Information");
@@ -683,13 +696,15 @@
         var filter_supplier_id = $("#filter_supplier_id").combobox('getValue');
         var filter_product_family = $("#filter_product_family").combobox('getValue');
         var filter_part_no = $("#filter_part_no").combogrid('getValue');
+        var filter_pr = $("#filter_pr").combobox('getValue');
 
         var url = "?filter_month=" + window.btoa(filter_month) +
             "&filter_year=" + window.btoa(filter_year) +
             "&filter_revision=" + window.btoa(filter_revision) +
             "&filter_supplier_id=" + window.btoa(filter_supplier_id) +
             "&filter_product_family=" + window.btoa(filter_product_family) +
-            "&filter_part_no=" + window.btoa(filter_part_no);
+            "&filter_part_no=" + window.btoa(filter_part_no) +
+            "&filter_pr=" + window.btoa(filter_pr);
 
         if (filter_month == "" || filter_year == "") {
             toastr.warning("Please Choose Filter Date!", "Information");
@@ -702,16 +717,16 @@
         window.location.reload();
     }
 
-    function detailEdit(){
+    function detailEdit() {
         var row = $('#dg_purchase_request').datagrid('getSelected');
         if (row) {
             $('#frm_update').form('load', row);
 
-            if(row.approved_to == ""){
+            if (row.approved_to == "") {
                 toastr.info("Sorry, you cannot edit the data as the status is already approved");
                 return false;
             }
-            
+
             $('#dlg_update').dialog('open');
             $('#update_purchase_request_no').combogrid({
                 url: '<?= base_url('planning/purchase_request/readPr/') ?>' + btoa(row.supplier_id) + '/' + btoa(row.product_family),
@@ -737,26 +752,26 @@
             $("#update_purchase_request_no").combogrid('setValue', row.purchase_request_no);
 
             $("#purchase_request_edit").numberbox({
-                onChange: function(val){
+                onChange: function(val) {
                     // if(parseInt(val) <= parseInt(row.purchase_order)){
-                        if(parseInt(val) == 0){
-                            var hasil = Math.ceil(parseInt(val));
-                        }else{
-                            if(parseInt(val) > row.moq){
-                                var hasil = (Math.ceil(parseInt(val) / row.mpq) * row.mpq);
-                            }else{
-                                var hasil = (Math.ceil(parseInt(val) / row.moq) * row.moq);
-                            }
+                    if (parseInt(val) == 0) {
+                        var hasil = Math.ceil(parseInt(val));
+                    } else {
+                        if (parseInt(val) > row.moq) {
+                            var hasil = (Math.ceil(parseInt(val) / row.mpq) * row.mpq);
+                        } else {
+                            var hasil = (Math.ceil(parseInt(val) / row.moq) * row.moq);
                         }
-                            
-                        $("#purchase_request").numberbox('setValue', hasil);
+                    }
+
+                    $("#purchase_request").numberbox('setValue', hasil);
                     // }else{
                     //     toastr.error("Your Qty > Mrp Results");
                     //     $("#purchase_request").numberbox('setValue', row.purchase_order);
                     // }
                 }
             });
-            
+
             $('#status').textbox('setValue', "EDIT");
             // $('#p_month').combobox('disable');
             // $('#p_year').combobox('disable');
@@ -772,7 +787,7 @@
         }
     }
 
-    function details(purchase_request_no, supplier, product_family, push="") {
+    function details(purchase_request_no, supplier, product_family, push = "") {
         $("#dlg_purchase_request").dialog('open');
 
         $("#d_purchase_request_no").textbox('setValue', purchase_request_no);
@@ -798,7 +813,7 @@
                     // remoteFilter: true,
                     rownumbers: true,
                     singleSelect: false,
-                    fit:true,
+                    fit: true,
                     columns: [
                         [{
                             field: 'ck',
@@ -809,8 +824,8 @@
                             title: 'Status',
                             width: 80,
                             align: 'center',
-                            styler:cellStylerApproval, 
-                            formatter:cellFormatterApproval,
+                            styler: cellStylerApproval,
+                            formatter: cellFormatterApproval,
                             rowspan: 2
                         }, {
                             field: 'part_no',
@@ -838,21 +853,21 @@
                             halign: 'center',
                             align: 'right',
                             rowspan: 2
-                        },{
+                        }, {
                             field: 'moq',
                             title: 'MOQ',
                             width: 80,
                             halign: 'center',
                             align: 'right',
                             rowspan: 2
-                        },{
+                        }, {
                             field: 'leadtime',
                             title: 'Leadtime',
                             width: 80,
                             halign: 'center',
                             align: 'right',
                             rowspan: 2
-                        },{
+                        }, {
                             field: 'total_need',
                             title: 'Total Need',
                             width: 100,
@@ -860,7 +875,7 @@
                             align: 'right',
                             rowspan: 2,
                             formatter: numberformat
-                        },{
+                        }, {
                             field: 'purchase_order',
                             title: 'MRP Result',
                             width: 100,
@@ -868,7 +883,7 @@
                             align: 'right',
                             rowspan: 2,
                             formatter: numberformat
-                        },{
+                        }, {
                             field: 'purchase_request',
                             title: 'Purchase<br>Request',
                             width: 100,
@@ -876,7 +891,7 @@
                             align: 'right',
                             rowspan: 2,
                             formatter: numberformat
-                        },{
+                        }, {
                             field: '',
                             title: 'Purchase History',
                             width: 200,
@@ -922,7 +937,8 @@
                             width: 80,
                             align: 'center',
                             rowspan: 2,
-                        }],[{
+                        }],
+                        [{
                             field: 'm3',
                             title: monthName[0],
                             width: 100,
@@ -1016,8 +1032,8 @@
     }
 
     function sendPo(purchase_request_no) {
-        $.messager.prompt('Generate PO', 'Please input Password Generate, Be careful if data is generated for this period it will be deleted', function(r){
-            if (r == "PURCHASEORDER"){
+        $.messager.prompt('Generate PO', 'Please input Password Generate, Be careful if data is generated for this period it will be deleted', function(r) {
+            if (r == "PURCHASEORDER") {
                 Swal.fire({
                     title: 'Please Wait for Generating Data',
                     showConfirmButton: false,
@@ -1036,7 +1052,7 @@
                     success: function(rows) {
                         Swal.close();
 
-                        if(rows['total'] > 0){
+                        if (rows['total'] > 0) {
                             requestData(rows['total'], rows);
 
                             function requestData(total, json, number = 1, value = 0, success = 1, failed = 1) {
@@ -1070,7 +1086,7 @@
                                     });
                                 }
                             }
-                        }else{
+                        } else {
                             toastr.warning("Data Purchase Requests Not Found");
                         }
                     },
@@ -1079,13 +1095,13 @@
                         Swal.fire('Failed!', 'Generate Purchase Requst is Failed, Please Try Again!', 'error');
                     }
                 });
-            }else{
+            } else {
                 toastr.error("Password not Match");
             }
         });
     }
 
-    function checkConfirmPo(){
+    function checkConfirmPo() {
         // $.ajax({
         //     type: "post",
         //     url: '<?= base_url('planning/purchase_request/datatableConfirm') ?>',
@@ -1094,7 +1110,7 @@
         //         if(response.total > 0){
         //             $("#confirmPo").show();
         //         }else{
-                    $("#confirmPo").hide();
+        $("#confirmPo").hide();
         //         }
         //     }
         // });
@@ -1105,14 +1121,14 @@
 
     function confirmPo() {
         $("#dlg_confirm").dialog('open');
-        
+
         $('#dg_confirm').datagrid({
             url: '<?= base_url('planning/purchase_request/datatableConfirm') ?>',
             clientPaging: false,
             remoteFilter: true,
             rownumbers: true,
             singleSelect: false,
-            fit:true,
+            fit: true,
         });
     }
 
@@ -1122,7 +1138,7 @@
             url: '<?= base_url('planning/purchase_request/updateConfirm') ?>',
             data: "purchase_request_no=" + purchase_request_no + "&item_id=" + item_id,
             dataType: "json",
-            success: function (response) {
+            success: function(response) {
                 toastr.success("Data has been Confirmed");
                 $("#dg_confirm").datagrid("reload");
             }
@@ -1130,7 +1146,7 @@
     }
 
     $(function() {
-    	$("#add").html("Generate");
+        $("#add").html("Generate");
 
         $('#dg').datagrid({
             url: '<?= base_url('planning/purchase_request/datatables') ?>',
@@ -1259,7 +1275,7 @@
             valueField: 'supplier_id',
             textField: 'supplier_name',
             prompt: 'Select Supplier',
-            onSelect: function(supp){
+            onSelect: function(supp) {
 
                 $("#supplier_name").textbox('setValue', supp.supplier_name);
 
@@ -1268,17 +1284,17 @@
                     valueField: 'product_family',
                     textField: 'product_family',
                     prompt: 'Select Product Family',
-                    onSelect: function(row){
+                    onSelect: function(row) {
                         addTable(supp.supplier_id, row.product_family_no);
                         var p_month = $("#p_month").combobox('getValue');
                         var p_year = $("#p_year").combobox('getValue');
-                        
-                        var code = "PRMC-IND"+supp.supplier_no+p_year+p_month+"A"+row.product_family_no;
+
+                        var code = "PRMC-IND" + supp.supplier_no + p_year + p_month + "A" + row.product_family_no;
                         $.ajax({
                             type: "post",
-                            url: "<?= base_url("planning/purchase_request/purchaseRequestNo/") ?>"+btoa(code)+"/adds",
+                            url: "<?= base_url("planning/purchase_request/purchaseRequestNo/") ?>" + btoa(code) + "/adds",
                             dataType: "html",
-                            success: function (response) {
+                            success: function(response) {
                                 $("#purchase_request_no").textbox('setValue', response);
                             }
                         });
@@ -1299,6 +1315,13 @@
                     $(e.data.target).combobox('clear').combobox('textbox').focus();
                 }
             }],
+            onSelect: function(month) {
+                var filter_year = $("#filter_year").combobox('getValue');
+                var filter_revision = $("#filter_revision").combobox('getValue');
+                if (filter_year != "" && filter_revision != "") {
+                    prGet(month.id, filter_year, filter_revision);
+                }
+            }
         });
 
         $('#filter_year').combobox({
@@ -1312,6 +1335,13 @@
                     $(e.data.target).combobox('clear').combobox('textbox').focus();
                 }
             }],
+            onSelect: function(year) {
+                var filter_month = $("#filter_month").combobox('getValue');
+                var filter_revision = $("#filter_revision").combobox('getValue');
+                if (filter_month != "" && filter_revision != "") {
+                    prGet(filter_month, year, filter_revision);
+                }
+            }
         });
 
         $('#filter_revision').combobox({
@@ -1325,6 +1355,13 @@
                     $(e.data.target).combobox('clear').combobox('textbox').focus();
                 }
             }],
+            onSelect: function(revision) {
+                var filter_month = $("#filter_month").combobox('getValue');
+                var filter_year = $("#filter_year").combobox('getValue');
+                if (filter_month != "" && filter_year != "") {
+                    prGet(filter_month, filter_year, revision.id);
+                }
+            }
         });
 
         $('#filter_supplier_id').combobox({
@@ -1345,7 +1382,7 @@
                     $(e.data.target).combobox('clear').combobox('textbox').focus();
                 }
             }],
-            onSelect: function(row){
+            onSelect: function(row) {
                 $('#filter_part_no').combogrid({
                     url: '<?= base_url('planning/generate_mrp/readParts/') ?>' + row.pfm_id,
                     panelWidth: 400,
@@ -1403,6 +1440,21 @@
         // });
     });
 
+    function prGet(filter_month, filter_year, filter_revision) {
+        $('#filter_pr').combobox({
+            url: '<?php echo base_url('planning/purchase_request/readPrSearch?filter_month='); ?>' + window.btoa(filter_month) + '&filter_year=' + btoa(filter_year) + '&filter_revision=' + btoa(filter_revision),
+            valueField: 'purchase_request_no',
+            textField: 'purchase_request_no',
+            prompt: 'Select PR No',
+            icons: [{
+                iconCls: 'icon-clear',
+                handler: function(e) {
+                    $(e.data.target).combobox('clear').combobox('textbox').focus();
+                }
+            }],
+        });
+    }
+
     //Format Datepicker
     function myformatter(date) {
         var y = date.getFullYear();
@@ -1442,22 +1494,22 @@
     }
 
     function BtnDetail(val, row) {
-        var details = "details('"+row.purchase_request_no+"','"+row.supplier_name+"','"+row.product_family+"')";
-        return '<a class="btn btn-primary w-100" style="pointer-events: visible; opacity:1;" onClick="'+details+'"><i class="fa fa-eye"></i> View</a>';
+        var details = "details('" + row.purchase_request_no + "','" + row.supplier_name + "','" + row.product_family + "')";
+        return '<a class="btn btn-primary w-100" style="pointer-events: visible; opacity:1;" onClick="' + details + '"><i class="fa fa-eye"></i> View</a>';
     }
 
     function BtnSend(val, row) {
         if (row.approved_to == null || row.approved_to == "") {
-            var send = "sendPo('"+row.purchase_request_no+"')";
-            return '<a class="btn btn-success w-100" style="pointer-events: visible; opacity:1;" onClick="'+send+'"><i class="fa fa-plus"></i> Create PO</a>';
+            var send = "sendPo('" + row.purchase_request_no + "')";
+            return '<a class="btn btn-success w-100" style="pointer-events: visible; opacity:1;" onClick="' + send + '"><i class="fa fa-plus"></i> Create PO</a>';
         } else {
             return '-';
         }
     }
 
     function BtnConfirm(val, row) {
-        var confirm = "confirm('"+row.purchase_request_no+"','"+row.item_id+"')";
-        return '<a class="btn btn-success w-100" style="pointer-events: visible; opacity:1;" onClick="'+confirm+'"><i class="fa fa-check"></i> Confirm</a>';
+        var confirm = "confirm('" + row.purchase_request_no + "','" + row.item_id + "')";
+        return '<a class="btn btn-success w-100" style="pointer-events: visible; opacity:1;" onClick="' + confirm + '"><i class="fa fa-check"></i> Confirm</a>';
     }
 
     function cellStylerConfirm(value, row, index) {
@@ -1479,7 +1531,7 @@
     function cellStylerApproval(value, row, index) {
         if (row.approved_to == null) {
             return 'background: #FF5F5F; color:white;';
-        } else if(row.approved_to == ""){
+        } else if (row.approved_to == "") {
             return 'background: #53D636; color:white;';
         } else {
             return 'background: #FF5F5F; color:white;';
@@ -1489,7 +1541,7 @@
     function cellFormatterApproval(val, row) {
         if (row.approved_to == null) {
             return 'Not Setting';
-        } else if(row.approved_to == ""){
+        } else if (row.approved_to == "") {
             return 'Approved';
         } else {
             return 'Checking';

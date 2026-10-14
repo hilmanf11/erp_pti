@@ -11,7 +11,7 @@ class Purchase_request extends CI_Controller
         $this->load->library('form_validation');
         $this->load->library('session');
         $this->load->model('api');
-        $this->pg = $this->load->database('pg', TRUE);
+        // $this->pg = $this->load->database('pg', TRUE);
     }
 
     public function index()
@@ -27,14 +27,26 @@ class Purchase_request extends CI_Controller
         }
     }
 
-    public function readSupplier(){
+    function readPrSearch()
+    {
+        $filter_month = base64_decode($this->input->get('filter_month'));
+        $filter_year = base64_decode($this->input->get('filter_year'));
+        $filter_revision = base64_decode($this->input->get('filter_revision'));
+        $post = isset($_POST['q']) ? $_POST['q'] : "";
+        $datas = $this->api->query("SELECT DISTINCT purchase_request_no FROM purchase_requests WHERE p_month = '$filter_month' and p_year = '$filter_year' and revision='$filter_revision'");
+        echo json_encode($datas);
+    }
+
+    public function readSupplier()
+    {
         $query = $this->db->query("SELECT id as supplier_id, `number` as supplier_no, `name` as supplier_name FROM suppliers ORDER BY `name` ASC");
         $records = $query->result_array();
 
         echo json_encode($records);
     }
 
-    public function readProductFamily($supplier){
+    public function readProductFamily($supplier)
+    {
         $supplier = base64_decode($supplier);
         $query = $this->db->query("SELECT DISTINCT `number` as product_family_no, `name` as product_family 
             FROM mst_item_family a 
@@ -46,12 +58,13 @@ class Purchase_request extends CI_Controller
         echo json_encode($records);
     }
 
-    public function readParts($supplier, $prodfam){
+    public function readParts($supplier, $prodfam)
+    {
         $post = isset($_POST['q']) ? $_POST['q'] : "";
 
         $supplier = base64_decode($supplier);
         $prodfam = base64_decode($prodfam);
-        
+
         $query = $this->db->query("SELECT b.item_id, b.item_name, a.mpq, a.moq, a.share_order, a.leadtime 
             FROM supplier_items a 
             JOIN mst_item_raw b ON a.item_id = b.item_id
@@ -63,12 +76,13 @@ class Purchase_request extends CI_Controller
         echo json_encode($records);
     }
 
-    public function readPr($supplier_id, $prodfam){
+    public function readPr($supplier_id, $prodfam)
+    {
         $post = isset($_POST['q']) ? $_POST['q'] : "";
 
         $supplier_id = base64_decode($supplier_id);
         $prodfam = base64_decode($prodfam);
-        
+
         $query = $this->db->query("SELECT a.purchase_request_no, b.name as supplier_name
             FROM purchase_requests a 
             JOIN suppliers b ON a.supplier_id = b.id
@@ -81,7 +95,8 @@ class Purchase_request extends CI_Controller
         echo json_encode($records);
     }
 
-    function forecast($item_id, $month, $year, $revision){
+    function forecast($item_id, $month, $year, $revision)
+    {
         $q_forecast = $this->db->query("SELECT a.component_id, c.item_name, SUM(a.qty) as qty, 
             (SUM(a.qty) * b.month_1) as m1, 
             (SUM(a.qty) * b.month_2) as m2, 
@@ -124,28 +139,29 @@ class Purchase_request extends CI_Controller
         die(json_encode($monthName));
     }
 
-    public function purchaseRequestNo($code, $add = ""){
+    public function purchaseRequestNo($code, $add = "")
+    {
 
-        if($add != ""){
+        if ($add != "") {
             $code = base64_decode($code);
         }
 
-        $sqlGetID	= $this->db->query("SELECT max(purchase_request_no) as kode FROM purchase_requests WHERE purchase_request_no LIKE '%$code%'");
+        $sqlGetID    = $this->db->query("SELECT max(purchase_request_no) as kode FROM purchase_requests WHERE purchase_request_no LIKE '%$code%'");
         $rowID      = $sqlGetID->row();
-        $kode 		= $rowID->kode;
-        
+        $kode         = $rowID->kode;
+
         if ($kode == NULL) {
             $autoID = sprintf("%02s", $kode + 1);
         } else {
             $urutan = (int) substr($kode, -2);
             $urutan++;
-            $autoID	= sprintf("%02s", $urutan);
+            $autoID    = sprintf("%02s", $urutan);
         }
 
-        if($add == ""){
-            return $code.$autoID;
-        }else{
-            echo $code.$autoID;
+        if ($add == "") {
+            return $code . $autoID;
+        } else {
+            echo $code . $autoID;
         }
     }
 
@@ -159,32 +175,32 @@ class Purchase_request extends CI_Controller
             $filter_product_no = trim(base64_decode($this->input->get('filter_product_no')));
             $filter_product_family = base64_decode($this->input->get('filter_product_family'));
 
-            if($filter_product_family != ""){
-                if($filter_product_no != ""){
+            if ($filter_product_family != "") {
+                if ($filter_product_no != "") {
                     $array_pfm = array("product_family" => $filter_product_family, "part_no" => $filter_product_no);
-                }else{
+                } else {
                     $array_pfm = array("product_family" => $filter_product_family);
                 }
-            }else{
+            } else {
                 $array_pfm = array();
             }
 
             $this->api->delete("purchase_requests", array_merge(["p_month" => $filter_month, "p_year" => $filter_year, "revision" => $filter_revision, "type" => "REGULAR"], $array_pfm));
 
-            if(date('Y', strtotime('-1 month', strtotime($filter_year . "-" . $filter_month . "-01"))) == $filter_year){
+            if (date('Y', strtotime('-1 month', strtotime($filter_year . "-" . $filter_month . "-01"))) == $filter_year) {
                 $p_year_min = $filter_month;
                 $p_month_min = $filter_year;
-            }else{
+            } else {
                 $p_year_min =  date('Y', strtotime('-1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
                 $p_month_min =  date('m', strtotime('-1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
             }
 
-            $p1_min = "m".date('n', strtotime('-1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
-            $p2_min = "m".date('n', strtotime('-2 month', strtotime($filter_year . "-" . $filter_month . "-01")));
-            $p3_min = "m".date('n', strtotime('-3 month', strtotime($filter_year . "-" . $filter_month . "-01")));
-            $p1_plus = "m".date('n', strtotime('+1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
-            $p2_plus = "m".date('n', strtotime('+2 month', strtotime($filter_year . "-" . $filter_month . "-01")));
-            $p3_plus = "m".date('n', strtotime('+3 month', strtotime($filter_year . "-" . $filter_month . "-01")));
+            $p1_min = "m" . date('n', strtotime('-1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
+            $p2_min = "m" . date('n', strtotime('-2 month', strtotime($filter_year . "-" . $filter_month . "-01")));
+            $p3_min = "m" . date('n', strtotime('-3 month', strtotime($filter_year . "-" . $filter_month . "-01")));
+            $p1_plus = "m" . date('n', strtotime('+1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
+            $p2_plus = "m" . date('n', strtotime('+2 month', strtotime($filter_year . "-" . $filter_month . "-01")));
+            $p3_plus = "m" . date('n', strtotime('+3 month', strtotime($filter_year . "-" . $filter_month . "-01")));
 
             $forecast_rev = $this->db->query("SELECT DISTINCT revision FROM `mst_forecast` WHERE p_month = '$filter_month' and p_year = '$filter_year' ORDER BY revision DESC LIMIT 1");
             $forecast_row = $forecast_rev->row();
@@ -204,10 +220,10 @@ class Purchase_request extends CI_Controller
             $this->db->where('a.p_month', $filter_month);
             $this->db->where('a.p_year', $filter_year);
             $this->db->where('a.revision', $filter_revision);
-            if($filter_product_family != ""){
+            if ($filter_product_family != "") {
                 $this->db->where('a.product_family', $filter_product_family);
             }
-            if($filter_product_no != ""){
+            if ($filter_product_no != "") {
                 $this->db->where('b.item_id', $filter_product_no);
             }
             $this->db->group_by('c.supplier_id');
@@ -224,21 +240,21 @@ class Purchase_request extends CI_Controller
                 $supplier_no = $generate['supplier_no'];
                 $item_id = $generate['item_id'];
 
-                if($supplier_no == $end_supplier && $generate['pfm_id'] == $end_product_family){
+                if ($supplier_no == $end_supplier && $generate['pfm_id'] == $end_product_family) {
                     $purchase_request_no = $end_purchase_request_no;
                     $no++;
-                }else{
-                    $purchase_request_no = $this->purchaseRequestNo("PRMC-IND".@trim($supplier_no.date("Ym")). "-" .trim($generate['pfm_id']));
+                } else {
+                    $purchase_request_no = $this->purchaseRequestNo("PRMC-IND" . @trim($supplier_no . date("Ym")) . "-" . trim($generate['pfm_id']));
                     $no = 1;
                 }
 
                 $forecast_min = $this->forecast($item_id, $filter_month, $filter_year, @$forecast_row_min->revision);
                 $forecast_plus = $this->forecast($item_id, $filter_month, $filter_year, @$forecast_row->revision);
-                
-                if(round($generate['total_need']) > 0 && $generate['moq'] > 0){
+
+                if (round($generate['total_need']) > 0 && $generate['moq'] > 0) {
                     $final = ($generate['total_need'] + $generate['safety_stock']);
                     $purchase_order = (ceil($final / $generate['moq']) * $generate['moq']);
-                }else{
+                } else {
                     $purchase_order = 0;
                 }
 
@@ -250,9 +266,9 @@ class Purchase_request extends CI_Controller
                 // }
 
                 $split = ($purchase_order * ($generate['share_order'] / 100));
-                if($split > 0){
+                if ($split > 0) {
                     $purchase_request = (ceil($split / $generate['moq']) * $generate['moq']);
-                }else{
+                } else {
                     $purchase_request = 0;
                 }
 
@@ -303,6 +319,7 @@ class Purchase_request extends CI_Controller
             $filter_supplier_id = base64_decode($this->input->get('filter_supplier_id'));
             $filter_product_family = base64_decode($this->input->get('filter_product_family'));
             $filter_part_no = trim(base64_decode($this->input->get('filter_part_no')));
+            $filter_pr = trim(base64_decode($this->input->get('filter_pr')));
 
             $page = $this->input->post('page');
             $rows = $this->input->post('rows');
@@ -323,6 +340,7 @@ class Purchase_request extends CI_Controller
             $this->db->like('a.supplier_id', $filter_supplier_id);
             $this->db->like('a.product_family', $filter_product_family);
             $this->db->like('a.part_no', $filter_part_no);
+            $this->db->like('a.purchase_request_no', $filter_pr);
             $this->db->group_by('a.purchase_request_no');
             $this->db->order_by('a.purchase_request_no', 'ASC');
             //Total Data
@@ -401,39 +419,39 @@ class Purchase_request extends CI_Controller
         $total_need = 0;
         foreach ($records as $data) {
             $item_id = $data['part_no'];
-            $leadtime = date('Y-m-01', strtotime('+'.$data['leadtime'].' days', strtotime($ending)));
+            $leadtime = date('Y-m-01', strtotime('+' . $data['leadtime'] . ' days', strtotime($ending)));
 
             //Purchase History
             $qpo1 = $this->db->query("SELECT DATE_FORMAT(purchase_order_date, '%Y-%m') as period, SUM(qty) as qty FROM purchase_orders WHERE DATE_FORMAT(purchase_order_date, '%Y-%m') IN ('$po_date_1','$po_date_2','$po_date_3') and item_id = '$item_id' GROUP BY DATE_FORMAT(purchase_order_date, '%Y-%m') ORDER BY DATE_FORMAT(purchase_order_date, '%Y-%m') asc");
             $rpo1 = $qpo1->result_array();
-            
+
             $m1 = date('Y-m-01', strtotime($leadtime));
             $m2 = date('Y-m-01', strtotime('+1 month', strtotime($leadtime)));
             $m3 = date('Y-m-01', strtotime('+2 month', strtotime($leadtime)));
-            $m11 = "m".date('n', strtotime($leadtime));
-            $m22 = "m".date('n', strtotime('+1 month', strtotime($leadtime)));
-            $m33 = "m".date('n', strtotime('+2 month', strtotime($leadtime)));
+            $m11 = "m" . date('n', strtotime($leadtime));
+            $m22 = "m" . date('n', strtotime('+1 month', strtotime($leadtime)));
+            $m33 = "m" . date('n', strtotime('+2 month', strtotime($leadtime)));
 
             $qmps1 = $this->db->query("SELECT `period`, SUM(qty) as qty FROM generate_mrp WHERE `period` IN ('$m1','$m2','$m3') and product_no = '$item_id' and revision = '$revision' and p_month = '$filter_month' and p_year = '$filter_year' GROUP BY `period` ORDER BY `period` ASC");
             $rpms1 = $qmps1->result_array();
 
             $forecast = $this->forecast($item_id, $filter_month, $filter_year, @$revision);
 
-            if(@$rpms1[0]['qty'] > 0){
+            if (@$rpms1[0]['qty'] > 0) {
                 $prod1 = @$rpms1[0]['qty'];
-            }else{
+            } else {
                 $prod1 = @$forecast->$m11;
             }
 
-            if(@$rpms1[1]['qty'] > 0){
+            if (@$rpms1[1]['qty'] > 0) {
                 $prod2 = @$rpms1[1]['qty'];
-            }else{
+            } else {
                 $prod2 = @$forecast->$m22;
             }
 
-            if(@$rpms1[2]['qty'] > 0){
+            if (@$rpms1[2]['qty'] > 0) {
                 $prod3 = @$rpms1[2]['qty'];
-            }else{
+            } else {
                 $prod3 = @$forecast->$m33;
             }
 
@@ -472,8 +490,8 @@ class Purchase_request extends CI_Controller
         //Mapping Data
         $result['total'] = $totalRows;
         $result = array_merge($result, [
-        'rows' => $finals, 
-        'footer' => array([
+            'rows' => $finals,
+            'footer' => array([
                 "part_no" => "Grand Total",
                 "purchase_request" => $total_purchase_request,
                 "purchase_order" => $total_purchase_order,
@@ -497,7 +515,8 @@ class Purchase_request extends CI_Controller
         echo json_encode($result);
     }
 
-    public function datatableConfirm(){
+    public function datatableConfirm()
+    {
         //Select Query
         $this->db->select('a.*, b.name as supplier_name, SUM(a.qty) as total_qty');
         $this->db->from('purchase_orders a');
@@ -533,22 +552,23 @@ class Purchase_request extends CI_Controller
                 "purchase_request_no" => $post['purchase_request_no']
             ]);
 
-            if(count($records) > 0){
+            if (count($records) > 0) {
                 show_error("Duplicate Item ID");
-            }else{
+            } else {
                 $send = $this->api->create('purchase_requests', $post, "PR", "JUTA");
                 echo $send;
             }
         }
     }
 
-    public function updateConfirm(){
+    public function updateConfirm()
+    {
         if ($this->input->post()) {
             $purchase_request_no = $this->input->post('purchase_request_no');
             $item_id = $this->input->post('item_id');
-            
+
             $this->db->update('purchase_orders', ["status_edit" => 0], ["purchase_request_no" => $purchase_request_no, "item_id" => $item_id]);
-            
+
             echo json_encode(array("message" => "success"));
         }
     }
@@ -576,8 +596,8 @@ class Purchase_request extends CI_Controller
 
             //     echo $send;
             // } else {
-                $send = $this->api->create('purchase_requests', $post, "PR", "JUTA");
-                echo $send;
+            $send = $this->api->create('purchase_requests', $post, "PR", "JUTA");
+            echo $send;
             // }
         }
     }
@@ -622,6 +642,7 @@ class Purchase_request extends CI_Controller
             $filter_supplier_id = base64_decode($this->input->get('filter_supplier_id'));
             $filter_product_family = base64_decode($this->input->get('filter_product_family'));
             $filter_part_no = trim(base64_decode($this->input->get('filter_part_no')));
+            $filter_pr = trim(base64_decode($this->input->get('filter_pr')));
 
             $month_0 =  date('M Y', strtotime($filter_year . "-" . $filter_month . "-01"));
             $month_1 =  date('M Y', strtotime('+1 month', strtotime($filter_year . "-" . $filter_month . "-01")));
@@ -641,6 +662,7 @@ class Purchase_request extends CI_Controller
             $this->db->like('a.supplier_id', $filter_supplier_id);
             $this->db->like('a.product_family', $filter_product_family);
             $this->db->like('a.part_no', $filter_part_no);
+            $this->db->like('a.purchase_request_no', $filter_pr);
             $this->db->order_by('a.part_no', 'ASC');
             $records = $this->db->get()->result_array();
 
@@ -706,67 +728,66 @@ class Purchase_request extends CI_Controller
                         <th rowspan="2" style="text-align:center;">REASON</th>
                     </tr>
                     <tr>
-                        <th style="text-align:center;">'.$month_min_3.'</th>
-                        <th style="text-align:center;">'.$month_min_2.'</th>
-                        <th style="text-align:center;">'.$month_min_1.'</th>
-                        <th style="text-align:center;">'.$month_min_3.'</th>
-                        <th style="text-align:center;">'.$month_min_2.'</th>
-                        <th style="text-align:center;">'.$month_min_1.'</th>
-                        <th style="text-align:center;">'.$month_1.'</th>
-                        <th style="text-align:center;">'.$month_2.'</th>
-                        <th style="text-align:center;">'.$month_3.'</th>
+                        <th style="text-align:center;">' . $month_min_3 . '</th>
+                        <th style="text-align:center;">' . $month_min_2 . '</th>
+                        <th style="text-align:center;">' . $month_min_1 . '</th>
+                        <th style="text-align:center;">' . $month_min_3 . '</th>
+                        <th style="text-align:center;">' . $month_min_2 . '</th>
+                        <th style="text-align:center;">' . $month_min_1 . '</th>
+                        <th style="text-align:center;">' . $month_1 . '</th>
+                        <th style="text-align:center;">' . $month_2 . '</th>
+                        <th style="text-align:center;">' . $month_3 . '</th>
                     </tr>';
 
-                    $no = 1;
+            $no = 1;
 
-                    $productTotals = [];
-                    foreach ($records as $record) {
-                        $product = $record['part_no'];
-                        $shareOrder = $record['share_order'];
-                        $productTotals[$product] = isset($productTotals[$product]) ? $productTotals[$product] + $shareOrder : $shareOrder;
-                    }
-                    foreach ($records as $record) {
-                        $class = ($productTotals[$record['part_no']] >= 100) ? 'red' : '';
-                        if($class == ""){
-                            $style = "style='background:#FFD2D2;'";
-                        }else{
-                            $style = "";
-                        }
+            $productTotals = [];
+            foreach ($records as $record) {
+                $product = $record['part_no'];
+                $shareOrder = $record['share_order'];
+                $productTotals[$product] = isset($productTotals[$product]) ? $productTotals[$product] + $shareOrder : $shareOrder;
+            }
+            foreach ($records as $record) {
+                $class = ($productTotals[$record['part_no']] >= 100) ? 'red' : '';
+                if ($class == "") {
+                    $style = "style='background:#FFD2D2;'";
+                } else {
+                    $style = "";
+                }
 
-                        $html .= "  <tr ".$style.">
-                                        <td>".$no."</td>
-                                        <td>".$record['p_year'] . $record['p_month']."</td>
-                                        <td>".$record['revision']."</td>
-                                        <td>".$record['supplier_name']."</td>
-                                        <td style='mso-number-format:\@;'>".trim($record['part_no'])."</td>
-                                        <td>".$record['part_name']."</td>
-                                        <td>".$record['product_family']."</td>
-                                        <td>".$record['share_order']."</td>
-                                        <td>".$record['mpq']."</td>
-                                        <td>".$record['moq']."</td>
-                                        <td>".$record['leadtime']."</td>
-                                        <td style='text-align:right;'>".round($record['total_need'])."</td>
-                                        <td style='text-align:right;'>".round($record['purchase_order'])."</td>
-                                        <td style='text-align:right;'>".round($record['purchase_request'])."</td>
+                $html .= "  <tr " . $style . ">
+                                        <td>" . $no . "</td>
+                                        <td>" . $record['p_year'] . $record['p_month'] . "</td>
+                                        <td>" . $record['revision'] . "</td>
+                                        <td>" . $record['supplier_name'] . "</td>
+                                        <td style='mso-number-format:\@;'>" . trim($record['part_no']) . "</td>
+                                        <td>" . $record['part_name'] . "</td>
+                                        <td>" . $record['product_family'] . "</td>
+                                        <td>" . $record['share_order'] . "</td>
+                                        <td>" . $record['mpq'] . "</td>
+                                        <td>" . $record['moq'] . "</td>
+                                        <td>" . $record['leadtime'] . "</td>
+                                        <td style='text-align:right;'>" . round($record['total_need']) . "</td>
+                                        <td style='text-align:right;'>" . round($record['purchase_order']) . "</td>
+                                        <td style='text-align:right;'>" . round($record['purchase_request']) . "</td>
                                         <td style='text-align:right;'>0</td>
                                         <td style='text-align:right;'>0</td>
                                         <td style='text-align:right;'>0</td>
                                         <td style='text-align:right;'>0</td>
-                                        <td style='text-align:right;'>".round($record['forecast_m3'])."</td>
-                                        <td style='text-align:right;'>".round($record['forecast_m2'])."</td>
-                                        <td style='text-align:right;'>".round($record['forecast_m1'])."</td>
-                                        <td style='text-align:right;'>".round($record['forecast_plus_1'])."</td>
-                                        <td style='text-align:right;'>".round($record['forecast_plus_2'])."</td>
-                                        <td style='text-align:right;'>".round($record['forecast_plus_3'])."</td>
-                                        <td style='text-align:right;'>".round($record['forecast_avg'])."</td>
-                                        <td style='text-align:right;'>".round($record['reason'])."</td>
+                                        <td style='text-align:right;'>" . round($record['forecast_m3']) . "</td>
+                                        <td style='text-align:right;'>" . round($record['forecast_m2']) . "</td>
+                                        <td style='text-align:right;'>" . round($record['forecast_m1']) . "</td>
+                                        <td style='text-align:right;'>" . round($record['forecast_plus_1']) . "</td>
+                                        <td style='text-align:right;'>" . round($record['forecast_plus_2']) . "</td>
+                                        <td style='text-align:right;'>" . round($record['forecast_plus_3']) . "</td>
+                                        <td style='text-align:right;'>" . round($record['forecast_avg']) . "</td>
+                                        <td style='text-align:right;'>" . round($record['reason']) . "</td>
                                     </tr>";
-                        $no++;
-                    }
+                $no++;
+            }
 
             $html .= '</table></body></html>';
             echo $html;
         }
     }
 }
-?>
