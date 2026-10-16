@@ -2,6 +2,12 @@
 date_default_timezone_set("Asia/Bangkok");
 defined('BASEPATH') or exit('No direct script access allowed');
 
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+
 class Approvals extends CI_Controller
 {
     public function __construct()
@@ -10,16 +16,17 @@ class Approvals extends CI_Controller
         $this->load->helper('url');
         $this->load->helper(array('form', 'url'));
         $this->load->library('form_validation');
+        $this->load->library('spreadsheet_lib');
         $this->load->library('session');
         $this->load->model('api');
     }
 
     public function approveall()
     {
-        if(empty($this->session->username)){
+        if (empty($this->session->username)) {
             die(json_encode(array("title" => "Expired", "message" => "Session has been expired", "theme" => "error")));
         }
-        
+
         $approved_to = $this->input->post('approved_to');
         $approved_by = $this->input->post('approved_by');
         $created_by = $this->input->post('created_by');
@@ -52,16 +59,21 @@ class Approvals extends CI_Controller
             "approved_to" => $users_id,
             "approved" => $approved,
         );
+
         $where = ["approved_to" => $approved_to, "approved_by" => $approved_by];
 
-        if ($table_name == "temp_vendor_contract" && empty($approved)) {
+        if ($table_name == "temp_vendor_contract" && empty($users_id)) {
             $values["status"] = 1;
             $where["status"] = 0;
 
-            foreach ($filters as $key => $value) { $where[$key] = $value; }
+            foreach ($filters as $key => $value) {
+                $where[$key] = $value;
+            }
 
             $send = $this->processApprove("temp_vendor_contract", $where);
-        } else { $send = true; }
+        } else {
+            $send = true;
+        }
 
         if ($send) {
             $this->db->update($table_name, $values, $where);
@@ -71,12 +83,14 @@ class Approvals extends CI_Controller
             }
 
             echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
-        } else { echo log_message('error', 'There is an error in your system or data'); }
+        } else {
+            echo log_message('error', 'There is an error in your system or data');
+        }
     }
 
     public function approve()
     {
-        if(empty($this->session->username)){
+        if (empty($this->session->username)) {
             die(json_encode(array("title" => "Expired", "message" => "Session has been expired", "theme" => "error")));
         }
 
@@ -110,12 +124,25 @@ class Approvals extends CI_Controller
             "approved" => $approved,
         );
 
+        $valueLog = array(
+            "table_name" => $tablename,
+            "table_id" => $id,
+            "approved_by" => $this->session->username,
+            "approved_date" => date('Y-m-d H:i:s'),
+            "approved_to" => $users_id,
+            "approved" => $approved,
+            "approved_data" => json_encode($data),
+            "status" => "APPROVED",
+        );
+
         if (in_array($tablename, [
             "temp_vendor_contract"
-        ]) && empty($approved)) {
+        ]) && empty($users_id)) {
             $values["status"] = 1;
             $send = $this->processApprove($tablename, ["id" => $id]);
         }
+
+        $this->db->insert('approval_logs', $valueLog);
         $send = $this->db->update($tablename, $values, ["id" => $id]);
         if ($send) {
             echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
@@ -143,6 +170,7 @@ class Approvals extends CI_Controller
                     "mpq" => $temp->mpq,
                     "spq" => $temp->spq,
                     "moq" => $temp->moq,
+                    "incoterm_code" => $temp->incoterm_code,
                     "price" => $temp->price,
                     "currency" => $temp->currency,
                     "start_date" => $temp->start_date,
@@ -152,16 +180,19 @@ class Approvals extends CI_Controller
                     "share_order" => $temp->share_order,
                     "leadtime" => $temp->leadtime,
                     "remarks" => $temp->remarks,
-                    "calculate" => $temp->calculate,
-                    "purchase" => $temp->purchase,
-                    "safety_stock" => $temp->safety_stock,
+                    "calculate" => $temp->calculate ?? 0,
+                    "purchase" => $temp->purchase ?? 0,
+                    "safety_stock" => $temp->safety_stock ?? 0,
                     "provide" => $temp->provide,
                     "quotation_number" => $temp->quotation_number,
                     "quotation_date" => $temp->quotation_date
                 ];
 
-                if (!empty($find)) { $send = $this->api->update("supplier_items", ["id" => $find->id], $data, "log"); }
-                else { $send = $this->api->create("supplier_items", $data, "ID", "log", "log"); }
+                if (!empty($find)) {
+                    $send = $this->api->update("supplier_items", ["id" => $find->id], $data, "log");
+                } else {
+                    $send = $this->api->create("supplier_items", $data, "ID", "log", "log");
+                }
 
                 $data_prices = json_decode($temp->data_prices, true);
                 if (!empty($data_prices) && $send) {
@@ -171,7 +202,9 @@ class Approvals extends CI_Controller
                     $send = $this->api->create('supplier_item_prices', $data_prices, "SPI", "supplier_item_prices", "log");
                 }
 
-                if (!$send) { break; }
+                if (!$send) {
+                    break;
+                }
             }
             // die($this->db->last_query());
         } elseif ($table == "new_part_price_procurements") {
@@ -215,12 +248,18 @@ class Approvals extends CI_Controller
                 }
             }
 
-            if (!$send) { $this->crm->trans_rollback(); }
-            else { $this->crm->trans_commit(); }
+            if (!$send) {
+                $this->crm->trans_rollback();
+            } else {
+                $this->crm->trans_commit();
+            }
         }
 
-        if (!$send) { $this->db->trans_rollback(); }
-        else { $this->db->trans_commit(); }
+        if (!$send) {
+            $this->db->trans_rollback();
+        } else {
+            $this->db->trans_commit();
+        }
 
         return $send;
     }
@@ -238,10 +277,10 @@ class Approvals extends CI_Controller
             $data = json_decode($read->approved_data, false);
 
             if (empty($data)) {
-                if($table_name == "supplier_items"){
+                if ($table_name == "supplier_items") {
                     // $this->api->delete("supplier_item_prices", ["supplier_item_id" => $id]);
                     $this->api->delete($table_name, ["id" => $id]);
-                }else{
+                } else {
                     $this->api->delete($table_name, ["id" => $id]);
                 }
             } else {
@@ -262,17 +301,29 @@ class Approvals extends CI_Controller
         $data = json_decode($read->approved_data, false);
         $merge = @array_merge((array) $read, array("disapprove" => $message));
 
+        $valueLog = array(
+            "table_name" => $tablename,
+            "table_id" => $id,
+            "approved_by" => $this->session->username,
+            "approved_date" => date('Y-m-d H:i:s'),
+            "approved_to" => "-",
+            "approved" => "-",
+            "approved_data" => json_encode($read),
+            "status" => "DISAPPROVED",
+        );
+
         /* Default */
         if (empty($data)) {
-            if($tablename == "temp_vendor_contract"){
+            if ($tablename == "temp_vendor_contract") {
                 $this->api->update("temp_vendor_contract", ["id" => $id], ["status" => 2, "reason" => $reason]);
-            }else{
+            } else {
                 $this->api->delete($tablename, ["id" => $id]);
             }
         } else {
             $send = $this->db->update($tablename, $data, ["id" => $id]);
         }
 
+        $this->db->insert('approval_logs', $valueLog);
         $this->api->create("notification", [
             "id_user" => $this->session->username,
             "table_name" => $tablename,
@@ -468,9 +519,13 @@ class Approvals extends CI_Controller
         if ($table == 'temp_vendor_contract') {
             $name = 'VMS - Price Quotation';
 
-            $this->db->select("MIN(created_date) AS min")
-            ->from($table)->where(["approved_to" => $approved_to]);
-            $date = ' on '.$this->db->get()->row()->min;
+            $this->db->select("MIN(created_date) AS min, supplier_id")
+                ->from($table)->where(["approved_to" => $approved_to]);
+            $get = $this->db->get()->row();
+            $date = ' on ' . $get->min;
+
+            $this->db->distinct()->select("name")->from("suppliers")->where(["id" => $get->supplier_id]);
+            $user_name = $this->db->get()->row()->name;
         }
         if ($table == 'new_part_price_procurements') {
             $create_name = $this->api->read('new_part_price_procurements', [], ["approved_to" => $approved_to]);
@@ -1047,7 +1102,7 @@ class Approvals extends CI_Controller
         $result = array_merge($result, ['rows' => $records]);
         echo json_encode($result);
     }
-    
+
     public function approvalRequestNpd($approved_to, $created_by, $approved_by)
     {
         $approved_to = base64_decode($approved_to);
@@ -1683,7 +1738,9 @@ class Approvals extends CI_Controller
         $this->db->from('supplier_items a');
         $this->db->join('suppliers b', 'a.supplier_id = b.id');
         $this->db->join('mst_maker c', 'a.maker_code = c.number');
-        $this->db->join("(SELECT MAX(id) AS max, supplier_id, item_id, mpq, moq, leadtime FROM supplier_items_log GROUP BY supplier_id, item_id, mpq, moq, leadtime) d", 'a.item_id = d.item_id AND a.supplier_id = d.supplier_id', "LEFT");
+        $this->db->join("(SELECT a.item_id, a.supplier_id, a.mpq, a.moq, a.leadtime 
+            FROM supplier_items_log a 
+            JOIN (SELECT MAX(id) AS id FROM supplier_items_log GROUP BY item_id, supplier_id) b ON a.id = b.id) d", 'a.item_id = d.item_id AND a.supplier_id = d.supplier_id', "LEFT");
         $this->db->where('a.approved_to', $approved_to);
         $this->db->where('a.approved_by', $approved_by);
         if (@count($filters) > 0) {
@@ -1697,6 +1754,7 @@ class Approvals extends CI_Controller
                 }
             }
         }
+        // $this->db->group_by('a.id');
         $this->db->order_by('a.created_date', 'desc');
         // die($this->db->get_compiled_select());
         //Total Data
@@ -1729,35 +1787,35 @@ class Approvals extends CI_Controller
 
         //Select Query
         $this->db->select(
-            "a.quotation_number,".
-            "a.quotation_date,".
-            "a.item_id,".
-            "b.name as supplier_name,".
-            "c.name as maker_name,".
-            "d.*,".
-            "COALESCE(e.price, 0) AS price_last,".
-            "CASE WHEN COALESCE(e.price, 0) = 0 THEN 0 ELSE (d.price - COALESCE(e.price, 0)) END AS balance_price,".
-            "CASE ".
-                "WHEN (CASE WHEN COALESCE(e.price, 0) = 0 THEN 0 ELSE (d.price - COALESCE(e.price, 0)) END) > 0 THEN 'Increase'".
-                "WHEN (CASE WHEN COALESCE(e.price, 0) = 0 THEN 0 ELSE (d.price - COALESCE(e.price, 0)) END) < 0 THEN 'Decrease'".
-                "ELSE 'New Price'".
-            "END AS status_price,".
-            "e.valid_date AS valid_date_bf"
+            "a.quotation_number," .
+                "a.quotation_date," .
+                "a.item_id," .
+                "b.name as supplier_name," .
+                "c.name as maker_name," .
+                "d.*," .
+                "COALESCE(e.price, 0) AS price_last," .
+                "CASE WHEN COALESCE(e.price, 0) = 0 THEN 0 ELSE (d.price - COALESCE(e.price, 0)) END AS balance_price," .
+                "CASE " .
+                "WHEN (CASE WHEN COALESCE(e.price, 0) = 0 THEN 0 ELSE (d.price - COALESCE(e.price, 0)) END) > 0 THEN 'Increase'" .
+                "WHEN (CASE WHEN COALESCE(e.price, 0) = 0 THEN 0 ELSE (d.price - COALESCE(e.price, 0)) END) < 0 THEN 'Decrease'" .
+                "ELSE 'New Price'" .
+                "END AS status_price," .
+                "e.valid_date AS valid_date_bf"
         );
         $this->db->from('supplier_items a');
         $this->db->join('suppliers b', 'a.supplier_id = b.id');
         $this->db->join('mst_maker c', 'a.maker_code = c.number');
         $this->db->join('supplier_item_prices d', 'a.id = d.supplier_item_id');
-        $this->db->join("(".
-            "SELECT b.item_id, b.supplier_id, a.price, a.valid_date FROM supplier_item_prices_log a ".
-            "JOIN ( ".
-                "SELECT MAX(a.id) AS id, c.item_id, c.supplier_id, a.price ".
-                "FROM supplier_item_prices_log a ".
-                "JOIN supplier_item_prices b ON a.supplier_item_id = b.id ".
-                "JOIN supplier_items c ON b.supplier_item_id = c.id ".
-                "WHERE b.approved_to != '' GROUP BY c.item_id, c.supplier_id ".
+        $this->db->join("(" .
+            "SELECT b.item_id, b.supplier_id, a.price, a.valid_date FROM supplier_item_prices_log a " .
+            "JOIN ( " .
+            "SELECT MAX(a.id) AS id, c.item_id, c.supplier_id, a.price " .
+            "FROM supplier_item_prices_log a " .
+            "JOIN supplier_item_prices b ON a.supplier_item_id = b.id " .
+            "JOIN supplier_items c ON b.supplier_item_id = c.id " .
+            "WHERE b.approved_to != '' GROUP BY c.item_id, c.supplier_id " .
             ") b ON a.id = b.id"
-        .") e", 'a.item_id = e.item_id AND a.supplier_id = e.supplier_id', "LEFT");
+            . ") e", 'a.item_id = e.item_id AND a.supplier_id = e.supplier_id', "LEFT");
         $this->db->where('d.approved_to', $approved_to);
         $this->db->where('d.approved_by', $approved_by);
         if (@count($filters) > 0) {
@@ -1880,6 +1938,8 @@ class Approvals extends CI_Controller
         $filters = json_decode($this->input->post('filterRules'));
         $page = $this->input->post('page');
         $rows = $this->input->post('rows');
+        $sort = (!empty($this->input->post('sort'))) ? $this->input->post('sort') : 'created_date';
+        $order = (!empty($this->input->post('order'))) ? $this->input->post('order') : 'desc';
 
         //Pagination 1-10
         $page   = isset($page) ? intval($page) : 1;
@@ -1887,63 +1947,302 @@ class Approvals extends CI_Controller
         $offset = ($page - 1) * $rows;
         $result = array();
 
+        $validate_suggestion = [
+            "COALESCE(a.mpq, 0) = COALESCE(d.mpq, 0)",
+            "COALESCE(a.moq, 0) = COALESCE(d.moq, 0)",
+            "COALESCE(a.leadtime, 0) = COALESCE(d.leadtime, 0)",
+            "COALESCE(TRIM(a.currency), '') = COALESCE(TRIM(d.currency), '')",
+            "COALESCE(a.price, 0) = COALESCE(d.price_last, 0)"
+        ];
+        $mpq_status = "(CASE WHEN " . $validate_suggestion[0] . " THEN 'OK' ELSE 'CHECK' END)";
+        $moq_status = "(CASE WHEN " . $validate_suggestion[1] . " THEN 'OK' ELSE 'CHECK' END)";
+        $leadtime_status = "(CASE WHEN " . $validate_suggestion[2] . " THEN 'OK' ELSE 'CHECK' END)";
+        $currency_status = "(CASE WHEN " . $validate_suggestion[3] . " THEN 'OK' ELSE 'CHECK' END)";
+        $price_status = "(CASE WHEN " . $validate_suggestion[4] . " THEN 'OK' ELSE 'CHECK' END)";
+        $suggestion = "(CASE WHEN " . (implode(" AND ", $validate_suggestion)) . " THEN 'OK' ELSE 'CHECK' END)";
+
         $wheres = ["a.approved_to" => $approved_to, "a.approved_by" => $approved_by, "a.status" => 0];
         $likes = [];
         if (@count($filters) > 0) {
             foreach ($filters as $filter) {
-                $key = "a.".$filter->field;
-                if ($filter->field == "supplier_name") { $key = "b.name"; }
-                elseif ($filter->field == "maker_name") { $key = "c.name"; }
-                elseif ($filter->field == "status_price") { $key = "(CASE ".
-                    "WHEN (CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END) > 0 THEN 'Increase'".
-                    "WHEN (CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END) < 0 THEN 'Decrease'".
-                    "ELSE 'New Price'".
-                "END)"; }
+                $key = "a." . $filter->field;
+                if ($filter->field == "supplier_name") {
+                    $key = "b.name";
+                } elseif ($filter->field == "maker_name") {
+                    $key = "c.name";
+                } elseif ($filter->field == "status_price") {
+                    $key = "(CASE " .
+                        "WHEN (CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END) > 0 THEN 'Increase'" .
+                        "WHEN (CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END) < 0 THEN 'Decrease'" .
+                        "ELSE 'New Price'" .
+                        "END)";
+                } elseif ($filter->field == "mpq_status") {
+                    $key = $mpq_status;
+                } elseif ($filter->field == "moq_status") {
+                    $key = $moq_status;
+                } elseif ($filter->field == "leadtime_status") {
+                    $key = $leadtime_status;
+                } elseif ($filter->field == "currency_status") {
+                    $key = $currency_status;
+                } elseif ($filter->field == "price_status") {
+                    $key = $price_status;
+                } elseif ($filter->field == "suggestion") {
+                    $key = $suggestion;
+                }
                 $likes[$key] = $filter->value;
             }
         }
-
+        // die(var_dump($likes));
         //Select Query
-        $this->db->distinct()->select("a.*,".
-            "b.name as supplier_name,".
-            "c.name as maker_name,".
-            "f.name as uom_name,".
-            "COALESCE(d.mpq, 0) AS mpq_bf,".
-            "COALESCE(d.moq, 0) AS moq_bf,".
-            "COALESCE(d.leadtime, 0) AS leadtime_bf,".
-            "COALESCE(d.price_last, 0) AS price_last,".
-            "d.price_date AS price_date,".
-            "CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END AS balance_price,".
-            "CASE ".
-                "WHEN (CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END) > 0 THEN 'Increase'".
-                "WHEN (CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END) < 0 THEN 'Decrease'".
-                "ELSE 'New Price'".
-            "END AS status_price"
+        $this->db->distinct()->select(
+            "a.*," .
+                "b.name as supplier_name," .
+                "c.name as maker_name," .
+                "f.name as uom_name," .
+                "COALESCE(d.mpq, 0) AS mpq_bf," .
+                "COALESCE(d.moq, 0) AS moq_bf," .
+                "COALESCE(d.leadtime, 0) AS leadtime_bf," .
+                "COALESCE(d.price_last, 0) AS price_last," .
+                "d.currency AS currency_bf," .
+                "d.price_date AS price_date," .
+                "CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END AS balance_price," .
+                "CASE " .
+                "WHEN (CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END) > 0 THEN 'Increase'" .
+                "WHEN (CASE WHEN COALESCE(d.price_last, 0) = 0 THEN 0 ELSE (a.price - COALESCE(d.price_last, 0)) END) < 0 THEN 'Decrease'" .
+                "ELSE 'New Price'" .
+                "END AS status_price," .
+                "$mpq_status AS mpq_status," .
+                "$moq_status AS moq_status," .
+                "$leadtime_status AS leadtime_status," .
+                "$currency_status AS currency_status," .
+                "$price_status AS price_status," .
+                "$suggestion AS suggestion"
         )
-        ->from("temp_vendor_contract a")
-        ->join("suppliers b", "a.supplier_id = b.id")
-        ->join("mst_maker c", "a.maker_code = c.number")
-        ->join("(".
-            "SELECT DISTINCT x.*, aa.price AS price_last, aa.valid_date AS price_date ".
-            "FROM supplier_items x ".
-            "JOIN (SELECT supplier_item_id, MAX(valid_date) AS max FROM supplier_item_prices GROUP BY supplier_item_id) y ON x.id = y.supplier_item_id ".
-            "JOIN (SELECT supplier_item_id, valid_date, MAX(start_date) AS max FROM supplier_item_prices GROUP BY supplier_item_id, valid_date) z ON x.id = z.supplier_item_id AND y.max = z.valid_date ".
-            "JOIN supplier_item_prices aa ON x.id = aa.supplier_item_id AND y.max = aa.valid_date AND z.max = aa.start_date".
-        ") d", "a.item_id = d.item_id AND a.supplier_id = d.supplier_id", "LEFT")
-        ->join("mst_item_raw e", "e.item_id = a.item_id", "LEFT")
-        ->join("uom f", "e.um_id = f.number", "LEFT")
-        ->where($wheres)->like($likes)->order_by("created_date", "desc");
+            ->from("temp_vendor_contract a")
+            ->join("suppliers b", "a.supplier_id = b.id")
+            ->join("mst_maker c", "a.maker_code = c.number")
+            ->join("(" .
+                "SELECT DISTINCT x.*, aa.price AS price_last, aa.valid_date AS price_date " .
+                "FROM supplier_items x " .
+                "JOIN (SELECT supplier_item_id, MAX(valid_date) AS max FROM supplier_item_prices GROUP BY supplier_item_id) y ON x.id = y.supplier_item_id " .
+                "JOIN (SELECT supplier_item_id, valid_date, MAX(start_date) AS max FROM supplier_item_prices GROUP BY supplier_item_id, valid_date) z ON x.id = z.supplier_item_id AND y.max = z.valid_date " .
+                "JOIN supplier_item_prices aa ON x.id = aa.supplier_item_id AND y.max = aa.valid_date AND z.max = aa.start_date" .
+                ") d", "a.item_id = d.item_id AND a.supplier_id = d.supplier_id", "LEFT")
+            ->join("mst_item_raw e", "e.item_id = a.item_id", "LEFT")
+            ->join("uom f", "e.um_id = f.number", "LEFT")
+            ->where($wheres)->like($likes)->order_by($sort, $order);
         // die($this->db->get_compiled_select());
-        //Total Data
-        $totalRows = $this->db->count_all_results("", false);
-        //Limit 1 - 10
-        $this->db->limit($rows, $offset);
-        //Get Data Array
-        $records = $this->db->get()->result_array();
-        //Mapping Data
-        $result['total'] = $totalRows;
-        $result = array_merge($result, ['rows' => $records]);
-        echo json_encode($result);
+
+        if (empty($this->input->get("excel"))) {
+            //Total Data
+            $totalRows = $this->db->count_all_results("", false);
+            //Limit 1 - 10
+            $this->db->limit($rows, $offset);
+            //Get Data Array
+            $records = $this->db->get()->result_array();
+            //Mapping Data
+            $result['total'] = $totalRows;
+            $result = array_merge($result, ['rows' => $records]);
+            echo json_encode($result);
+        } else {
+            $sheet = 0;
+            $excel = $this->spreadsheet_lib->newSpreadsheet();
+            $spreadsheet = $excel->getActiveSheet($sheet);
+            $excel->getProperties()->setCreator('Pixelphy')
+                ->setLastModifiedBy('Pixelphy')
+                ->setTitle('Office 2007 XLSX Test Document')
+                ->setSubject('Office 2007 XLSX Test Document')
+                ->setDescription('Test document for Office 2007 XLSX, generated using PHP classes.')
+                ->setKeywords('office 2007 openxml php')
+                ->setCategory('PT ASKARA TEHNO INDONESIA');
+
+            $style_row = [
+                'alignment' => ['horizontal' => 'left', 'vertical' => 'center'],
+                'borders' => [
+                    'top' => ['borderStyle' => Border::BORDER_THIN],
+                    'left' => ['borderStyle' => Border::BORDER_THIN],
+                    'right' => ['borderStyle' => Border::BORDER_THIN],
+                    'bottom' => ['borderStyle' => Border::BORDER_THIN]
+                ]
+            ];
+            $style_center = ['alignment' => ['horizontal' => 'center', 'vertical' => 'center']];
+            $style_right = ['alignment' => ['horizontal' => 'right', 'vertical' => 'center']];
+            $style_row_center = array_merge($style_row, $style_center);
+            $style_row_right = array_merge($style_row, $style_right);
+
+            $style_col = array_merge($style_row, [
+                'font' => ['bold' => true],
+                'alignment' => ['horizontal' => 'center', 'vertical' => 'center']
+            ]);
+
+            // $drawing = new Drawing();
+            // $drawing->setName('Logo');
+            // $drawing->setDescription('Company Logo');
+            // $drawing->setPath(FCPATH.'assets/image/config/logo/1741863196.png');
+            // $drawing->setWidth(50);
+            // $drawing->setHeight(50);
+            // $drawing->setCoordinates('A1');
+            // $drawing->setWorksheet($spreadsheet);
+
+            //SHEET 1 ------------------------------------------------------------------------------------------------------------
+            //Coloumn
+            $columns = [['No', 'Quotation No', 'Quotation Date', 'Plant', 'Vendor', 'Item No', 'Item Supplier', 'Maker', 'UOM', 'MPQ', '', '', 'MOQ', '', '', 'Leadtime', '', '', 'Currency', '', '', 'Last Price', '', 'New Price', '', 'Price Status', 'Suggestion', 'Balance Price', 'Price Status', 'Remarks'], ['', '', '', '', '', '', '', '', '', 'Before', 'After', 'Status', 'Before', 'After', 'Status', 'Before', 'After', 'Status', 'Before', 'After', 'Status', 'Valid Date', 'Price', 'Valid Date', 'Price', '', '', '', '', '']];
+            $last_index = count($columns[0]) - 1;
+            $title = 'APPROVAL VMS - PRICE QUOTATION';
+
+            $merges = [];
+            $row_no = 1;
+            foreach ($columns as $index => $column) {
+                $alfa = 'A';
+                $bf_cell = '';
+                foreach ($column as $key => $value) {
+                    $spreadsheet->setCellValue($alfa . $row_no, $value);
+                    $spreadsheet->getStyle($alfa . $row_no)->applyFromArray($style_col);
+
+                    if ($index == 0) {
+                        if (!empty($value)) {
+                            $bf_cell = $alfa . $row_no;
+                            $merges[$bf_cell] = '';
+                        } else {
+                            $merges[$bf_cell] = $alfa . $row_no;
+                        }
+                    } else {
+                        if (empty($value)) {
+                            $merges[$alfa . ($row_no - 1)] = $alfa . $row_no;
+                        }
+                    }
+
+                    $alfa++;
+                }
+                $row_no++;
+            }
+
+            foreach ($merges as $key => $value) {
+                if (!empty($value)) {
+                    $spreadsheet->mergeCells($key . ':' . $value);
+                }
+            }
+
+            $id = base64_decode($this->input->post('id'));
+            $datas = [];
+            foreach ($this->db->get()->result() as $index => $row) {
+                $datas[] = (object) [
+                    "quotation_number" => $row->quotation_number,
+                    "quotation_date" => $row->quotation_date,
+                    "plant" => $row->plant,
+                    "supplier_name" => $row->supplier_name,
+                    "item_id" => $row->item_id,
+                    "item_supplier" => $row->item_supplier,
+                    "maker_name" => $row->maker_name,
+                    "uom_name" => $row->uom_name,
+                    "mpq_bf" => $row->mpq_bf,
+                    "mpq" => $row->mpq,
+                    "mpq_status" => $row->mpq_status,
+                    "moq_bf" => $row->moq_bf,
+                    "moq" => $row->moq,
+                    "moq_status" => $row->moq_status,
+                    "leadtime_bf" => $row->leadtime_bf,
+                    "leadtime" => $row->leadtime,
+                    "leadtime_status" => $row->leadtime_status,
+                    "currency_bf" => $row->currency_bf,
+                    "currency" => $row->currency,
+                    "currency_status" => $row->currency_status,
+                    "price_date" => $row->price_date,
+                    "price_last" => $row->price_last,
+                    "valid_date" => $row->valid_date,
+                    "price" => $row->price,
+                    "price_status" => $row->price_status,
+                    "suggestion" => $row->suggestion,
+                    "balance_price" => $row->balance_price,
+                    "status_price" => $row->status_price,
+                    "remarks" => $row->remarks
+                ];
+            }
+
+            foreach ($datas as $index => $row) {
+                $no = $index + 1;
+                $alfa = 'A';
+
+                $spreadsheet->setCellValue($alfa . $row_no, $no);
+                $spreadsheet->getStyle($alfa . $row_no)->applyFromArray($style_row_center);
+                $spreadsheet->getColumnDimension($alfa)->setAutoSize(true);
+
+                foreach ($row as $key => $value) {
+                    $alfa++;
+
+                    $style = $style_row;
+                    if (in_array($key, ['quotation_date', 'plant', 'price_status', 'suggestion', 'true', 'mpq_status', 'moq_status', 'leadtime_status', 'currency_bf', 'currency', 'currency_status', 'price_date', 'valid_date', 'status_price'])) {
+                        $style = $style_row_center;
+                    }
+                    if (in_array($key, ['balance_price', 'mpq_bf', 'mpq', 'moq_bf', 'moq', 'leadtime_bf', 'leadtime', 'price_last', 'price'])) {
+                        $style = $style_row_right;
+                    }
+
+                    if (in_array($key, ['balance_price', 'price_last', 'price'])) {
+                        $style['font'] = ['bold' => true];
+                        $value = rtrim(number_format($value, 10, '.', ','), '0');
+                    }
+
+                    if (in_array($key, ['mpq_status', 'moq_status', 'leadtime_status', 'currency_status', 'price_status', 'suggestion']) && $value == 'CHECK') {
+                        $style['font'] = ['color' => ['rgb' => 'FF0000']];
+                    }
+
+                    if ($key == 'balance_price') {
+                        $balance_price = floatval($value);
+                    }
+                    if (in_array($key, ['status_price'])) {
+                        $style['fill'] = [
+                            'fillType' => Fill::FILL_SOLID,
+                            'startColor' => ['argb' => 'FFFFFF00']
+                        ];
+                        if ($balance_price != 0) {
+                            if ($balance_price > 0) {
+                                $style['fill']['startColor'] = ['argb' => 'FFFF0000'];
+                                $style['font'] = ['color' => ['rgb' => 'FFFFFF']];
+                            } else {
+                                $style['fill']['startColor'] = ['argb' => 'FF34EB46'];
+                            }
+                        }
+                    }
+
+                    if (in_array($key, ['item_id', 'item_supplier'])) {
+                        $spreadsheet->setCellValueExplicit($alfa . $row_no, $value, DataType::TYPE_STRING);
+                    } else {
+                        $spreadsheet->setCellValue($alfa . $row_no, $value);
+                    }
+                    $spreadsheet->getStyle($alfa . $row_no)->applyFromArray($style);
+                    $spreadsheet->getColumnDimension($alfa)->setAutoSize(true);
+                }
+
+                $row_no++;
+            }
+
+            // Rename worksheet
+            $spreadsheet->setTitle('data table');
+
+            $excel->setActiveSheetIndex(0);
+            // die(json_encode($excel->getActiveSheet()->toArray()));
+
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+
+            // Redirect output to a client’s web browser (Xlsx)
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="' . $title . date(' (Y-m-d)') . '.xlsx"');
+            header('Cache-Control: max-age=0');
+            header('Cache-Control: max-age=1');
+
+            // If you're serving to IE over SSL, then the following may be needed
+            header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+            header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+            header('Cache-Control: cache, must-revalidate');
+            header('Pragma: public');
+
+            $writer = IOFactory::createWriter($excel, 'Xlsx');
+            $writer->save('php://output');
+            exit;
+        }
     }
 
     public function approvalNewPartPriceProcurements($approved_to, $created_by, $approved_by)
@@ -1975,7 +2274,7 @@ class Approvals extends CI_Controller
         $result = array();
         //Select Query
         $this->db->select('*')->from('new_part_price_procurements')
-        ->where(["approved_to" => $approved_to, "approved_by" => $approved_by])->order_by($sort);
+            ->where(["approved_to" => $approved_to, "approved_by" => $approved_by])->order_by($sort);
         //Total Data
         $totalRows = $this->db->count_all_results('', false);
         //Limit 1 - 10

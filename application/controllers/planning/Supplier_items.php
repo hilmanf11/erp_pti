@@ -100,7 +100,8 @@ class Supplier_items extends CI_Controller
         $this->db->join('mst_maker f', 'a.maker_code = f.number', 'left');
         $this->db->join("(SELECT supplier_item_id, price, currency, start_date, valid_date, exchange_rate FROM supplier_item_prices WHERE (supplier_item_id, valid_date) IN (SELECT supplier_item_id, MAX(valid_date) FROM supplier_item_prices GROUP BY supplier_item_id) GROUP BY supplier_item_id) g", 'a.id = g.supplier_item_id', 'left');
         $this->db->join("user h", "a.created_by = h.username", "LEFT");
-        $this->db->join("exchange_rates k", 'k.start_date <= g.valid_date AND k.end_date >= g.valid_date and k.currency = g.currency', 'left');
+        // $this->db->join("exchange_rates k", 'k.start_date <= g.valid_date AND k.end_date >= g.valid_date and k.currency = g.currency', 'left');
+        $this->db->join("exchange_rates k", 'k.start_date = g.start_date and k.currency = g.currency', 'left');
         if ($filter_check == "true") {
             $this->db->join("(SELECT item_id FROM supplier_items GROUP BY item_id HAVING COUNT(*) > 1) i", 'a.item_id = i.item_id');
         }
@@ -951,7 +952,8 @@ class Supplier_items extends CI_Controller
         $this->db->join('mst_maker f', 'a.maker_code = f.number', 'left');
         $this->db->join("(SELECT supplier_item_id, price, currency, start_date, valid_date, exchange_rate FROM supplier_item_prices WHERE (supplier_item_id, valid_date) IN (SELECT supplier_item_id, MAX(valid_date) FROM supplier_item_prices GROUP BY supplier_item_id) GROUP BY supplier_item_id) g", 'a.id = g.supplier_item_id', 'left');
         $this->db->join("user h", "a.created_by = h.username", "LEFT");
-        $this->db->join("exchange_rates k", 'k.start_date <= g.valid_date AND k.end_date >= g.valid_date and k.currency = g.currency', 'left');
+        // $this->db->join("exchange_rates k", 'k.start_date <= g.valid_date AND k.end_date >= g.valid_date and k.currency = g.currency', 'left');
+        $this->db->join("exchange_rates k", 'k.start_date = g.start_date and k.currency = g.currency', 'left');
         if ($filter_check == "true") {
             $this->db->join("(SELECT item_id FROM supplier_items GROUP BY item_id HAVING COUNT(*) > 1) i", 'a.item_id = i.item_id');
         }
