@@ -108,6 +108,38 @@ class Marketing_price extends CI_Controller
         //Limit 1 - 10
         //Get Data Array
         $records = $this->db->get()->result_array();
+        //Filter: share_order > 0, ambil share_order tertinggi & valid_date terbaru per item_id
+        $filtered = [];
+        foreach ($records as $record) {
+            if ($record['share_order'] <= 0) continue;
+            $key = $record['item_id'];
+            if (!isset($filtered[$key])) {
+                $filtered[$key] = ['records' => [$record], 'max_share_order' => $record['share_order'], 'max_valid_date' => $record['valid_date']];
+            } else {
+                $existing = $filtered[$key];
+                if ($record['share_order'] > $existing['max_share_order']) {
+                    $filtered[$key] = ['records' => [$record], 'max_share_order' => $record['share_order'], 'max_valid_date' => $record['valid_date']];
+                } elseif ($record['share_order'] == $existing['max_share_order']) {
+                    if ($record['valid_date'] > $existing['max_valid_date']) {
+                        $filtered[$key] = ['records' => [$record], 'max_share_order' => $record['share_order'], 'max_valid_date' => $record['valid_date']];
+                    } elseif ($record['valid_date'] == $existing['max_valid_date']) {
+                        $filtered[$key]['records'][] = $record;
+                    }
+                }
+            }
+        }
+        // Flatten and average total_price for tied records, output one record per item_id
+        $records = [];
+        foreach ($filtered as $group) {
+            $count = count($group['records']);
+            // Use first record as base
+            $base = $group['records'][0];
+            if ($count > 1) {
+                $base['total_price'] = number_format((float)$base['total_price'] / $count, 4, ".", "");
+            }
+            $records[] = $base;
+        }
+        $totalRows = count($records);
         //Mapping Data
         $arr = [];
         foreach ($records as $record) {
@@ -145,6 +177,7 @@ class Marketing_price extends CI_Controller
                 "maker_name" => $record['maker_name'],
                 "maker_type" => $record['maker_type'],
                 "price" => $record['price'],
+                "share_order" => $record['share_order'],
                 "currency" => $record['currency_converted'],
                 "currency_original" => $record['currency_original'],
                 "start_date" => $record['start_date'],

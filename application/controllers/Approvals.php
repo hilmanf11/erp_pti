@@ -1807,15 +1807,10 @@ class Approvals extends CI_Controller
         $this->db->join('mst_maker c', 'a.maker_code = c.number');
         $this->db->join('supplier_item_prices d', 'a.id = d.supplier_item_id');
         $this->db->join("(" .
-            "SELECT b.item_id, b.supplier_id, a.price, a.valid_date FROM supplier_item_prices_log a " .
-            "JOIN ( " .
-            "SELECT MAX(a.id) AS id, c.item_id, c.supplier_id, a.price " .
-            "FROM supplier_item_prices_log a " .
-            "JOIN supplier_item_prices b ON a.supplier_item_id = b.id " .
-            "JOIN supplier_items c ON b.supplier_item_id = c.id " .
-            "WHERE b.approved_to != '' GROUP BY c.item_id, c.supplier_id " .
-            ") b ON a.id = b.id"
-            . ") e", 'a.item_id = e.item_id AND a.supplier_id = e.supplier_id', "LEFT");
+            "select d.supplier_item_id, d.price, d.valid_date from supplier_item_prices d" .
+            " left join supplier_item_prices d2 on d.supplier_item_id = d2.supplier_item_id and d.id < d2.id" .
+            " group by d.id having count(d2.id) = 1" .
+            ") e", 'a.id = e.supplier_item_id', "LEFT");
         $this->db->where('d.approved_to', $approved_to);
         $this->db->where('d.approved_by', $approved_by);
         if (@count($filters) > 0) {
